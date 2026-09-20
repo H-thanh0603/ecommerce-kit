@@ -188,17 +188,35 @@ export async function deleteCoupon(id: string) {
   await prisma.coupon.delete({ where: { id } });
 }
 
-export async function listOrders(filter?: { email?: string; userId?: string }) {
+export async function listOrders(filter?: {
+  email?: string;
+  userId?: string;
+  status?: string;
+  q?: string;
+}) {
+  const and: Prisma.OrderWhereInput[] = [];
+  if (filter?.status) and.push({ status: filter.status });
+  if (filter?.email || filter?.userId) {
+    and.push({
+      OR: [
+        ...(filter.email ? [{ email: filter.email }] : []),
+        ...(filter.userId ? [{ userId: filter.userId }] : []),
+      ],
+    });
+  }
+  if (filter?.q) {
+    const q = filter.q.trim();
+    and.push({
+      OR: [
+        { code: { contains: q } },
+        { customer: { contains: q } },
+        { email: { contains: q } },
+        { phone: { contains: q } },
+      ],
+    });
+  }
   const rows = await prisma.order.findMany({
-    where:
-      filter?.email || filter?.userId
-        ? {
-            OR: [
-              ...(filter.email ? [{ email: filter.email }] : []),
-              ...(filter.userId ? [{ userId: filter.userId }] : []),
-            ],
-          }
-        : undefined,
+    where: and.length ? { AND: and } : undefined,
     include: { items: true },
     orderBy: { createdAt: "desc" },
   });
@@ -543,21 +561,84 @@ export async function deleteCategory(id: string) {
 }
 
 export async function shopStats() {
-  const [orderCount, productCount, revenueAgg, lowStock] = await Promise.all([
-    prisma.order.count(),
-    prisma.product.count({ where: { published: true } }),
-    prisma.order.aggregate({
-      _sum: { total: true },
-      where: { status: { not: "cancelled" } },
-    }),
-    prisma.sku.count({ where: { stock: { lt: 5 } } }),
-  ]);
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const start7 = new Date(startToday.getTime() - 6 * 86400000);
+  const open: OrderStatus[] = ["pending", "confirmed", "shipping"];
+
+  const [booked, collected, today, month, byStatus, productCount, lowRows, topRows, leadCount, weekOrders] =
+    await Promise.all([
+      prisma.order.aggregate({ _sum: { total: true }, _count: true, where: { status: { not: "cancelled" } } }),
+      prisma.order.aggregate({ _sum: { total: true }, _count: true, where: { status: "completed" } }),
+      prisma.order.aggregate({
+        _sum: { total: true },
+        _count: true,
+        where: { status: { not: "cancelled" }, createdAt: { gte: startToday } },
+      }),
+      prisma.order.aggregate({
+        _sum: { total: true },
+        _count: true,
+        where: { status: { not: "cancelled" }, createdAt: { gte: startMonth } },
+      }),
+      prisma.order.groupBy({ by: ["status"], _count: true, _sum: { total: true } }),
+      prisma.product.count({ where: { published: true } }),
+      prisma.product.findMany({
+        where: { published: true, stock: { lt: 15 } },
+        orderBy: { stock: "asc" },
+        take: 8,
+        include: productInclude,
+      }),
+      prisma.product.findMany({ orderBy: { sold: "desc" }, take: 5, include: productInclude }),
+      prisma.lead.count(),
+      prisma.order.findMany({
+        where: { createdAt: { gte: start7 }, status: { not: "cancelled" } },
+        select: { createdAt: true, total: true },
+      }),
+    ]);
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start7.getTime() + i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    const sum = weekOrders
+      .filter((o) => o.createdAt.toISOString().slice(0, 10) === key)
+      .reduce((s, o) => s + o.total, 0);
+    return { date: key.slice(5), total: sum };
+  });
+
   return {
-    orderCount,
+    orderCount: booked._count,
     productCount,
-    revenue: revenueAgg._sum.total ?? 0,
-    lowStock,
+    revenue: booked._sum.total ?? 0,
+    revenueCollected: collected._sum.total ?? 0,
+    revenueToday: today._sum.total ?? 0,
+    revenueMonth: month._sum.total ?? 0,
+    ordersToday: today._count,
+    ordersOpen: byStatus.filter((s) => open.includes(s.status as OrderStatus)).reduce((n, s) => n + s._count, 0),
+    lowStock: lowRows.length,
+    byStatus: byStatus.map((s) => ({ status: s.status, count: s._count, total: s._sum.total ?? 0 })),
+    lowProducts: lowRows.map(toProduct),
+    topProducts: topRows.map(toProduct),
+    leadCount,
+    days,
   };
+}
+
+export async function listCustomers() {
+  const rows = await prisma.user.findMany({
+    where: { role: "customer" },
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { orders: true } } },
+  });
+  return rows.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    points: u.points,
+    memberTier: u.memberTier,
+    orderCount: u._count.orders,
+    createdAt: u.createdAt.toISOString().slice(0, 10),
+  }));
 }
 
 export async function createLead(data: { name: string; email: string; phone?: string; message: string }) {

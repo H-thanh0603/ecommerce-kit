@@ -3,9 +3,7 @@ import { Be_Vietnam_Pro, Noto_Serif } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/config/site";
 import { Providers } from "@/components/providers";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { ChatWidget } from "@/components/ai/ChatWidget";
+import { AppChrome } from "@/components/layout/AppChrome";
 import { listCategories } from "@/server/commerce";
 
 const sans = Be_Vietnam_Pro({
@@ -36,10 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-full flex flex-col bg-canvas text-ink">
         <style>{`:root{--brand-primary:${theme.primary};--brand-accent:${theme.accent};--brand-ink:${theme.ink};--brand-muted:${theme.muted};--brand-canvas:${theme.canvas};--brand-line:${theme.line};}`}</style>
         <Providers>
-          <Header categories={categories} />
-          <main className="flex-1">{children}</main>
-          <Footer categories={categories} />
-          <ChatWidget />
+          <AppChrome categories={categories}>{children}</AppChrome>
         </Providers>
       </body>
     </html>

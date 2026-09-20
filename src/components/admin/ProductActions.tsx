@@ -20,6 +20,9 @@ export function ProductActions({ product }: { product: Product }) {
   };
   return (
     <span className="flex gap-2 text-xs">
+      <a href={`/admin/san-pham?edit=${product.id}`} className="underline">
+        Sửa
+      </a>
       <button onClick={hide} className="underline">
         {product.published === false ? "Hiện" : "Ẩn"}
       </button>

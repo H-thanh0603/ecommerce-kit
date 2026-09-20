@@ -6,23 +6,37 @@ import { ProductActions } from "@/components/admin/ProductActions";
 import { isEnabled } from "@/config/site";
 import { ExcelButtons } from "@/components/admin/ExcelButtons";
 
-export default async function AdminProducts() {
+export default async function AdminProducts({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; edit?: string; page?: string }>;
+}) {
+  const sp = await searchParams;
   const [result, categories] = await Promise.all([
-    listProducts({ includeUnpublished: true, pageSize: 48 }),
+    listProducts({
+      includeUnpublished: true,
+      q: sp.q,
+      page: Number(sp.page || 1),
+      pageSize: 24,
+    }),
     listCategories(),
   ]);
   const products = result.items;
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-3xl text-primary">Sản phẩm</h1>
-        <div className="flex gap-3 text-sm">
-          {isEnabled("excel") && <ExcelButtons />}
-          <Link href="/admin" className="text-muted">← Dashboard</Link>
-        </div>
+        <div className="flex gap-3 text-sm">{isEnabled("excel") && <ExcelButtons />}</div>
       </div>
-      <p className="mt-2 text-sm text-muted">Thêm/sửa/ẩn/xóa. Ảnh: URL hoặc upload.</p>
-      <ProductEditor categories={categories} products={products} />
+      <form className="mt-4">
+        <input
+          name="q"
+          defaultValue={sp.q}
+          placeholder="Tìm tên, slug, tag…"
+          className="w-full max-w-sm rounded-full border border-line bg-white px-4 py-2 text-sm"
+        />
+      </form>
+      <ProductEditor categories={categories} products={products} initialEditId={sp.edit} />
       <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-white">
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-muted">
@@ -32,6 +46,7 @@ export default async function AdminProducts() {
               <th className="px-4 py-3">Giá</th>
               <th className="px-4 py-3">Tồn</th>
               <th className="px-4 py-3">Đã bán</th>
+              <th className="px-4 py-3">Hiện</th>
               <th className="px-4 py-3"> </th>
             </tr>
           </thead>
@@ -39,7 +54,7 @@ export default async function AdminProducts() {
             {products.map((p) => (
               <tr key={p.id} className="border-t border-line">
                 <td className="px-4 py-3">
-                  <Link href={`/san-pham/${p.slug}`} className="hover:underline">
+                  <Link href={`/admin/san-pham?edit=${p.id}`} className="hover:underline">
                     {p.name}
                   </Link>
                 </td>
@@ -47,12 +62,28 @@ export default async function AdminProducts() {
                 <td className="px-4 py-3">{money(p.price)}</td>
                 <td className="px-4 py-3">{p.stock}</td>
                 <td className="px-4 py-3">{p.sold}</td>
-                <td className="px-4 py-3"><ProductActions product={p} /></td>
+                <td className="px-4 py-3">{p.published === false ? "Ẩn" : "Có"}</td>
+                <td className="px-4 py-3">
+                  <ProductActions product={p} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {result.pages > 1 && (
+        <div className="mt-4 flex gap-2 text-sm">
+          {Array.from({ length: result.pages }, (_, i) => i + 1).map((n) => (
+            <Link
+              key={n}
+              href={{ query: { q: sp.q, page: String(n) } }}
+              className={`rounded-full px-3 py-1 ${n === result.page ? "bg-primary text-white" : "border border-line"}`}
+            >
+              {n}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

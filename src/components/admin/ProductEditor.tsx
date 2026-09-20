@@ -7,14 +7,16 @@ import type { Category, Product } from "@/types";
 export function ProductEditor({
   categories,
   products,
+  initialEditId,
 }: {
   categories: Category[];
   products: Product[];
+  initialEditId?: string;
 }) {
   const router = useRouter();
   const [msg, setMsg] = useState("");
-  const [open, setOpen] = useState(false);
-  const [editId, setEditId] = useState<string>("");
+  const [open, setOpen] = useState(Boolean(initialEditId));
+  const [editId, setEditId] = useState<string>(initialEditId || "");
   const editing = products.find((p) => p.id === editId);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
