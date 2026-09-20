@@ -4,8 +4,8 @@
 
 1. Copy repo thành `ten-khach-2026` (hoặc fork)
 2. Đổi `src/config/site.ts` (brand, theme, nav, flags, COD/CK)
-3. `cp .env.example .env` — đổi `AUTH_SECRET`
-4. Seed: sửa `src/data/catalog.ts` rồi `npm run db:reset`, hoặc nhập SP trên admin
+3. `cp .env.example .env` — đổi `AUTH_SECRET`, `ADMIN_PASSWORD`
+4. `npx prisma migrate deploy && npx tsx prisma/seed.ts` (hoặc nhập SP trên admin)
 5. Bật đúng module trong hợp đồng
 6. Yêu cầu lạ (booking, bán kg, cấu hình PC): thêm module, không đụng checkout lõi
 7. Chatbot / AI Agent: thêm `XAI_API_KEY` (SpaceXAI)

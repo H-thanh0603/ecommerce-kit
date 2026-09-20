@@ -19,8 +19,18 @@ export function AddToCart({ product }: { product: Product }) {
     return product.variants.map((v) => picked[v.id] || v.options[0]).join(" / ");
   }, [picked, product.variants]);
 
+  const sku = useMemo(
+    () => (variantLabel ? product.skus?.find((s) => s.label === variantLabel) : product.skus?.[0]),
+    [product.skus, variantLabel],
+  );
+  const stock = sku?.stock ?? product.stock;
+
   const submit = () => {
-    add(product, qty, variantLabel);
+    if (stock < qty) {
+      setMsg("Không đủ tồn kho");
+      return;
+    }
+    add(product, qty, variantLabel, sku?.id);
     setMsg("Đã thêm vào giỏ hàng");
     setTimeout(() => setMsg(""), 1800);
   };
@@ -80,6 +90,7 @@ export function AddToCart({ product }: { product: Product }) {
           </button>
         )}
       </div>
+      <p className="text-xs text-muted">Còn {stock} sản phẩm{sku ? ` · ${sku.label}` : ""}</p>
       {msg && <p className="text-sm text-primary">{msg}</p>}
     </div>
   );

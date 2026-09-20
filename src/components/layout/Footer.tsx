@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { siteConfig, isEnabled } from "@/config/site";
 import type { Category } from "@/types";
+import { NewsletterForm } from "@/components/layout/NewsletterForm";
 
 export function Footer({ categories }: { categories: Category[] }) {
   return (
@@ -14,17 +15,7 @@ export function Footer({ categories }: { categories: Category[] }) {
                 Ưu đãi và bài viết mới — không spam, huỷ bất cứ lúc nào.
               </p>
             </div>
-            <form className="flex w-full max-w-md gap-2">
-              <input
-                type="email"
-                required
-                placeholder="Email của bạn"
-                className="flex-1 rounded-full bg-white px-4 py-2.5 text-sm text-ink outline-none"
-              />
-              <button className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white">
-                Đăng ký
-              </button>
-            </form>
+            <NewsletterForm />
           </div>
         </div>
       )}

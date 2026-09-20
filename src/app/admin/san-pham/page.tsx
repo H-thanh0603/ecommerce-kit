@@ -2,12 +2,14 @@ import Link from "next/link";
 import { listCategories, listProducts } from "@/server/commerce";
 import { money } from "@/lib/format";
 import { ProductEditor } from "@/components/admin/ProductEditor";
+import { ProductActions } from "@/components/admin/ProductActions";
 
 export default async function AdminProducts() {
-  const [products, categories] = await Promise.all([
-    listProducts({ includeUnpublished: true }),
+  const [result, categories] = await Promise.all([
+    listProducts({ includeUnpublished: true, pageSize: 48 }),
     listCategories(),
   ]);
+  const products = result.items;
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-center justify-between">
@@ -16,8 +18,8 @@ export default async function AdminProducts() {
           ← Dashboard
         </Link>
       </div>
-      <p className="mt-2 text-sm text-muted">Thêm/sửa ghi thẳng vào SQLite. Ảnh dùng URL.</p>
-      <ProductEditor categories={categories} />
+      <p className="mt-2 text-sm text-muted">Thêm/sửa/ẩn/xóa. Ảnh: URL hoặc upload.</p>
+      <ProductEditor categories={categories} products={products} />
       <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-white">
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-muted">
@@ -27,6 +29,7 @@ export default async function AdminProducts() {
               <th className="px-4 py-3">Giá</th>
               <th className="px-4 py-3">Tồn</th>
               <th className="px-4 py-3">Đã bán</th>
+              <th className="px-4 py-3"> </th>
             </tr>
           </thead>
           <tbody>
@@ -41,6 +44,7 @@ export default async function AdminProducts() {
                 <td className="px-4 py-3">{money(p.price)}</td>
                 <td className="px-4 py-3">{p.stock}</td>
                 <td className="px-4 py-3">{p.sold}</td>
+                <td className="px-4 py-3"><ProductActions product={p} /></td>
               </tr>
             ))}
           </tbody>

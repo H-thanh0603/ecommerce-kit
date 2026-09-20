@@ -4,17 +4,19 @@ import { siteConfig } from "@/config/site";
 import Link from "next/link";
 
 type Props = {
-  searchParams: Promise<{ cat?: string; q?: string; sort?: string }>;
+  searchParams: Promise<{ cat?: string; q?: string; sort?: string; page?: string }>;
 };
 
 export const metadata = { title: "Sản phẩm" };
 
 export default async function ProductsPage({ searchParams }: Props) {
   const sp = await searchParams;
-  const [categories, list] = await Promise.all([
+  const page = Number(sp.page || 1);
+  const [categories, result] = await Promise.all([
     listCategories(),
-    listProducts({ q: sp.q, cat: sp.cat, sort: sp.sort }),
+    listProducts({ q: sp.q, cat: sp.cat, sort: sp.sort, page, pageSize: 12 }),
   ]);
+  const list = result.items;
   const currentCat = categories.find((c) => c.slug === sp.cat);
 
   return (
@@ -61,6 +63,19 @@ export default async function ProductsPage({ searchParams }: Props) {
       <div className="mt-8">
         <ProductGrid products={list} />
       </div>
+      {result.pages > 1 && (
+        <div className="mt-8 flex justify-center gap-2 text-sm">
+          {Array.from({ length: result.pages }, (_, i) => i + 1).map((n) => (
+            <Link
+              key={n}
+              href={{ query: { ...sp, page: String(n) } }}
+              className={`rounded-full px-3 py-1.5 ${n === result.page ? "bg-primary text-white" : "border border-line bg-white"}`}
+            >
+              {n}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

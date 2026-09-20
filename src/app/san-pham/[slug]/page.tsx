@@ -71,7 +71,7 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
 
-      <Reviews reviews={productReviews} />
+      <Reviews reviews={productReviews} productId={product.id} />
 
       {isEnabled("relatedProducts") && related.length > 0 && (
         <section className="mt-14">

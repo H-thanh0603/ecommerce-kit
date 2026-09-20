@@ -19,8 +19,9 @@ export default function CheckoutPage() {
   const [applied, setApplied] = useState<Coupon | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [innerCity, setInnerCity] = useState(false);
 
-  const shipRaw = shippingFee(subtotal);
+  const shipRaw = shippingFee(subtotal, { innerCity });
   const ship = applied?.type === "shipping" ? 0 : shipRaw;
   const off = useMemo(() => discountAmount(subtotal, applied || undefined), [applied, subtotal]);
   const total = Math.max(0, subtotal + ship - off);
@@ -37,7 +38,7 @@ export default function CheckoutPage() {
     const res = await fetch("/api/coupons", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, subtotal, email: user?.email }),
     });
     const data = await res.json();
     if (!res.ok) return setError(data.message || "Mã không tồn tại");
@@ -64,6 +65,7 @@ export default function CheckoutPage() {
         note: String(form.get("note") || ""),
         paymentMethod: method,
         couponCode: applied?.code,
+        innerCity,
         items,
       }),
     });
@@ -87,6 +89,10 @@ export default function CheckoutPage() {
               <input required type="email" name="email" defaultValue={user?.email || ""} placeholder="Email" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
               <input required name="address" placeholder="Địa chỉ" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
               <textarea name="note" placeholder="Ghi chú đơn hàng" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" rows={3} />
+              <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                <input type="checkbox" checked={innerCity} onChange={(e) => setInnerCity(e.target.checked)} />
+                Nội thành (phí {money(siteConfig.shipping.innerCityFee)} nếu chưa đạt freeship)
+              </label>
             </div>
           </section>
 

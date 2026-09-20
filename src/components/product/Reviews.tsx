@@ -1,8 +1,9 @@
 import { isEnabled } from "@/config/site";
 import { IconStar } from "@/components/icons";
 import type { Review } from "@/types";
+import { ReviewForm } from "@/components/product/ReviewForm";
 
-export function Reviews({ reviews }: { reviews: Review[] }) {
+export function Reviews({ reviews, productId }: { reviews: Review[]; productId: string }) {
   if (!isEnabled("reviews")) return null;
   const list = reviews;
 
@@ -28,6 +29,7 @@ export function Reviews({ reviews }: { reviews: Review[] }) {
           ))}
         </ul>
       )}
+      <ReviewForm productId={productId} />
     </section>
   );
 }

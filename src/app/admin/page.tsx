@@ -23,8 +23,17 @@ export default async function AdminHome() {
           <Link href="/admin/san-pham" className="rounded-full border border-line bg-white px-3 py-1.5">
             Sản phẩm
           </Link>
+          <Link href="/admin/danh-muc" className="rounded-full border border-line bg-white px-3 py-1.5">
+            Danh mục
+          </Link>
+          <Link href="/admin/ma-giam" className="rounded-full border border-line bg-white px-3 py-1.5">
+            Mã giảm
+          </Link>
           <Link href="/admin/don-hang" className="rounded-full border border-line bg-white px-3 py-1.5">
             Đơn hàng
+          </Link>
+          <Link href="/admin/lien-he" className="rounded-full border border-line bg-white px-3 py-1.5">
+            Hộp thư
           </Link>
           {isEnabled("aiAgent") && (
             <Link href="/admin/ai" className="rounded-full border border-line bg-white px-3 py-1.5">

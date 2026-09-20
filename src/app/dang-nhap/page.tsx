@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { siteConfig } from "@/config/site";
 
@@ -30,7 +31,7 @@ export default function LoginPage() {
         {mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Admin mẫu: {siteConfig.admin.email} (mật khẩu trong HUONG-DAN.md). Khách đăng ký tài khoản mới.
+        Admin: {siteConfig.admin.email} (mật khẩu ADMIN_PASSWORD trong .env).
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-3 rounded-2xl border border-line bg-white p-5">
         {mode === "register" && (
@@ -49,6 +50,11 @@ export default function LoginPage() {
       >
         {mode === "login" ? "Chưa có tài khoản? Đăng ký" : "Đã có tài khoản? Đăng nhập"}
       </button>
+      {mode === "login" && (
+        <Link href="/quen-mat-khau" className="mt-3 block text-sm text-muted underline">
+          Quên mật khẩu
+        </Link>
+      )}
     </div>
   );
 }

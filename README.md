@@ -20,7 +20,12 @@ npm run dev
 
 Mở http://localhost:3000
 
-Admin: `admin@atelier.vn` / `admin123`
+Admin: `ADMIN_EMAIL` / `ADMIN_PASSWORD` trong `.env` (mặc định `admin@atelier.vn` / `admin123`)
+
+```bash
+npm test
+npx prisma migrate deploy
+```
 
 Mã giảm giá: `WELCOME10`, `FREESHIP`, `GIAM50K`
 
