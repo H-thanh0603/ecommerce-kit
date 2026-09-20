@@ -4,6 +4,12 @@ export type ProductVariant = {
   options: string[];
 };
 
+export type ProductSku = {
+  id: string;
+  label: string;
+  stock: number;
+};
+
 export type Product = {
   id: string;
   slug: string;
@@ -21,7 +27,11 @@ export type Product = {
   sold: number;
   featured?: boolean;
   flashSale?: boolean;
+  flashSaleStartsAt?: string;
+  flashSaleEndsAt?: string;
+  published?: boolean;
   variants?: ProductVariant[];
+  skus?: ProductSku[];
 };
 
 export type Category = {
@@ -41,6 +51,7 @@ export type CartItem = {
   price: number;
   quantity: number;
   variantLabel?: string;
+  skuId?: string;
 };
 
 export type OrderStatus =

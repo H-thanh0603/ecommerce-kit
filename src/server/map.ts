@@ -1,4 +1,5 @@
 import type { Article, CartItem, Category, Order, Product, ProductVariant, Review } from "@/types";
+import { isFlashLive } from "@/lib/format";
 
 function parseJson<T>(raw: string, fallback: T): T {
   try {
@@ -16,20 +17,30 @@ type ProductRow = {
   description: string;
   price: number;
   compareAtPrice: number | null;
-  imagesJson: string;
-  tagsJson: string;
-  variantsJson: string;
+  tags: string;
+  optionsJson: string;
   rating: number;
   reviewCount: number;
   stock: number;
   sold: number;
   featured: boolean;
   flashSale: boolean;
+  flashSaleStartsAt: Date | null;
+  flashSaleEndsAt: Date | null;
+  published: boolean;
   category: { slug: string };
+  images?: { url: string; sort: number }[];
+  skus?: { id: string; label: string; stock: number }[];
 };
 
 export function toProduct(row: ProductRow): Product {
-  const variants = parseJson<ProductVariant[]>(row.variantsJson, []);
+  const variants = parseJson<ProductVariant[]>(row.optionsJson, []);
+  const skuStock = row.skus?.reduce((s, k) => s + k.stock, 0);
+  const flash = {
+    flashSale: row.flashSale,
+    flashSaleStartsAt: row.flashSaleStartsAt,
+    flashSaleEndsAt: row.flashSaleEndsAt,
+  };
   return {
     id: row.id,
     slug: row.slug,
@@ -38,16 +49,20 @@ export function toProduct(row: ProductRow): Product {
     description: row.description,
     price: row.price,
     compareAtPrice: row.compareAtPrice ?? undefined,
-    images: parseJson<string[]>(row.imagesJson, []),
+    images: (row.images || []).slice().sort((a, b) => a.sort - b.sort).map((i) => i.url),
     category: row.category.slug,
-    tags: parseJson<string[]>(row.tagsJson, []),
+    tags: row.tags ? row.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
     rating: row.rating,
     reviewCount: row.reviewCount,
-    stock: row.stock,
+    stock: skuStock ?? row.stock,
     sold: row.sold,
     featured: row.featured,
-    flashSale: row.flashSale,
+    flashSale: isFlashLive(flash),
+    flashSaleStartsAt: row.flashSaleStartsAt?.toISOString(),
+    flashSaleEndsAt: row.flashSaleEndsAt?.toISOString(),
+    published: row.published,
     variants: variants.length ? variants : undefined,
+    skus: row.skus,
   };
 }
 
@@ -130,6 +145,7 @@ export function toOrder(row: {
     price: number;
     quantity: number;
     variantLabel: string;
+    skuId?: string | null;
   }>;
 }): Order {
   return {
@@ -149,6 +165,7 @@ export function toOrder(row: {
         price: i.price,
         quantity: i.quantity,
         variantLabel: i.variantLabel || undefined,
+        skuId: i.skuId || undefined,
       }),
     ),
     subtotal: row.subtotal,

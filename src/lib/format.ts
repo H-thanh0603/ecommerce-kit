@@ -8,9 +8,21 @@ export function money(value: number) {
   }).format(value);
 }
 
-export function shippingFee(subtotal: number) {
+export function shippingFee(subtotal: number, opts?: { innerCity?: boolean }) {
   if (subtotal >= siteConfig.shipping.freeFrom) return 0;
-  return siteConfig.shipping.defaultFee;
+  return opts?.innerCity ? siteConfig.shipping.innerCityFee : siteConfig.shipping.defaultFee;
+}
+
+export function isFlashLive(p: {
+  flashSale?: boolean;
+  flashSaleStartsAt?: string | Date | null;
+  flashSaleEndsAt?: string | Date | null;
+}) {
+  if (!p.flashSale) return false;
+  const now = Date.now();
+  if (p.flashSaleStartsAt && new Date(p.flashSaleStartsAt).getTime() > now) return false;
+  if (p.flashSaleEndsAt && new Date(p.flashSaleEndsAt).getTime() < now) return false;
+  return true;
 }
 
 export function discountAmount(
