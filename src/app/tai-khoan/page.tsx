@@ -17,6 +17,7 @@ const statusLabel: Record<string, string> = {
 export default function AccountPage() {
   const { user, logout, ready } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [member, setMember] = useState<{ points: number; tierLabel: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -24,6 +25,10 @@ export default function AccountPage() {
       .then((r) => r.json())
       .then((d) => setOrders(d.orders || []))
       .catch(() => setOrders([]));
+    fetch("/api/member")
+      .then((r) => r.json())
+      .then((d) => setMember(d.member))
+      .catch(() => {});
   }, [user]);
 
   if (!ready) return <p className="px-4 py-20 text-center text-muted">Đang tải…</p>;
@@ -45,7 +50,10 @@ export default function AccountPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="font-serif text-4xl text-primary">Xin chào, {user.name}</h1>
-          <p className="mt-1 text-sm text-muted">{user.email}</p>
+          <p className="mt-1 text-sm text-muted">
+            {user.email}
+            {member ? ` · Hạng ${member.tierLabel} · ${member.points} điểm` : ""}
+          </p>
         </div>
         <div className="flex gap-2">
           {user.role === "admin" && (

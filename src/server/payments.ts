@@ -8,11 +8,12 @@ export type PaymentResult = {
   ok: boolean;
   paymentStatus: PaymentStatus;
   message: string;
+  payUrl?: string;
 };
 
 export type PaymentProvider = {
   key: string;
-  charge(order: { code: string; total: number }): Promise<PaymentResult>;
+  charge(order: { code: string; total: number; ip?: string }): Promise<PaymentResult>;
 };
 
 const cod: PaymentProvider = {
@@ -38,8 +39,17 @@ const stubs: Record<string, PaymentProvider> = {
   },
   vnpay: {
     key: "vnpay",
-    async charge() {
-      return { ok: false, paymentStatus: "failed", message: "Chưa gắn khóa VNPay — thêm adapter tại src/server/payments.ts" };
+    async charge(order) {
+      const { buildVnpayUrl, vnpayConfigured } = await import("@/server/vnpay");
+      if (!vnpayConfigured()) {
+        return { ok: false, paymentStatus: "failed", message: "Chưa có VNPAY_TMN_CODE / VNPAY_HASH_SECRET" };
+      }
+      return {
+        ok: true,
+        paymentStatus: "pending",
+        message: "Chuyển cổng VNPay",
+        payUrl: buildVnpayUrl(order, order.ip),
+      };
     },
   },
   zalopay: {
@@ -60,7 +70,7 @@ export function getPaymentProvider(key: string) {
   return providers[key];
 }
 
-export async function processPayment(method: string, order: { code: string; total: number }) {
+export async function processPayment(method: string, order: { code: string; total: number; ip?: string }) {
   const provider = getPaymentProvider(method);
   if (!provider) {
     return { ok: false, paymentStatus: "failed" as const, message: "Phương thức thanh toán không hỗ trợ" };

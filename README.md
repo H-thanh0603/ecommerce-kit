@@ -51,6 +51,9 @@ Sản phẩm mẫu nằm ở `src/data/catalog.ts` (dùng khi seed). Sau seed, C
 | Query / đơn | `src/server/commerce.ts` |
 | Auth | `src/server/auth.ts` |
 | AI | `src/server/ai.ts` |
+| VNPay | `src/server/vnpay.ts` + `payments.vnpay.enabled` |
+| GHN | `src/server/shipping.ts` + `features.ghn` |
+| Hóa đơn / membership / so sánh / kg / lịch / kho / Excel | flag trong `site.features` |
 | Module mới | flag trong `site.ts` + đăng ký `src/lib/modules.ts` |
 
 Xem `HUONG-DAN.md`.

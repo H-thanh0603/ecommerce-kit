@@ -2,8 +2,12 @@ import { prisma } from "@/server/db";
 import { toArticle, toCategory, toOrder, toProduct, toReview } from "@/server/map";
 import { processPayment } from "@/server/payments";
 import { onOrderCreated, onOrderStatusChanged } from "@/server/events";
-import { discountAmount, shippingFee } from "@/lib/format";
-import type { CartItem, OrderStatus, Product, ProductVariant } from "@/types";
+import { discountAmount } from "@/lib/format";
+import { quoteShipping } from "@/server/shipping";
+import { isEnabled } from "@/config/site";
+import { defaultWarehouse } from "@/server/warehouse";
+import { discountFromPoints, grantOrderPoints, spendPoints } from "@/server/membership";
+import { lineAmount, type CartItem, type OrderStatus, type Product, type ProductVariant } from "@/types";
 import type { Prisma } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { revalidateTag } from "next/cache";
@@ -48,7 +52,9 @@ export async function listProducts(opts?: {
   pageSize?: number;
 }) {
   const page = Math.max(1, opts?.page || 1);
-  const pageSize = Math.min(48, Math.max(1, opts?.pageSize || 24));
+  const pageSize = opts?.ids?.length
+    ? Math.max(opts.ids.length, 1)
+    : Math.min(48, Math.max(1, opts?.pageSize || 24));
   const where: Prisma.ProductWhereInput = {
     published: opts?.includeUnpublished ? undefined : true,
   };
@@ -212,6 +218,10 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
   });
   const order = toOrder(row);
   await onOrderStatusChanged(order, status);
+  if (status === "completed" && isEnabled("membership") && row.userId) {
+    const g = await grantOrderPoints(row.userId, order.total);
+    await prisma.order.update({ where: { id }, data: { pointsEarned: g.earned } });
+  }
   return order;
 }
 
@@ -226,6 +236,10 @@ type CheckoutInput = {
   items: CartItem[];
   userId?: string;
   innerCity?: boolean;
+  ip?: string;
+  pointsToUse?: number;
+  toDistrictId?: number;
+  toWardCode?: string;
 };
 
 export async function nextOrderSeq(tx: Prisma.TransactionClient) {
@@ -239,6 +253,11 @@ export async function nextOrderSeq(tx: Prisma.TransactionClient) {
 
 export async function createOrder(input: CheckoutInput) {
   if (!input.items.length) throw new Error("Giỏ hàng trống");
+  if (input.paymentMethod === "vnpay") {
+    const { vnpayConfigured } = await import("@/server/vnpay");
+    if (!vnpayConfigured()) throw new Error("Chưa cấu hình VNPay (.env VNPAY_*)");
+  }
+  const warehouse = isEnabled("multiWarehouse") ? await defaultWarehouse() : null;
 
   const ids = [...new Set(input.items.map((i) => i.productId))];
   const dbProducts = await prisma.product.findMany({
@@ -269,11 +288,22 @@ export async function createOrder(input: CheckoutInput) {
     };
   });
 
-  const subtotal = lines.reduce((s, l) => s + l.product.price * l.quantity, 0);
+  const subtotal = lines.reduce(
+    (s, l) => s + lineAmount(l.product.price, l.quantity, l.product.unit === "kg" ? "kg" : "cai"),
+    0,
+  );
   const coupon = input.couponCode
     ? await assertCoupon(input.couponCode, subtotal, input.email, input.userId)
     : null;
-  const shipRaw = shippingFee(subtotal, { innerCity: input.innerCity });
+  const weightGrams = lines.reduce((s, l) => s + (l.product.weightGrams || 500) * (l.product.unit === "kg" ? 1 : l.quantity), 0);
+  const quote = await quoteShipping({
+    subtotal,
+    innerCity: input.innerCity,
+    weightGrams,
+    toDistrictId: input.toDistrictId,
+    toWardCode: input.toWardCode,
+  });
+  const shipRaw = quote.fee;
   const ship = coupon?.type === "shipping" ? 0 : shipRaw;
   const off = coupon
     ? discountAmount(subtotal, {
@@ -282,10 +312,11 @@ export async function createOrder(input: CheckoutInput) {
         minOrder: coupon.minOrder,
       })
     : 0;
-  const total = Math.max(0, subtotal + ship - off);
-
-  const pay = await processPayment(input.paymentMethod, { code: "pending", total });
-  if (!pay.ok) throw new Error(pay.message);
+  let pointsDiscount = 0;
+  if (isEnabled("membership") && input.userId && input.pointsToUse) {
+    pointsDiscount = discountFromPoints(input.pointsToUse);
+  }
+  const total = Math.max(0, subtotal + ship - off - pointsDiscount);
 
   const order = await prisma.$transaction(async (tx) => {
     const seq = await nextOrderSeq(tx);
@@ -336,9 +367,11 @@ export async function createOrder(input: CheckoutInput) {
         discount: off,
         total,
         paymentMethod: input.paymentMethod,
-        paymentStatus: pay.paymentStatus,
+        paymentStatus: input.paymentMethod === "vnpay" ? "pending" : "unpaid",
         status: "pending",
         couponCode: coupon?.code,
+        pointsUsed: input.pointsToUse || 0,
+        warehouseId: warehouse?.id,
         items: {
           create: lines.map((l) => ({
             productId: l.product.id,
@@ -375,7 +408,19 @@ export async function createOrder(input: CheckoutInput) {
 
   const mapped = toOrder(order);
   await onOrderCreated(mapped);
-  return mapped;
+  if (isEnabled("membership") && input.userId && input.pointsToUse) {
+    await spendPoints(input.userId, input.pointsToUse);
+  }
+  let payUrl: string | undefined;
+  if (input.paymentMethod === "vnpay") {
+    const pay = await processPayment("vnpay", { code: mapped.code, total: mapped.total, ip: input.ip });
+    if (!pay.ok) throw new Error(pay.message);
+    payUrl = pay.payUrl;
+  } else {
+    const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total });
+    if (!pay.ok) throw new Error(pay.message);
+  }
+  return Object.assign(mapped, { payUrl });
 }
 
 export async function upsertProduct(data: {
@@ -396,6 +441,7 @@ export async function upsertProduct(data: {
   flashSaleEndsAt?: Date | null;
   published?: boolean;
   variants?: Product["variants"];
+  unit?: "cai" | "kg";
 }) {
   const category = await prisma.category.findUnique({ where: { slug: data.categorySlug } });
   if (!category) throw new Error("Danh mục không tồn tại");
@@ -416,6 +462,7 @@ export async function upsertProduct(data: {
     flashSaleStartsAt: data.flashSaleStartsAt ?? null,
     flashSaleEndsAt: data.flashSaleEndsAt ?? null,
     published: data.published ?? true,
+    unit: data.unit || "cai",
     categoryId: category.id,
   };
 

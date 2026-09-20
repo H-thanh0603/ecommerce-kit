@@ -82,4 +82,13 @@ export const moduleCatalog = [
     flag: "aiAgent",
     files: ["src/app/admin/ai/page.tsx", "src/server/ai.ts"],
   },
+  { id: "vnpay", name: "VNPay", included: true, files: ["src/server/vnpay.ts"] },
+  { id: "ghn", name: "GHN vận chuyển", flag: "ghn", files: ["src/server/shipping.ts"] },
+  { id: "invoices", name: "Hóa đơn", flag: "invoices", files: ["src/server/invoice.ts"] },
+  { id: "membership", name: "Thành viên / điểm", flag: "membership", files: ["src/server/membership.ts"] },
+  { id: "compare", name: "So sánh sản phẩm", flag: "compare", files: ["src/app/so-sanh"] },
+  { id: "sell-kg", name: "Bán theo kg", flag: "sellByWeight", files: ["src/types/index.ts"] },
+  { id: "booking", name: "Đặt lịch", flag: "booking", files: ["src/app/dat-lich"] },
+  { id: "warehouse", name: "Đa kho", flag: "multiWarehouse", files: ["src/server/warehouse.ts"] },
+  { id: "excel", name: "Excel nhập/xuất", flag: "excel", files: ["src/server/excel.ts"] },
 ] as const;

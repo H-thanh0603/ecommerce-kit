@@ -5,12 +5,14 @@ import { isEnabled } from "@/config/site";
 import { money } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { useCompare } from "@/lib/compare";
 import type { Product } from "@/types";
 import { IconHeart, IconHeartFill, IconStar } from "@/components/icons";
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
   const wishlist = useWishlist();
+  const compare = useCompare();
   const loved = wishlist.has(product.id);
   const off =
     product.compareAtPrice && product.compareAtPrice > product.price
@@ -50,7 +52,7 @@ export function ProductCard({ product }: { product: Product }) {
           </button>
         )}
         <button
-          onClick={() => add(product, 1)}
+          onClick={() => add(product, product.unit === "kg" ? 100 : 1)}
           className="absolute inset-x-3 bottom-3 translate-y-3 rounded-full bg-primary py-2 text-xs font-medium text-white opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100"
         >
           Thêm vào giỏ
@@ -73,6 +75,12 @@ export function ProductCard({ product }: { product: Product }) {
             {product.rating} · {product.reviewCount} đánh giá
           </p>
         )}
+        {isEnabled("compare") && (
+          <button type="button" onClick={() => compare.toggle(product.id)} className="text-xs underline text-muted">
+            {compare.has(product.id) ? "Bỏ so sánh" : "So sánh"}
+          </button>
+        )}
+        {product.unit === "kg" && <p className="text-xs text-muted">Bán theo kg</p>}
       </div>
     </article>
   );

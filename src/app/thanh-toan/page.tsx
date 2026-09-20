@@ -20,6 +20,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [innerCity, setInnerCity] = useState(false);
+  const [usePoints, setUsePoints] = useState(false);
 
   const shipRaw = shippingFee(subtotal, { innerCity });
   const ship = applied?.type === "shipping" ? 0 : shipRaw;
@@ -66,6 +67,7 @@ export default function CheckoutPage() {
         paymentMethod: method,
         couponCode: applied?.code,
         innerCity,
+        pointsToUse: usePoints ? 100 : undefined,
         items,
       }),
     });
@@ -73,6 +75,10 @@ export default function CheckoutPage() {
     setPending(false);
     if (!res.ok) return setError(data.message || "Không đặt được hàng");
     clear();
+    if (data.payUrl) {
+      window.location.href = data.payUrl;
+      return;
+    }
     router.push(`/dat-hang-thanh-cong?code=${data.order.code}`);
   };
 
@@ -93,6 +99,12 @@ export default function CheckoutPage() {
                 <input type="checkbox" checked={innerCity} onChange={(e) => setInnerCity(e.target.checked)} />
                 Nội thành (phí {money(siteConfig.shipping.innerCityFee)} nếu chưa đạt freeship)
               </label>
+              {isEnabled("membership") && user && (
+                <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                  <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} />
+                  Dùng 100 điểm thành viên (−{money(1000)})
+                </label>
+              )}
             </div>
           </section>
 

@@ -3,6 +3,8 @@ import { listCategories, listProducts } from "@/server/commerce";
 import { money } from "@/lib/format";
 import { ProductEditor } from "@/components/admin/ProductEditor";
 import { ProductActions } from "@/components/admin/ProductActions";
+import { isEnabled } from "@/config/site";
+import { ExcelButtons } from "@/components/admin/ExcelButtons";
 
 export default async function AdminProducts() {
   const [result, categories] = await Promise.all([
@@ -14,9 +16,10 @@ export default async function AdminProducts() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-3xl text-primary">Sản phẩm</h1>
-        <Link href="/admin" className="text-sm text-muted">
-          ← Dashboard
-        </Link>
+        <div className="flex gap-3 text-sm">
+          {isEnabled("excel") && <ExcelButtons />}
+          <Link href="/admin" className="text-muted">← Dashboard</Link>
+        </div>
       </div>
       <p className="mt-2 text-sm text-muted">Thêm/sửa/ẩn/xóa. Ảnh: URL hoặc upload.</p>
       <ProductEditor categories={categories} products={products} />

@@ -35,6 +35,21 @@ export default async function AdminHome() {
           <Link href="/admin/lien-he" className="rounded-full border border-line bg-white px-3 py-1.5">
             Hộp thư
           </Link>
+          {isEnabled("booking") && (
+            <Link href="/admin/dat-lich" className="rounded-full border border-line bg-white px-3 py-1.5">
+              Đặt lịch
+            </Link>
+          )}
+          {isEnabled("multiWarehouse") && (
+            <Link href="/admin/kho" className="rounded-full border border-line bg-white px-3 py-1.5">
+              Kho
+            </Link>
+          )}
+          {isEnabled("invoices") && (
+            <Link href="/admin/hoa-don" className="rounded-full border border-line bg-white px-3 py-1.5">
+              Hóa đơn
+            </Link>
+          )}
           {isEnabled("aiAgent") && (
             <Link href="/admin/ai" className="rounded-full border border-line bg-white px-3 py-1.5">
               AI Agent

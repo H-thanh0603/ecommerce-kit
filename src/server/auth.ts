@@ -64,6 +64,8 @@ export async function loginUser(email: string, password: string) {
     name: user.name,
     email: user.email,
     role: user.role === "admin" ? "admin" : "customer",
+    points: user.points,
+    memberTier: user.memberTier,
   };
   await setSessionCookie(session);
   return { ok: true as const, message: "Đăng nhập thành công", user: session };

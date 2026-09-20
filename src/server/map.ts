@@ -28,6 +28,8 @@ type ProductRow = {
   flashSaleStartsAt: Date | null;
   flashSaleEndsAt: Date | null;
   published: boolean;
+  unit: string;
+  weightGrams: number;
   category: { slug: string };
   images?: { url: string; sort: number }[];
   skus?: { id: string; label: string; stock: number }[];
@@ -63,6 +65,8 @@ export function toProduct(row: ProductRow): Product {
     published: row.published,
     variants: variants.length ? variants : undefined,
     skus: row.skus,
+    unit: row.unit === "kg" ? "kg" : "cai",
+    weightGrams: row.weightGrams,
   };
 }
 

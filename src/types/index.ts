@@ -32,6 +32,8 @@ export type Product = {
   published?: boolean;
   variants?: ProductVariant[];
   skus?: ProductSku[];
+  unit?: "cai" | "kg";
+  weightGrams?: number;
 };
 
 export type Category = {
@@ -52,6 +54,7 @@ export type CartItem = {
   quantity: number;
   variantLabel?: string;
   skuId?: string;
+  unit?: "cai" | "kg";
 };
 
 export type OrderStatus =
@@ -102,4 +105,11 @@ export type UserSession = {
   name: string;
   email: string;
   role: "customer" | "admin";
+  points?: number;
+  memberTier?: string;
 };
+
+export function lineAmount(price: number, quantity: number, unit?: string) {
+  if (unit === "kg") return Math.round((price * quantity) / 1000);
+  return price * quantity;
+}

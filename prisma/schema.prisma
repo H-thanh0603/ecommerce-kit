@@ -19,6 +19,9 @@ model User {
   wishlist     WishlistItem[]
   redemptions  CouponRedemption[]
   resets       PasswordReset[]
+  bookings     Booking[]
+  points       Int                @default(0)
+  memberTier   String             @default("dong")
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 }
@@ -51,6 +54,8 @@ model Product {
   flashSaleStartsAt DateTime?
   flashSaleEndsAt   DateTime?
   published         Boolean         @default(true)
+  unit              String          @default("cai")
+  weightGrams       Int             @default(500)
   categoryId        String
   category          Category        @relation(fields: [categoryId], references: [id])
   images            ProductImage[]
@@ -60,6 +65,7 @@ model Product {
   cartLines         CartLine[]
   wishlist          WishlistItem[]
   stockMoves        StockMovement[]
+  warehouseStocks   WarehouseStock[]
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -156,7 +162,13 @@ model Order {
   paymentStatus String      @default("unpaid")
   status        String      @default("pending")
   couponCode    String?
+  warehouseId   String?
+  warehouse     Warehouse?  @relation(fields: [warehouseId], references: [id])
+  ghnOrderCode  String      @default("")
+  pointsUsed    Int         @default(0)
+  pointsEarned  Int         @default(0)
   items         OrderItem[]
+  invoice       Invoice?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -268,4 +280,62 @@ model MailLog {
 model OrderCounter {
   id    String @id
   value Int    @default(0)
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  number    String   @unique
+  buyerName String
+  buyerTax  String   @default("")
+  issuedAt  DateTime @default(now())
+}
+
+model Warehouse {
+  id        String           @id @default(cuid())
+  code      String           @unique
+  name      String
+  address   String           @default("")
+  isDefault Boolean          @default(false)
+  stocks    WarehouseStock[]
+  orders    Order[]
+}
+
+model WarehouseStock {
+  id          String     @id @default(cuid())
+  warehouseId String
+  warehouse   Warehouse  @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  skuKey      String     @default("")
+  stock       Int        @default(0)
+
+  @@unique([warehouseId, productId, skuKey])
+}
+
+model BookingService {
+  id          String    @id @default(cuid())
+  name        String
+  durationMin Int       @default(60)
+  price       Int
+  active      Boolean   @default(true)
+  bookings    Booking[]
+}
+
+model Booking {
+  id        String         @id @default(cuid())
+  serviceId String
+  service   BookingService @relation(fields: [serviceId], references: [id])
+  userId    String?
+  user      User?          @relation(fields: [userId], references: [id])
+  name      String
+  email     String
+  phone     String
+  startsAt  DateTime
+  note      String         @default("")
+  status    String         @default("pending")
+  createdAt DateTime       @default(now())
+
+  @@index([startsAt])
 }

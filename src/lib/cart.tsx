@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import type { CartItem, Product } from "@/types";
+import { lineAmount, type CartItem, type Product } from "@/types";
 
 const KEY = "atelier.cart.v1";
 
@@ -81,6 +81,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             quantity,
             variantLabel,
             skuId,
+            unit: product.unit,
           },
         ];
       });
@@ -108,7 +109,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<CartContextValue>(() => {
     const count = items.reduce((s, i) => s + i.quantity, 0);
-    const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+    const subtotal = items.reduce((s, i) => s + lineAmount(i.price, i.quantity, i.unit), 0);
     return { items, add, remove, setQty, clear, count, subtotal };
   }, [items, add, remove, setQty, clear]);
 

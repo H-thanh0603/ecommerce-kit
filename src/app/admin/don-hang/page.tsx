@@ -2,6 +2,8 @@ import Link from "next/link";
 import { listOrders } from "@/server/commerce";
 import { OrderStatusForm } from "@/components/admin/OrderStatusForm";
 import { money } from "@/lib/format";
+import { isEnabled } from "@/config/site";
+import { IssueInvoiceButton } from "@/components/admin/IssueInvoiceButton";
 
 export default async function AdminOrders() {
   const orders = await listOrders();
@@ -31,6 +33,7 @@ export default async function AdminOrders() {
               ))}
             </ul>
             <p className="mt-3 text-sm font-medium">Tổng {money(o.total)}</p>
+            {isEnabled("invoices") && <IssueInvoiceButton orderId={o.id} />}
           </article>
         ))}
       </div>

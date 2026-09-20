@@ -81,6 +81,11 @@ export function Header({ categories }: { categories: Category[] }) {
               />
             </form>
           )}
+          {isEnabled("compare") && (
+            <Link href="/so-sanh" className="hidden text-xs underline sm:inline">
+              So sánh
+            </Link>
+          )}
           {isEnabled("wishlist") && (
             <Link href="/yeu-thich" className="relative" aria-label="Yêu thích">
               <IconHeart className="h-5 w-5" />

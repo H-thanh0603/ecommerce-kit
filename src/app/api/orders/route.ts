@@ -25,6 +25,7 @@ const checkoutSchema = z.object({
   paymentMethod: z.string(),
   couponCode: z.string().optional(),
   innerCity: z.boolean().optional(),
+  pointsToUse: z.number().optional(),
   items: z.array(itemSchema).min(1),
 });
 
@@ -54,8 +55,9 @@ export async function POST(req: Request) {
     const order = await createOrder({
       ...parsed.data,
       userId: session?.id,
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1",
     });
-    return NextResponse.json({ order });
+    return NextResponse.json({ order, payUrl: order.payUrl });
   } catch (e) {
     return NextResponse.json({ message: e instanceof Error ? e.message : "Không đặt được hàng" }, { status: 400 });
   }

@@ -10,7 +10,8 @@ import { IconHeart, IconHeartFill } from "@/components/icons";
 export function AddToCart({ product }: { product: Product }) {
   const { add } = useCart();
   const wishlist = useWishlist();
-  const [qty, setQty] = useState(1);
+  const step = product.unit === "kg" ? 100 : 1;
+  const [qty, setQty] = useState(step);
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState("");
 
@@ -62,11 +63,13 @@ export function AddToCart({ product }: { product: Product }) {
 
       <div className="flex items-center gap-3">
         <div className="flex items-center rounded-full border border-line bg-white">
-          <button className="px-3 py-2" onClick={() => setQty((q) => Math.max(1, q - 1))}>
+          <button className="px-3 py-2" onClick={() => setQty((q) => Math.max(step, q - step))}>
             −
           </button>
-          <span className="w-8 text-center text-sm">{qty}</span>
-          <button className="px-3 py-2" onClick={() => setQty((q) => q + 1)}>
+          <span className="min-w-10 text-center text-sm">
+            {product.unit === "kg" ? `${(qty / 1000).toFixed(1)}kg` : qty}
+          </span>
+          <button className="px-3 py-2" onClick={() => setQty((q) => q + step)}>
             +
           </button>
         </div>

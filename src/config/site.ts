@@ -44,6 +44,8 @@ export const siteConfig = {
   nav: [
     { href: "/san-pham", label: "Sản phẩm" },
     { href: "/tin-tuc", label: "Journal", feature: "blog" as const },
+    { href: "/so-sanh", label: "So sánh", feature: "compare" as const },
+    { href: "/dat-lich", label: "Đặt lịch", feature: "booking" as const },
     { href: "/lien-he", label: "Liên hệ" },
   ],
 
@@ -65,6 +67,22 @@ export const siteConfig = {
     guestCheckout: true,
     aiChatbot: true,
     aiAgent: true,
+    compare: true,
+    membership: true,
+    invoices: true,
+    excel: true,
+    booking: true,
+    sellByWeight: true,
+    multiWarehouse: true,
+    ghn: false,
+  },
+
+  membership: {
+    dong: { min: 0, label: "Đồng" },
+    bac: { min: 500, label: "Bạc" },
+    vang: { min: 2000, label: "Vàng" },
+    pointPerVnd: 1000,
+    vndPerPoint: 10,
   },
 
   payments: {

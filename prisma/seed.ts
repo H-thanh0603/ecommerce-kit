@@ -15,6 +15,11 @@ function cartesian(groups: { options: string[] }[]) {
 }
 
 async function main() {
+  await prisma.booking.deleteMany();
+  await prisma.bookingService.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.warehouseStock.deleteMany();
+  await prisma.warehouse.deleteMany();
   await prisma.couponRedemption.deleteMany();
   await prisma.cartLine.deleteMany();
   await prisma.wishlistItem.deleteMany();
@@ -171,6 +176,36 @@ async function main() {
     });
   }
   await prisma.orderCounter.create({ data: { id: "order", value: seq } });
+
+  const wh = await prisma.warehouse.create({
+    data: { code: "HCM", name: "Kho TP.HCM", address: "Q.1, TP.HCM", isDefault: true },
+  });
+  const allProducts = await prisma.product.findMany({ include: { skus: true } });
+  for (const p of allProducts) {
+    if (p.skus.length) {
+      for (const s of p.skus) {
+        await prisma.warehouseStock.create({
+          data: { warehouseId: wh.id, productId: p.id, skuKey: s.label, stock: s.stock },
+        });
+      }
+    } else {
+      await prisma.warehouseStock.create({
+        data: { warehouseId: wh.id, productId: p.id, skuKey: "", stock: p.stock },
+      });
+    }
+  }
+
+  await prisma.bookingService.createMany({
+    data: [
+      { name: "Tư vấn chọn hàng 30 phút", durationMin: 30, price: 0 },
+      { name: "Styling tại cửa hàng 60 phút", durationMin: 60, price: 150_000 },
+    ],
+  });
+
+  await prisma.product.update({
+    where: { id: "p6" },
+    data: { unit: "kg", price: 240_000, weightGrams: 1000 },
+  });
 
   console.log("Seed xong. Admin:", adminEmail, "/", adminPass);
 }

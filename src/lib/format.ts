@@ -35,6 +35,11 @@ export function discountAmount(
   return 0;
 }
 
+export function qtyLabel(qty: number, unit?: string) {
+  if (unit === "kg") return `${(qty / 1000).toFixed(qty % 100 === 0 ? 1 : 2)} kg`;
+  return `× ${qty}`;
+}
+
 export function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
