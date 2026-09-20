@@ -1,0 +1,94 @@
+export type ProductVariant = {
+  id: string;
+  name: string;
+  options: string[];
+};
+
+export type Product = {
+  id: string;
+  slug: string;
+  name: string;
+  subtitle?: string;
+  description: string;
+  price: number;
+  compareAtPrice?: number;
+  images: string[];
+  category: string;
+  tags: string[];
+  rating: number;
+  reviewCount: number;
+  stock: number;
+  sold: number;
+  featured?: boolean;
+  flashSale?: boolean;
+  variants?: ProductVariant[];
+};
+
+export type Category = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  image: string;
+  productCount: number;
+};
+
+export type CartItem = {
+  productId: string;
+  slug: string;
+  name: string;
+  image: string;
+  price: number;
+  quantity: number;
+  variantLabel?: string;
+};
+
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "shipping"
+  | "completed"
+  | "cancelled";
+
+export type Order = {
+  id: string;
+  code: string;
+  customer: string;
+  email: string;
+  phone: string;
+  address: string;
+  items: CartItem[];
+  subtotal: number;
+  shippingFee: number;
+  discount: number;
+  total: number;
+  paymentMethod: string;
+  status: OrderStatus;
+  createdAt: string;
+  note?: string;
+};
+
+export type Review = {
+  id: string;
+  productId: string;
+  author: string;
+  rating: number;
+  content: string;
+  createdAt: string;
+};
+
+export type Article = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  cover: string;
+  date: string;
+  minutes: number;
+};
+
+export type UserSession = {
+  name: string;
+  email: string;
+  role: "customer" | "admin";
+};
