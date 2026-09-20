@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { siteConfig } from "@/config/site";
-import { getOrderByCode, getProductById, listOrders, listProducts, upsertProduct } from "@/server/commerce";
+import { getOrderByCode, getProductById, listOrders, listProducts } from "@/server/commerce";
 
 const MODEL = "grok-4.6";
 
@@ -17,9 +17,8 @@ function client() {
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
 export async function shopChat(messages: ChatMsg[]) {
-  const products = await listProducts();
+  const products = (await listProducts({ pageSize: 20 })).items;
   const catalog = products
-    .slice(0, 20)
     .map((p) => `- ${p.name} (${p.slug}): ${p.price}đ, còn ${p.stock}`)
     .join("\n");
 
@@ -73,26 +72,14 @@ const agentTools: OpenAI.Chat.ChatCompletionTool[] = [
       parameters: { type: "object", properties: { productId: { type: "string" } }, required: ["productId"] },
     },
   },
-  {
-    type: "function",
-    function: {
-      name: "apply_product_description",
-      description: "Ghi mô tả mới vào sản phẩm (chỉ khi người dùng xác nhận)",
-      parameters: {
-        type: "object",
-        properties: { productId: { type: "string" }, description: { type: "string" } },
-        required: ["productId", "description"],
-      },
-    },
-  },
 ];
 
 async function runTool(name: string, argsJson: string) {
   const args = argsJson ? JSON.parse(argsJson) : {};
   if (name === "list_products") {
-    const list = await listProducts({ q: args.q });
+    const list = (await listProducts({ q: args.q, pageSize: 15 })).items;
     return JSON.stringify(
-      list.slice(0, 15).map((p) => ({ id: p.id, name: p.name, price: p.price, stock: p.stock, slug: p.slug })),
+      list.map((p) => ({ id: p.id, name: p.name, price: p.price, stock: p.stock, slug: p.slug })),
     );
   }
   if (name === "get_order") {
@@ -118,28 +105,7 @@ async function runTool(name: string, argsJson: string) {
     });
     return drafted.choices[0]?.message?.content || "";
   }
-  if (name === "apply_product_description") {
-    const p = await getProductById(String(args.productId));
-    if (!p) return "Không tìm thấy sản phẩm";
-    await upsertProduct({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      subtitle: p.subtitle,
-      description: String(args.description),
-      price: p.price,
-      compareAtPrice: p.compareAtPrice,
-      images: p.images,
-      tags: p.tags,
-      categorySlug: p.category,
-      stock: p.stock,
-      featured: p.featured,
-      flashSale: p.flashSale,
-      variants: p.variants,
-    });
-    return "Đã cập nhật mô tả sản phẩm";
-  }
-  return "Công cụ không hỗ trợ";
+  return "Công cụ không hỗ trợ — ghi mô tả phải bấm xác nhận trên UI, không tự lưu.";
 }
 
 export async function runStoreAgent(messages: ChatMsg[]) {
@@ -150,7 +116,7 @@ export async function runStoreAgent(messages: ChatMsg[]) {
       content:
         `Bạn là AI Agent vận hành cửa hàng ${siteConfig.brand.name}. Tiếng Việt. ` +
         `Dùng tool khi cần dữ liệu thật. Không bịa mã đơn hay tồn kho. ` +
-        `Chỉ gọi apply_product_description khi người dùng rõ ràng muốn lưu.`,
+        `Không tự ghi DB. Nếu soạn mô tả, trả về text để người quản trị bấm lưu.`,
     },
     ...messages,
   ];

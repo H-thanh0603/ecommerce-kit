@@ -6,8 +6,13 @@ export const SESSION_COOKIE = "ek_session";
 export type SessionPayload = UserSession & { id: string };
 
 function secret() {
-  const raw = process.env.AUTH_SECRET || "dev-only-change-me";
-  return new TextEncoder().encode(raw);
+  const raw = process.env.AUTH_SECRET;
+  if (!raw || raw === "dev-only-change-me" || raw === "doi-thanh-chuoi-ngau-nhien-khi-clone") {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SECRET bắt buộc trên production");
+    }
+  }
+  return new TextEncoder().encode(raw || "dev-only-change-me");
 }
 
 export async function signSession(user: SessionPayload) {

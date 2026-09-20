@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { isEnabled } from "@/config/site";
 import { requireAdmin } from "@/server/auth";
 import { aiConfigured, runStoreAgent } from "@/server/ai";
+import { clientKey, rateLimit } from "@/server/rate-limit";
 
 export async function POST(req: Request) {
+  if (!rateLimit(clientKey(req, "ai-agent"), 20, 60_000).ok) {
+    return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
+  }
   if (!isEnabled("aiAgent")) {
     return NextResponse.json({ message: "AI Agent đang tắt" }, { status: 404 });
   }

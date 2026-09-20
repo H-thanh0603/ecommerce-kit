@@ -74,3 +74,45 @@ export async function requireAdmin() {
   if (!session || session.role !== "admin") return null;
   return session;
 }
+
+export async function requestPasswordReset(email: string) {
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  if (!user) return { ok: true as const, message: "Nếu email tồn tại, link đã được gửi." };
+  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+  const tokenHash = await hashPassword(token);
+  await prisma.passwordReset.create({
+    data: {
+      userId: user.id,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    },
+  });
+  const { mailPasswordReset } = await import("@/server/mail");
+  const base = process.env.APP_URL || "http://localhost:3000";
+  await mailPasswordReset(user.email, `${base}/dat-lai-mat-khau?email=${encodeURIComponent(user.email)}&token=${token}`);
+  return { ok: true as const, message: "Nếu email tồn tại, link đã được gửi." };
+}
+
+export async function resetPassword(email: string, token: string, password: string) {
+  if (password.length < 6) return { ok: false as const, message: "Mật khẩu tối thiểu 6 ký tự" };
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  if (!user) return { ok: false as const, message: "Token không hợp lệ" };
+  const rows = await prisma.passwordReset.findMany({
+    where: { userId: user.id, used: false, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
+  let matched = null as (typeof rows)[number] | null;
+  for (const row of rows) {
+    if (await verifyPassword(token, row.tokenHash)) {
+      matched = row;
+      break;
+    }
+  }
+  if (!matched) return { ok: false as const, message: "Token hết hạn hoặc không đúng" };
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password) } }),
+    prisma.passwordReset.update({ where: { id: matched.id }, data: { used: true } }),
+  ]);
+  return { ok: true as const, message: "Đã đổi mật khẩu" };
+}

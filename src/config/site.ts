@@ -95,10 +95,9 @@ export const siteConfig = {
       "Mua sắm thời trang, nhà cửa và lifestyle. Giao hàng toàn quốc, đổi trả 7 ngày.",
   },
 
-  /** Tài khoản admin được seed vào DB (prisma/seed.ts). Đổi trước khi chạy seed. */
+  /** Email admin (mật khẩu seed: ADMIN_PASSWORD trong .env, mặc định admin123). */
   admin: {
     email: "admin@atelier.vn",
-    password: "admin123",
   },
 
   currency: {

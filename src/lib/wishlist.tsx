@@ -16,12 +16,18 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const [ids, setIds] = useState<string[]>([]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setIds(JSON.parse(raw) as string[]);
-    } catch {
-      /* ignore */
-    }
+    (async () => {
+      try {
+        const remote = await fetch("/api/wishlist").then((r) => r.json());
+        if (Array.isArray(remote.ids)) setIds(remote.ids);
+        else {
+          const raw = localStorage.getItem(KEY);
+          if (raw) setIds(JSON.parse(raw) as string[]);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -31,8 +37,14 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<WishlistValue>(
     () => ({
       ids,
-      toggle: (id) =>
-        setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])),
+      toggle: (id) => {
+        setIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+        fetch("/api/wishlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId: id }),
+        }).catch(() => {});
+      },
       has: (id) => ids.includes(id),
     }),
     [ids],

@@ -6,13 +6,15 @@ import { upsertProduct } from "@/server/commerce";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const ids = url.searchParams.get("ids");
-  const products = await listProducts({
+  const result = await listProducts({
     q: url.searchParams.get("q") || undefined,
     cat: url.searchParams.get("cat") || undefined,
     sort: url.searchParams.get("sort") || undefined,
     ids: ids ? ids.split(",").filter(Boolean) : undefined,
+    page: Number(url.searchParams.get("page") || 1),
+    pageSize: Number(url.searchParams.get("pageSize") || 24),
   });
-  return NextResponse.json({ products });
+  return NextResponse.json({ products: result.items, total: result.total, page: result.page, pages: result.pages });
 }
 
 export async function POST(req: Request) {

@@ -14,7 +14,7 @@ const KEY = "atelier.cart.v1";
 
 type CartContextValue = {
   items: CartItem[];
-  add: (product: Product, quantity?: number, variantLabel?: string) => void;
+  add: (product: Product, quantity?: number, variantLabel?: string, skuId?: string) => void;
   remove: (productId: string, variantLabel?: string) => void;
   setQty: (productId: string, quantity: number, variantLabel?: string) => void;
   clear: () => void;
@@ -33,27 +33,40 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setItems(JSON.parse(raw) as CartItem[]);
-    } catch {
-      /* ignore */
-    }
-    setReady(true);
+    (async () => {
+      try {
+        const remote = await fetch("/api/cart").then((r) => r.json());
+        if (Array.isArray(remote.items) && remote.items.length) {
+          setItems(remote.items);
+        } else {
+          const raw = localStorage.getItem(KEY);
+          if (raw) setItems(JSON.parse(raw) as CartItem[]);
+        }
+      } catch {
+        /* ignore */
+      }
+      setReady(true);
+    })();
   }, []);
 
   useEffect(() => {
-    if (ready) localStorage.setItem(KEY, JSON.stringify(items));
+    if (!ready) return;
+    localStorage.setItem(KEY, JSON.stringify(items));
+    fetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    }).catch(() => {});
   }, [items, ready]);
 
   const add = useCallback(
-    (product: Product, quantity = 1, variantLabel?: string) => {
+    (product: Product, quantity = 1, variantLabel?: string, skuId?: string) => {
       setItems((prev) => {
         const found = prev.find((i) => sameLine(i, product.id, variantLabel));
         if (found) {
           return prev.map((i) =>
             sameLine(i, product.id, variantLabel)
-              ? { ...i, quantity: i.quantity + quantity }
+              ? { ...i, quantity: i.quantity + quantity, skuId: skuId || i.skuId }
               : i,
           );
         }
@@ -67,6 +80,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             price: product.price,
             quantity,
             variantLabel,
+            skuId,
           },
         ];
       });

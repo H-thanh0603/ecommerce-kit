@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
-import { upsertProduct } from "@/server/commerce";
+import { deleteProduct, setProductPublished, upsertProduct } from "@/server/commerce";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
@@ -29,4 +29,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   } catch (e) {
     return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
   }
+}
+
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
+  const { id } = await params;
+  const result = await deleteProduct(id);
+  return NextResponse.json(result);
+}
+
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
+  const { id } = await params;
+  const body = await req.json().catch(() => ({}));
+  if (typeof body.published === "boolean") {
+    await setProductPublished(id, body.published);
+    return NextResponse.json({ ok: true });
+  }
+  return NextResponse.json({ message: "Không có thay đổi" }, { status: 400 });
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createOrder, listOrders } from "@/server/commerce";
 import { getSession } from "@/server/auth";
 import { isEnabled } from "@/config/site";
+import { clientKey, rateLimit } from "@/server/rate-limit";
 
 const itemSchema = z.object({
   productId: z.string(),
@@ -12,6 +13,7 @@ const itemSchema = z.object({
   price: z.number(),
   quantity: z.number().int().positive(),
   variantLabel: z.string().optional(),
+  skuId: z.string().optional(),
 });
 
 const checkoutSchema = z.object({
@@ -22,6 +24,7 @@ const checkoutSchema = z.object({
   note: z.string().optional(),
   paymentMethod: z.string(),
   couponCode: z.string().optional(),
+  innerCity: z.boolean().optional(),
   items: z.array(itemSchema).min(1),
 });
 
@@ -36,6 +39,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!rateLimit(clientKey(req, "checkout"), 10, 60_000).ok) {
+    return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
+  }
   const session = await getSession();
   if (!session && !isEnabled("guestCheckout")) {
     return NextResponse.json({ message: "Cần đăng nhập để đặt hàng" }, { status: 401 });

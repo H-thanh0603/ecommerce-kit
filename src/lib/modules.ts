@@ -1,7 +1,14 @@
+import { isEnabled, type FeatureKey } from "@/config/site";
+
 /**
- * Catalog module có sẵn trong khung.
- * Khi làm cho khách: copy một module gần nhất → đổi UI/logic → đăng ký vào đây.
+ * Đăng ký module. Flag tắt = ẩn UI (isModuleOn).
+ * Code lõi (catalog/cart) luôn có; module phụ nên dynamic import.
  */
+export function isModuleOn(flag?: FeatureKey) {
+  if (!flag) return true;
+  return isEnabled(flag);
+}
+
 export const moduleCatalog = [
   {
     id: "core-catalog",
