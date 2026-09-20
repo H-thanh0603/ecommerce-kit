@@ -1,15 +1,8 @@
-"use client";
-
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { moduleCatalog } from "@/lib/modules";
-import { useAuth } from "@/lib/auth";
 
 export default function AdminSettings() {
-  const { user } = useAuth();
-  if (!user || user.role !== "admin") {
-    return <p className="px-4 py-20 text-center">Cần quyền admin.</p>;
-  }
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="flex items-center justify-between">
@@ -19,7 +12,7 @@ export default function AdminSettings() {
         </Link>
       </div>
       <p className="mt-2 text-sm text-muted">
-        Đổi thật trong <code>src/config/site.ts</code>. Trang này chỉ đọc cấu hình hiện tại.
+        Đổi thật trong <code>src/config/site.ts</code>. Theme hex ở đây được bơm vào CSS variables.
       </p>
 
       <section className="mt-8 rounded-2xl border border-line bg-white p-5">

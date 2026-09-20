@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProduct, products, relatedProducts, reviews } from "@/data/catalog";
+import { getProductBySlug, relatedProducts } from "@/server/commerce";
 import { money } from "@/lib/format";
 import { isEnabled, siteConfig } from "@/config/site";
 import { AddToCart } from "@/components/product/AddToCart";
@@ -10,22 +10,18 @@ import { IconStar } from "@/components/icons";
 
 type Props = { params: Promise<{ slug: string }> };
 
-export async function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
-}
-
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const product = getProduct(slug);
-  return { title: product?.name ?? "Sản phẩm" };
+  const data = await getProductBySlug(slug);
+  return { title: data?.product.name ?? "Sản phẩm" };
 }
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
-  const product = getProduct(slug);
-  if (!product) notFound();
-  const related = relatedProducts(product);
-  const productReviews = reviews.filter((r) => r.productId === product.id);
+  const data = await getProductBySlug(slug);
+  if (!data) notFound();
+  const { product, reviews: productReviews } = data;
+  const related = await relatedProducts(product);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -75,7 +71,7 @@ export default async function ProductPage({ params }: Props) {
         </div>
       </div>
 
-      <Reviews productId={product.id} />
+      <Reviews reviews={productReviews} />
 
       {isEnabled("relatedProducts") && related.length > 0 && (
         <section className="mt-14">

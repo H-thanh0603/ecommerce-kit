@@ -7,7 +7,7 @@ export const moduleCatalog = [
     id: "core-catalog",
     name: "Danh mục & sản phẩm",
     included: true,
-    files: ["src/app/san-pham", "src/components/product"],
+    files: ["src/app/san-pham", "src/server/commerce.ts"],
   },
   {
     id: "core-cart",
@@ -19,13 +19,19 @@ export const moduleCatalog = [
     id: "core-auth",
     name: "Tài khoản khách",
     included: true,
-    files: ["src/app/dang-nhap", "src/app/tai-khoan", "src/lib/auth.tsx"],
+    files: ["src/app/dang-nhap", "src/server/auth.ts"],
   },
   {
     id: "core-admin",
     name: "Admin quản trị",
     included: true,
     files: ["src/app/admin"],
+  },
+  {
+    id: "payments",
+    name: "Cổng thanh toán (COD / CK / adapter)",
+    included: true,
+    files: ["src/server/payments.ts"],
   },
   {
     id: "wishlist",
@@ -49,7 +55,7 @@ export const moduleCatalog = [
     id: "flash-sale",
     name: "Flash sale",
     flag: "flashSale",
-    files: ["src/components/home/FlashSale.tsx"],
+    files: ["src/components/home/HomeView.tsx"],
   },
   {
     id: "blog",
@@ -58,9 +64,15 @@ export const moduleCatalog = [
     files: ["src/app/tin-tuc"],
   },
   {
-    id: "live-chat",
-    name: "Chat Zalo / live",
-    flag: "liveChat",
-    files: ["src/components/layout/LiveChat.tsx"],
+    id: "ai-chatbot",
+    name: "Chatbot AI cửa hàng",
+    flag: "aiChatbot",
+    files: ["src/components/ai/ChatWidget.tsx", "src/app/api/ai/chat/route.ts"],
+  },
+  {
+    id: "ai-agent",
+    name: "AI Agent vận hành (admin)",
+    flag: "aiAgent",
+    files: ["src/app/admin/ai/page.tsx", "src/server/ai.ts"],
   },
 ] as const;

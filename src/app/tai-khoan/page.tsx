@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { orders } from "@/data/catalog";
 import { money } from "@/lib/format";
+import type { Order } from "@/types";
 
 const statusLabel: Record<string, string> = {
   pending: "Chờ xác nhận",
@@ -14,8 +15,18 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function AccountPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, ready } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
 
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/orders")
+      .then((r) => r.json())
+      .then((d) => setOrders(d.orders || []))
+      .catch(() => setOrders([]));
+  }, [user]);
+
+  if (!ready) return <p className="px-4 py-20 text-center text-muted">Đang tải…</p>;
   if (!user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
@@ -27,7 +38,7 @@ export default function AccountPage() {
     );
   }
 
-  const mine = user.role === "admin" ? orders : orders.slice(0, 2);
+  const mine = orders;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -42,7 +53,7 @@ export default function AccountPage() {
               Vào admin
             </Link>
           )}
-          <button onClick={logout} className="rounded-full border border-line px-4 py-2 text-sm">
+          <button onClick={() => logout()} className="rounded-full border border-line px-4 py-2 text-sm">
             Đăng xuất
           </button>
         </div>

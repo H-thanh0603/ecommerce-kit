@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("customer")
+  orders       Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String    @default("")
+  image       String    @default("")
+  products    Product[]
+}
+
+model Product {
+  id             String      @id
+  slug           String      @unique
+  name           String
+  subtitle       String      @default("")
+  description    String
+  price          Int
+  compareAtPrice Int?
+  imagesJson     String      @default("[]")
+  tagsJson       String      @default("[]")
+  variantsJson   String      @default("[]")
+  rating         Float       @default(0)
+  reviewCount    Int         @default(0)
+  stock          Int         @default(0)
+  sold           Int         @default(0)
+  featured       Boolean     @default(false)
+  flashSale      Boolean     @default(false)
+  published      Boolean     @default(true)
+  categoryId     String
+  category       Category    @relation(fields: [categoryId], references: [id])
+  reviews        Review[]
+  orderItems     OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([categoryId])
+  @@index([published, featured])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author    String
+  rating    Int
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model Coupon {
+  id       String  @id @default(cuid())
+  code     String  @unique
+  type     String
+  value    Int
+  minOrder Int     @default(0)
+  active   Boolean @default(true)
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  code          String      @unique
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id])
+  customer      String
+  email         String
+  phone         String
+  address       String
+  note          String      @default("")
+  subtotal      Int
+  shippingFee   Int
+  discount      Int         @default(0)
+  total         Int
+  paymentMethod String
+  paymentStatus String      @default("unpaid")
+  status        String      @default("pending")
+  couponCode    String?
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([email])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+  slug         String
+  name         String
+  image        String
+  price        Int
+  quantity     Int
+  variantLabel String  @default("")
+
+  @@index([orderId])
+}
+
+model Article {
+  id      String @id @default(cuid())
+  slug    String @unique
+  title   String
+  excerpt String
+  cover   String
+  body    String @default("")
+  date    String
+  minutes Int    @default(3)
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String   @default("")
+  message   String
+  createdAt DateTime @default(now())
+}

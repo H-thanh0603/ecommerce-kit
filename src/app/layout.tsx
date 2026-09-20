@@ -5,6 +5,8 @@ import { siteConfig } from "@/config/site";
 import { Providers } from "@/components/providers";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ChatWidget } from "@/components/ai/ChatWidget";
+import { listCategories } from "@/server/commerce";
 
 const sans = Be_Vietnam_Pro({
   variable: "--font-be-vietnam",
@@ -26,14 +28,18 @@ export const metadata: Metadata = {
   description: siteConfig.seo.defaultDescription,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const categories = await listCategories().catch(() => []);
+  const theme = siteConfig.theme;
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas text-ink">
+        <style>{`:root{--brand-primary:${theme.primary};--brand-accent:${theme.accent};--brand-ink:${theme.ink};--brand-muted:${theme.muted};--brand-canvas:${theme.canvas};--brand-line:${theme.line};}`}</style>
         <Providers>
-          <Header />
+          <Header categories={categories} />
           <main className="flex-1">{children}</main>
-          <Footer />
+          <Footer categories={categories} />
+          <ChatWidget />
         </Providers>
       </body>
     </html>

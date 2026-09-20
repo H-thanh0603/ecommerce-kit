@@ -11,13 +11,13 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [message, setMessage] = useState("");
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const email = String(data.get("email") || "");
     const password = String(data.get("password") || "");
     const name = String(data.get("name") || "");
-    const res = mode === "login" ? login(email, password) : register(name, email, password);
+    const res = mode === "login" ? await login(email, password) : await register(name, email, password);
     setMessage(res.message);
     if (res.ok) {
       router.push(email === siteConfig.admin.email ? "/admin" : "/tai-khoan");
@@ -30,7 +30,7 @@ export default function LoginPage() {
         {mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Demo: khách nhập email bất kỳ + mật khẩu ≥ 4 ký tự. Admin: {siteConfig.admin.email} / {siteConfig.admin.password}
+        Admin mẫu: {siteConfig.admin.email} (mật khẩu trong HUONG-DAN.md). Khách đăng ký tài khoản mới.
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-3 rounded-2xl border border-line bg-white p-5">
         {mode === "register" && (

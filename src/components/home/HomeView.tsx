@@ -1,11 +1,19 @@
 import Link from "next/link";
 import { siteConfig, isEnabled } from "@/config/site";
-import { articles, categories, products } from "@/data/catalog";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { IconRefresh, IconShield, IconTruck } from "@/components/icons";
 import { money } from "@/lib/format";
+import type { Article, Category, Product } from "@/types";
 
-export function HomeView() {
+export function HomeView({
+  products,
+  categories,
+  articles,
+}: {
+  products: Product[];
+  categories: Category[];
+  articles: Article[];
+}) {
   const featured = products.filter((p) => p.featured).slice(0, 8);
   const flash = products.filter((p) => p.flashSale);
 

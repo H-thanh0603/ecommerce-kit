@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { articles } from "@/data/catalog";
+import { listArticles } from "@/server/commerce";
 import { isEnabled } from "@/config/site";
 
 export const metadata = { title: "Journal" };
 
-export default function BlogPage() {
+export default async function BlogPage() {
   if (!isEnabled("blog")) {
     return <p className="px-4 py-20 text-center">Module journal đang tắt.</p>;
   }
+  const articles = await listArticles();
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       <h1 className="font-serif text-4xl text-primary">Journal</h1>

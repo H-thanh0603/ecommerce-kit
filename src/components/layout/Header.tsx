@@ -7,7 +7,7 @@ import { siteConfig, isEnabled } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
-import { categories } from "@/data/catalog";
+import type { Category } from "@/types";
 import {
   IconBag,
   IconClose,
@@ -17,7 +17,7 @@ import {
   IconUser,
 } from "@/components/icons";
 
-export function Header() {
+export function Header({ categories }: { categories: Category[] }) {
   const { count } = useCart();
   const { user } = useAuth();
   const { ids } = useWishlist();
@@ -55,22 +55,18 @@ export function Header() {
         </Link>
 
         <nav className="ml-6 hidden items-center gap-6 text-sm md:flex">
-          <Link href="/san-pham" className="hover:text-primary">
-            Sản phẩm
-          </Link>
-          {categories.map((c) => (
+          {siteConfig.nav.map((item) =>
+            "feature" in item && item.feature && !isEnabled(item.feature) ? null : (
+              <Link key={item.href} href={item.href} className="hover:text-primary">
+                {item.label}
+              </Link>
+            ),
+          )}
+          {categories.slice(0, 4).map((c) => (
             <Link key={c.id} href={`/san-pham?cat=${c.slug}`} className="hover:text-primary">
               {c.name}
             </Link>
           ))}
-          {isEnabled("blog") && (
-            <Link href="/tin-tuc" className="hover:text-primary">
-              Journal
-            </Link>
-          )}
-          <Link href="/lien-he" className="hover:text-primary">
-            Liên hệ
-          </Link>
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
@@ -121,22 +117,18 @@ export function Header() {
             />
           </form>
           <div className="grid gap-2 text-sm">
-            <Link href="/san-pham" onClick={() => setOpen(false)}>
-              Tất cả sản phẩm
-            </Link>
+            {siteConfig.nav.map((item) =>
+              "feature" in item && item.feature && !isEnabled(item.feature) ? null : (
+                <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
+                  {item.label}
+                </Link>
+              ),
+            )}
             {categories.map((c) => (
               <Link key={c.id} href={`/san-pham?cat=${c.slug}`} onClick={() => setOpen(false)}>
                 {c.name}
               </Link>
             ))}
-            {isEnabled("blog") && (
-              <Link href="/tin-tuc" onClick={() => setOpen(false)}>
-                Journal
-              </Link>
-            )}
-            <Link href="/lien-he" onClick={() => setOpen(false)}>
-              Liên hệ
-            </Link>
           </div>
         </div>
       )}

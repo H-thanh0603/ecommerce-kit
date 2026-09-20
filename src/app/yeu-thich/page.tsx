@@ -1,13 +1,22 @@
 "use client";
 
-import { products } from "@/data/catalog";
+import { useEffect, useState } from "react";
 import { useWishlist } from "@/lib/wishlist";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { isEnabled } from "@/config/site";
+import type { Product } from "@/types";
 import Link from "next/link";
 
 export default function WishlistPage() {
   const { ids } = useWishlist();
+  const [products, setProducts] = useState<Product[]>([]);
+  useEffect(() => {
+    if (!ids.length) return setProducts([]);
+    fetch(`/api/products?ids=${ids.join(",")}`)
+      .then((r) => r.json())
+      .then((d) => setProducts(d.products || []))
+      .catch(() => setProducts([]));
+  }, [ids]);
   if (!isEnabled("wishlist")) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">

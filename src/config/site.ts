@@ -41,6 +41,12 @@ export const siteConfig = {
     zalo: "https://zalo.me/0901234567",
   },
 
+  nav: [
+    { href: "/san-pham", label: "Sản phẩm" },
+    { href: "/tin-tuc", label: "Journal", feature: "blog" as const },
+    { href: "/lien-he", label: "Liên hệ" },
+  ],
+
   /**
    * Feature flags — bật module theo hợp đồng khách hàng.
    * Tắt flag = ẩn UI + bỏ logic phía storefront.
@@ -53,16 +59,12 @@ export const siteConfig = {
     flashSale: true,
     blog: true,
     newsletter: true,
-    liveChat: false,
-    compare: false,
-    membership: false,
-    giftWrap: false,
-    multiCurrency: false,
     productVariants: true,
-    recentlyViewed: true,
     relatedProducts: true,
     stockBadge: true,
     guestCheckout: true,
+    aiChatbot: true,
+    aiAgent: true,
   },
 
   payments: {
@@ -93,7 +95,7 @@ export const siteConfig = {
       "Mua sắm thời trang, nhà cửa và lifestyle. Giao hàng toàn quốc, đổi trả 7 ngày.",
   },
 
-  /** Admin demo — thay bằng auth thật khi triển khai */
+  /** Tài khoản admin được seed vào DB (prisma/seed.ts). Đổi trước khi chạy seed. */
   admin: {
     email: "admin@atelier.vn",
     password: "admin123",

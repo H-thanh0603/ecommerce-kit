@@ -3,18 +3,22 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { enabledPayments, isEnabled, siteConfig } from "@/config/site";
-import { coupons } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 import { discountAmount, money, shippingFee } from "@/lib/format";
+
+type Coupon = { code: string; type: "percent" | "fixed" | "shipping"; value: number; minOrder: number };
 
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
+  const { user } = useAuth();
   const router = useRouter();
   const methods = enabledPayments();
   const [method, setMethod] = useState(methods[0]?.key || "cod");
   const [code, setCode] = useState("");
-  const [applied, setApplied] = useState<(typeof coupons)[number] | null>(null);
+  const [applied, setApplied] = useState<Coupon | null>(null);
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   const shipRaw = shippingFee(subtotal);
   const ship = applied?.type === "shipping" ? 0 : shipRaw;
@@ -29,21 +33,45 @@ export default function CheckoutPage() {
     );
   }
 
-  const applyCoupon = () => {
-    const found = coupons.find((c) => c.code.toLowerCase() === code.trim().toLowerCase());
-    if (!found) return setError("Mã không tồn tại");
-    if (subtotal < found.minOrder) {
-      return setError(`Đơn tối thiểu ${money(found.minOrder)}`);
+  const applyCoupon = async () => {
+    const res = await fetch("/api/coupons", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (!res.ok) return setError(data.message || "Mã không tồn tại");
+    if (subtotal < data.coupon.minOrder) {
+      return setError(`Đơn tối thiểu ${money(data.coupon.minOrder)}`);
     }
-    setApplied(found);
+    setApplied(data.coupon);
     setError("");
   };
 
-  const place = (e: React.FormEvent<HTMLFormElement>) => {
+  const place = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const codeOrder = "ATL-" + Math.floor(10000 + Math.random() * 89999);
+    setPending(true);
+    setError("");
+    const form = new FormData(e.currentTarget);
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customer: String(form.get("name") || ""),
+        email: String(form.get("email") || ""),
+        phone: String(form.get("phone") || ""),
+        address: String(form.get("address") || ""),
+        note: String(form.get("note") || ""),
+        paymentMethod: method,
+        couponCode: applied?.code,
+        items,
+      }),
+    });
+    const data = await res.json();
+    setPending(false);
+    if (!res.ok) return setError(data.message || "Không đặt được hàng");
     clear();
-    router.push(`/dat-hang-thanh-cong?code=${codeOrder}`);
+    router.push(`/dat-hang-thanh-cong?code=${data.order.code}`);
   };
 
   return (
@@ -54,9 +82,9 @@ export default function CheckoutPage() {
           <section className="rounded-2xl border border-line bg-white p-5">
             <h2 className="font-medium">Thông tin nhận hàng</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <input required name="name" placeholder="Họ tên" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
+              <input required name="name" defaultValue={user?.name || ""} placeholder="Họ tên" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
               <input required name="phone" placeholder="Số điện thoại" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
-              <input required type="email" name="email" placeholder="Email" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
+              <input required type="email" name="email" defaultValue={user?.email || ""} placeholder="Email" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
               <input required name="address" placeholder="Địa chỉ" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
               <textarea name="note" placeholder="Ghi chú đơn hàng" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" rows={3} />
             </div>
@@ -135,11 +163,12 @@ export default function CheckoutPage() {
               <span>{money(total)}</span>
             </div>
           </div>
-          <button className="mt-5 w-full rounded-full bg-primary py-3 text-sm text-white">
-            Đặt hàng
+          {error && <p className="mt-3 text-xs text-accent">{error}</p>}
+          <button disabled={pending} className="mt-5 w-full rounded-full bg-primary py-3 text-sm text-white disabled:opacity-60">
+            {pending ? "Đang ghi đơn…" : "Đặt hàng"}
           </button>
           <p className="mt-3 text-xs text-muted">
-            Đây là khung demo: đơn được ghi nhận trên trình duyệt, chưa gọi cổng thanh toán thật.
+            Đơn lưu vào cơ sở dữ liệu. COD / chuyển khoản có sẵn; MoMo·VNPay gắn tại src/server/payments.ts.
           </p>
         </aside>
       </form>

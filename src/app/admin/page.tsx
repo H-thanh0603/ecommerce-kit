@@ -1,33 +1,15 @@
-"use client";
-
 import Link from "next/link";
-import { orders, products } from "@/data/catalog";
+import { listOrders, shopStats } from "@/server/commerce";
 import { money } from "@/lib/format";
-import { useAuth } from "@/lib/auth";
+import { isEnabled } from "@/config/site";
 
-export default function AdminHome() {
-  const { user } = useAuth();
-  const revenue = orders
-    .filter((o) => o.status !== "cancelled")
-    .reduce((s, o) => s + o.total, 0);
-
-  if (!user || user.role !== "admin") {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-24 text-center">
-        <h1 className="font-serif text-3xl text-primary">Khu vực quản trị</h1>
-        <p className="mt-2 text-sm text-muted">Đăng nhập tài khoản admin để vào.</p>
-        <Link href="/dang-nhap" className="mt-6 inline-block rounded-full bg-primary px-5 py-2.5 text-sm text-white">
-          Đăng nhập
-        </Link>
-      </div>
-    );
-  }
-
+export default async function AdminHome() {
+  const [stats, orders] = await Promise.all([shopStats(), listOrders()]);
   const cards = [
-    { label: "Doanh thu demo", value: money(revenue) },
-    { label: "Đơn hàng", value: String(orders.length) },
-    { label: "Sản phẩm", value: String(products.length) },
-    { label: "Tồn thấp", value: String(products.filter((p) => p.stock < 15).length) },
+    { label: "Doanh thu", value: money(stats.revenue) },
+    { label: "Đơn hàng", value: String(stats.orderCount) },
+    { label: "Sản phẩm", value: String(stats.productCount) },
+    { label: "Tồn thấp", value: String(stats.lowStock) },
   ];
 
   return (
@@ -37,13 +19,18 @@ export default function AdminHome() {
           <p className="text-xs uppercase tracking-[0.2em] text-accent">Admin</p>
           <h1 className="mt-1 font-serif text-4xl text-primary">Bảng điều khiển</h1>
         </div>
-        <nav className="flex gap-2 text-sm">
+        <nav className="flex flex-wrap gap-2 text-sm">
           <Link href="/admin/san-pham" className="rounded-full border border-line bg-white px-3 py-1.5">
             Sản phẩm
           </Link>
           <Link href="/admin/don-hang" className="rounded-full border border-line bg-white px-3 py-1.5">
             Đơn hàng
           </Link>
+          {isEnabled("aiAgent") && (
+            <Link href="/admin/ai" className="rounded-full border border-line bg-white px-3 py-1.5">
+              AI Agent
+            </Link>
+          )}
           <Link href="/admin/cai-dat" className="rounded-full border border-line bg-white px-3 py-1.5">
             Cài đặt
           </Link>
@@ -71,7 +58,7 @@ export default function AdminHome() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((o) => (
+            {orders.slice(0, 8).map((o) => (
               <tr key={o.id} className="border-t border-line">
                 <td className="px-4 py-3">{o.code}</td>
                 <td className="px-4 py-3">{o.customer}</td>

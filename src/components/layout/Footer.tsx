@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { siteConfig, isEnabled } from "@/config/site";
-import { categories } from "@/data/catalog";
+import type { Category } from "@/types";
 
-export function Footer() {
+export function Footer({ categories }: { categories: Category[] }) {
   return (
     <footer className="mt-auto border-t border-line bg-white">
       {isEnabled("newsletter") && (

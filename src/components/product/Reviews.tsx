@@ -1,10 +1,10 @@
 import { isEnabled } from "@/config/site";
-import { reviews } from "@/data/catalog";
 import { IconStar } from "@/components/icons";
+import type { Review } from "@/types";
 
-export function Reviews({ productId }: { productId: string }) {
+export function Reviews({ reviews }: { reviews: Review[] }) {
   if (!isEnabled("reviews")) return null;
-  const list = reviews.filter((r) => r.productId === productId);
+  const list = reviews;
 
   return (
     <section className="mt-12 border-t border-line pt-10">

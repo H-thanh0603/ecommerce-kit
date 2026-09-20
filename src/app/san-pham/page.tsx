@@ -1,5 +1,5 @@
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { categories, products, searchProducts } from "@/data/catalog";
+import { listCategories, listProducts } from "@/server/commerce";
 import { siteConfig } from "@/config/site";
 import Link from "next/link";
 
@@ -11,12 +11,10 @@ export const metadata = { title: "Sản phẩm" };
 
 export default async function ProductsPage({ searchParams }: Props) {
   const sp = await searchParams;
-  let list = sp.q ? searchProducts(sp.q) : [...products];
-  if (sp.cat) list = list.filter((p) => p.category === sp.cat);
-  if (sp.sort === "price-asc") list.sort((a, b) => a.price - b.price);
-  if (sp.sort === "price-desc") list.sort((a, b) => b.price - a.price);
-  if (sp.sort === "popular") list.sort((a, b) => b.sold - a.sold);
-
+  const [categories, list] = await Promise.all([
+    listCategories(),
+    listProducts({ q: sp.q, cat: sp.cat, sort: sp.sort }),
+  ]);
   const currentCat = categories.find((c) => c.slug === sp.cat);
 
   return (

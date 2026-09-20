@@ -1,53 +1,51 @@
 # Atelier — khung website thương mại điện tử
 
-Khung sẵn để làm web bán hàng cho khách. Clone một lần, đổi thương hiệu và bật/tắt module, rồi chỉ viết thêm chức năng riêng của hợp đồng.
+Starter shop Next.js: clone, đổi thương hiệu, bật/tắt module, thêm chức năng theo khách.
 
-Chạy được ngay với dữ liệu mẫu, không cần database hay khóa thanh toán.
-
-## Công nghệ
-
-- Next.js 16 (App Router) + React 19 + TypeScript
-- Tailwind CSS 4
-- Giỏ hàng / tài khoản / wishlist lưu localStorage (dễ thay bằng API)
+- Storefront: catalog, giỏ, checkout, tài khoản, journal, chatbot AI
+- Admin: sản phẩm, đơn, cài đặt, AI Agent
+- Dữ liệu: Prisma + SQLite (đổi Postgres được)
+- Thanh toán: COD + chuyển khoản; MoMo/VNPay cắm tại `src/server/payments.ts`
 
 ## Chạy local
 
 ```bash
-cd ecommerce-kit
+cp .env.example .env
 npm install
+npx prisma generate
+npx prisma db push
+npx tsx prisma/seed.ts
 npm run dev
 ```
 
 Mở http://localhost:3000
 
-Admin demo: admin@atelier.vn / admin123
+Admin: `admin@atelier.vn` / `admin123`
 
-Mã giảm giá mẫu: WELCOME10, FREESHIP, GIAM50K
+Mã giảm giá: `WELCOME10`, `FREESHIP`, `GIAM50K`
 
-## Tuỳ biến theo khách hàng
+Chatbot / AI Agent cần `XAI_API_KEY` (SpaceXAI / [console.x.ai](https://console.x.ai)). Không có key thì UI vẫn hiện, API hướng dẫn cấu hình.
 
-Sửa một file: src/config/site.ts
+## Tuỳ biến theo khách
 
-1. brand — tên shop, slogan, SĐT, địa chỉ, email
-2. theme — màu chủ đạo (đồng bộ hex trong src/app/globals.css)
-3. features — bật/tắt wishlist, đánh giá, flash sale, blog, coupon
-4. payments — COD, CK, MoMo, VNPay, ZaloPay
-5. shipping — phí ship, mốc freeship
-6. admin — tài khoản quản trị tạm
+Sửa `src/config/site.ts`:
 
-Sản phẩm, danh mục, bài viết, đơn mẫu: src/data/catalog.ts
+1. `brand` — tên, slogan, SĐT, địa chỉ
+2. `theme` — màu (bơm vào CSS variables)
+3. `nav` — menu
+4. `features` — wishlist, coupon, blog, chatbot, agent…
+5. `payments` / `shipping`
 
-## Module có sẵn
+Sản phẩm mẫu nằm ở `src/data/catalog.ts` (dùng khi seed). Sau seed, CRUD trên admin.
 
-- Catalog + giỏ + checkout (lõi)
-- Tài khoản khách + Admin
-- Wishlist (features.wishlist)
-- Đánh giá (reviews)
-- Mã giảm giá (coupons)
-- Flash sale (flashSale)
-- Journal (blog)
-- Newsletter (newsletter)
-- Live chat (liveChat, mặc định tắt)
-- Biến thể size/màu (productVariants)
+## Mở rộng
 
-Xem thêm HUONG-DAN.md.
+| Việc | Chỗ sửa |
+|---|---|
+| Cổng ví | `src/server/payments.ts` |
+| Query / đơn | `src/server/commerce.ts` |
+| Auth | `src/server/auth.ts` |
+| AI | `src/server/ai.ts` |
+| Module mới | flag trong `site.ts` + đăng ký `src/lib/modules.ts` |
+
+Xem `HUONG-DAN.md`.

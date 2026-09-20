@@ -1,15 +1,13 @@
-"use client";
-
 import Link from "next/link";
-import { products } from "@/data/catalog";
+import { listCategories, listProducts } from "@/server/commerce";
 import { money } from "@/lib/format";
-import { useAuth } from "@/lib/auth";
+import { ProductEditor } from "@/components/admin/ProductEditor";
 
-export default function AdminProducts() {
-  const { user } = useAuth();
-  if (!user || user.role !== "admin") {
-    return <p className="px-4 py-20 text-center">Cần quyền admin.</p>;
-  }
+export default async function AdminProducts() {
+  const [products, categories] = await Promise.all([
+    listProducts({ includeUnpublished: true }),
+    listCategories(),
+  ]);
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex items-center justify-between">
@@ -18,9 +16,8 @@ export default function AdminProducts() {
           ← Dashboard
         </Link>
       </div>
-      <p className="mt-2 text-sm text-muted">
-        Demo đọc từ <code>src/data/catalog.ts</code>. Khi triển khai, nối Prisma / CMS rồi giữ nguyên bảng này.
-      </p>
+      <p className="mt-2 text-sm text-muted">Thêm/sửa ghi thẳng vào SQLite. Ảnh dùng URL.</p>
+      <ProductEditor categories={categories} />
       <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-white">
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-muted">

@@ -2,28 +2,29 @@
 
 ## Kịch bản dùng hàng ngày
 
-1. Copy thư mục `ecommerce-kit` thành `ten-khach-2026`
-2. Đổi `src/config/site.ts`
-3. Thay sản phẩm trong `src/data/catalog.ts` (hoặc import Excel → JSON)
-4. Bật đúng module trong hợp đồng, tắt cái không bán
-5. Nếu khách có yêu cầu lạ (booking, cấu hình PC, bán theo kg…) thì thêm module mới, không đụng lõi
+1. Copy repo thành `ten-khach-2026` (hoặc fork)
+2. Đổi `src/config/site.ts` (brand, theme, nav, flags, COD/CK)
+3. `cp .env.example .env` — đổi `AUTH_SECRET`
+4. Seed: sửa `src/data/catalog.ts` rồi `npm run db:reset`, hoặc nhập SP trên admin
+5. Bật đúng module trong hợp đồng
+6. Yêu cầu lạ (booking, bán kg, cấu hình PC): thêm module, không đụng checkout lõi
+7. Chatbot / AI Agent: thêm `XAI_API_KEY` (SpaceXAI)
 
 ## Checklist bàn giao
 
 - [ ] Logo + favicon trong `public/`
-- [ ] Màu brand
-- [ ] Danh mục thật
-- [ ] Chính sách đổi trả đúng ngành
-- [ ] Phương thức thanh toán đã ký
-- [ ] Google Business / Zalo OA / Facebook pixel (nếu có)
+- [ ] Màu brand (`site.theme`)
+- [ ] Danh mục / sản phẩm thật
+- [ ] Chính sách đổi trả
+- [ ] COD / CK đã điền số TK
+- [ ] `AUTH_SECRET` mới, đổi mật khẩu admin rồi seed lại
 - [ ] Domain + SSL
-- [ ] Tài khoản admin
+- [ ] (Tuỳ chọn) `XAI_API_KEY` cho chatbot
 
 ## Điểm mở rộng gợi ý theo ngành
 
-- Thời trang: size chart, lookbook, bộ sưu tập
-- Mỹ phẩm: bảng thành phần, quiz loại da
-- Điện máy: so sánh thông số (`features.compare`)
+- Thời trang: size chart, lookbook
+- Mỹ phẩm: bảng thành phần
+- Điện máy: so sánh thông số
 - Thực phẩm: bán theo kg, lịch giao trong ngày
-- Nội thất: liên hệ báo giá, không checkout luôn
-- Khoá học / digital: giao file sau thanh toán
+- Cổng ví: adapter MoMo/VNPay trong `src/server/payments.ts`
