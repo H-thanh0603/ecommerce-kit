@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { enabledPayments, isEnabled, siteConfig } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
-import { discountAmount, money, shippingFee } from "@/lib/format";
+import { discountAmount, money, shippingFee, vietQrUrl } from "@/lib/format";
 
 type Coupon = { code: string; type: "percent" | "fixed" | "shipping"; value: number; minOrder: number };
 
@@ -21,6 +21,8 @@ export default function CheckoutPage() {
   const [pending, setPending] = useState(false);
   const [innerCity, setInnerCity] = useState(false);
   const [usePoints, setUsePoints] = useState(false);
+  const [buyer, setBuyer] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
 
   const shipRaw = shippingFee(subtotal, { innerCity });
   const ship = applied?.type === "shipping" ? 0 : shipRaw;
@@ -90,8 +92,8 @@ export default function CheckoutPage() {
           <section className="rounded-2xl border border-line bg-white p-5">
             <h2 className="font-medium">Thông tin nhận hàng</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <input required name="name" defaultValue={user?.name || ""} placeholder="Họ tên" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
-              <input required name="phone" placeholder="Số điện thoại" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
+              <input required name="name" defaultValue={user?.name || ""} onChange={(e) => setBuyer(e.target.value)} placeholder="Họ tên" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
+              <input required name="phone" onChange={(e) => setBuyerPhone(e.target.value)} placeholder="Số điện thoại" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
               <input required type="email" name="email" defaultValue={user?.email || ""} placeholder="Email" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
               <input required name="address" placeholder="Địa chỉ" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
               <textarea name="note" placeholder="Ghi chú đơn hàng" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" rows={3} />
@@ -125,6 +127,20 @@ export default function CheckoutPage() {
             </div>
             {method === "bankTransfer" && (
               <div className="mt-3 rounded-xl bg-canvas p-3 text-sm text-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={vietQrUrl({
+                    shortCode: siteConfig.payments.bankTransfer.shortCode,
+                    accountNumber: siteConfig.payments.bankTransfer.accountNumber,
+                    accountName: siteConfig.payments.bankTransfer.accountName,
+                    amount: total,
+                    addInfo: `DH ${buyer} ${buyerPhone}`.trim().slice(0, 25) || "Thanh toan don hang",
+                  })}
+                  alt="VietQR chuyển khoản"
+                  className="mx-auto w-44 rounded-lg bg-white p-2"
+                  loading="lazy"
+                />
+                <p className="mt-2 text-center font-medium text-ink">{money(total)}</p>
                 <p>{siteConfig.payments.bankTransfer.bank}</p>
                 <p>{siteConfig.payments.bankTransfer.accountName}</p>
                 <p>{siteConfig.payments.bankTransfer.accountNumber}</p>

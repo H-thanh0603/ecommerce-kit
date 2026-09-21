@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { discountAmount, isFlashLive, normVi, shippingFee } from "./format";
+import { discountAmount, isFlashLive, normVi, shippingFee, vietQrUrl } from "./format";
 
 describe("discountAmount", () => {
   it("percent", () => {
@@ -37,5 +37,20 @@ describe("normVi", () => {
     expect(normVi("Áo Dài Đẹp 123!")).toBe("ao dai dep 123");
     expect(normVi("ĐỒNG HỒ")).toBe("dong ho");
     expect(normVi("  Cà   phê  ")).toBe("ca phe");
+  });
+});
+
+describe("vietQrUrl", () => {
+  it("đúng host vietqr + encode param", () => {
+    const url = vietQrUrl({
+      shortCode: "VCB",
+      accountNumber: "0123456789",
+      accountName: "CONG TY ATELIER",
+      amount: 195000,
+      addInfo: "DH Test 0901",
+    });
+    expect(url).toMatch(/^https:\/\/img\.vietqr\.io\/image\/VCB-0123456789-compact2\.png\?/);
+    expect(url).toContain("amount=195000");
+    expect(url).toContain("addInfo=DH+Test+0901");
   });
 });

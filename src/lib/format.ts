@@ -53,6 +53,22 @@ export function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
+/** URL ảnh VietQR (vietqr.io) cho chuyển khoản — pure để test. */
+export function vietQrUrl(opts: {
+  shortCode: string;
+  accountNumber: string;
+  accountName: string;
+  amount: number;
+  addInfo: string;
+}) {
+  const params = new URLSearchParams({
+    amount: String(Math.max(0, Math.round(opts.amount))),
+    addInfo: opts.addInfo.slice(0, 25),
+    accountName: opts.accountName,
+  });
+  return `https://img.vietqr.io/image/${opts.shortCode}-${opts.accountNumber}-compact2.png?${params}`;
+}
+
 /** Chuẩn hoá tiếng Việt để tìm kiếm: "Áo Dài" → "ao dai". */
 export function normVi(raw: string) {
   return raw

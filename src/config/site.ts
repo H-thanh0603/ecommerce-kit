@@ -91,6 +91,7 @@ export const siteConfig = {
       enabled: true,
       label: "Chuyển khoản ngân hàng",
       bank: "Vietcombank",
+      shortCode: "VCB",
       accountName: "CONG TY ATELIER",
       accountNumber: "0123456789",
     },
