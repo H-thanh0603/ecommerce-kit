@@ -40,4 +40,41 @@ describe("createOrder", () => {
     const skuAfter = after!.skus?.find((s) => s.id === sku!.id);
     expect(skuAfter!.stock).toBe(stockBefore - 1);
   });
+
+  it("không bán quá tồn: hết hàng thì đơn sau bị từ chối, tồn không âm", async () => {
+    const before = await getProductById("p1");
+    const sku = before!.skus?.find((s) => s.stock > 0) ?? before!.skus?.[0];
+    await prisma.sku.update({ where: { id: sku!.id }, data: { stock: 1 } });
+    const item = (price: number) => ({
+      productId: "p1",
+      slug: before!.slug,
+      name: before!.name,
+      image: before!.images[0] || "",
+      price,
+      quantity: 1,
+      skuId: sku!.id,
+      variantLabel: sku!.label,
+    });
+    const ok = await createOrder({
+      customer: "Mua 1",
+      email: `s1-${Date.now()}@kit.vn`,
+      phone: "0900000000",
+      address: "1 Test, Q1",
+      paymentMethod: "cod",
+      items: [item(before!.price)],
+    });
+    expect(ok.code).toMatch(/^ATL-\d{5}$/);
+    await expect(
+      createOrder({
+        customer: "Mua 2",
+        email: `s2-${Date.now()}@kit.vn`,
+        phone: "0900000000",
+        address: "1 Test, Q1",
+        paymentMethod: "cod",
+        items: [item(before!.price)],
+      }),
+    ).rejects.toThrow(/Không đủ tồn/);
+    const after = await getProductById("p1");
+    expect(after!.skus?.find((s) => s.id === sku!.id)!.stock).toBe(0);
+  });
 });

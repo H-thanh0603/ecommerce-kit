@@ -1,7 +1,9 @@
 import { prisma } from "@/server/db";
 
 export async function getCoupon(code: string) {
-  return prisma.coupon.findFirst({ where: { code: { equals: code.trim() }, active: true } });
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return null;
+  return prisma.coupon.findFirst({ where: { code: { equals: normalized }, active: true } });
 }
 
 export async function assertCoupon(code: string, subtotal: number, email?: string, userId?: string) {
