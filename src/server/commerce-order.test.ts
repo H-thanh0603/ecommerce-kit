@@ -77,4 +77,38 @@ describe("createOrder", () => {
     const after = await getProductById("p1");
     expect(after!.skus?.find((s) => s.id === sku!.id)!.stock).toBe(0);
   });
+
+  it("trừ tồn kho mặc định theo đơn; kho hết thì chặn dù tồn chung còn", async () => {
+    const { defaultWarehouse, setWarehouseStock } = await import("./warehouse");
+    const before = await getProductById("p1");
+    const sku = before!.skus?.find((s) => s.stock > 0) ?? before!.skus?.[0];
+    const wh = await defaultWarehouse();
+    expect(wh).toBeTruthy();
+    await prisma.sku.update({ where: { id: sku!.id }, data: { stock: 10 } });
+    await setWarehouseStock(wh!.id, "p1", sku!.label, 1);
+    const item = {
+      productId: "p1",
+      slug: before!.slug,
+      name: before!.name,
+      image: before!.images[0] || "",
+      price: before!.price,
+      quantity: 1,
+      skuId: sku!.id,
+      variantLabel: sku!.label,
+    };
+    const base = {
+      customer: "Kho",
+      phone: "0900000000",
+      address: "1 Test, Q1",
+      paymentMethod: "cod",
+    };
+    await createOrder({ ...base, email: `w1-${Date.now()}@kit.vn`, items: [item] });
+    await expect(
+      createOrder({ ...base, email: `w2-${Date.now()}@kit.vn`, items: [item] }),
+    ).rejects.toThrow(/kho/);
+    const left = await prisma.warehouseStock.findUnique({
+      where: { warehouseId_productId_skuKey: { warehouseId: wh!.id, productId: "p1", skuKey: sku!.label } },
+    });
+    expect(left!.stock).toBe(0);
+  });
 });

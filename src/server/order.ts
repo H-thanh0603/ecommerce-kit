@@ -191,6 +191,11 @@ export async function createOrder(input: CheckoutInput) {
           ref: code,
         },
       });
+      if (warehouse) {
+        const { decrementWarehouseTx } = await import("@/server/warehouse");
+        const w = await decrementWarehouseTx(tx, warehouse.id, line.product.id, line.sku?.label || "", line.quantity);
+        if (w === "insufficient") throw new Error(`Không đủ tồn kho ${warehouse.name}: ${line.product.name}`);
+      }
     }
 
     const created = await tx.order.create({

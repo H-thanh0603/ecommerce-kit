@@ -41,6 +41,7 @@ model Product {
   name              String
   subtitle          String          @default("")
   description       String
+  searchText        String          @default("")
   price             Int
   compareAtPrice    Int?
   tags              String          @default("")
@@ -274,6 +275,8 @@ model MailLog {
   to        String
   subject   String
   body      String
+  status    String   @default("logged")
+  error     String   @default("")
   createdAt DateTime @default(now())
 }
 
@@ -289,6 +292,9 @@ model Invoice {
   number    String   @unique
   buyerName String
   buyerTax  String   @default("")
+  buyerAddress String @default("")
+  taxRate   Int      @default(10)
+  vatAmount Int      @default(0)
   issuedAt  DateTime @default(now())
 }
 

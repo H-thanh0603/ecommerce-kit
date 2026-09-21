@@ -223,6 +223,13 @@ export async function upsertProduct(data: {
   });
 
   revalidateTag("catalog", "max");
+  // Đồng bộ dòng tồn kho còn thiếu cho kho mặc định (không chặn lưu SP nếu kho lỗi).
+  try {
+    const { ensureWarehouseStock } = await import("@/server/warehouse");
+    await ensureWarehouseStock(row.id);
+  } catch {
+    /* bỏ qua */
+  }
   return toProduct(row);
 }
 
