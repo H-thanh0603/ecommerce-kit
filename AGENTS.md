@@ -35,6 +35,8 @@ npx prisma migrate dev --name <ten>   # đổi schema
 
 - Test DB phải tự dọn (email/code duy nhất theo timestamp, xóa sau test) và nạp lại tồn
   (`restock()` trong `commerce-order.test.ts`) vì dev.db dùng chung.
+  Vitest chạy các file song song → mỗi file test checkout dùng 1 SP riêng
+  (p1: commerce-order, p2: giftcard) để không giành tồn nhau.
 - Logic tiền/tồn/webhook bắt buộc có test: coupon, guard hết hàng, IPN (dùng store giả),
   VAT, gift card, returns.
 - E2E (`e2e/`) chạy trên production build + Chrome hệ thống (`channel: "chrome"`),

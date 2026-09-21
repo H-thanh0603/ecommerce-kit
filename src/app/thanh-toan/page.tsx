@@ -17,6 +17,7 @@ export default function CheckoutPage() {
   const [method, setMethod] = useState(methods[0]?.key || "cod");
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<Coupon | null>(null);
+  const [gift, setGift] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [innerCity, setInnerCity] = useState(false);
@@ -85,6 +86,7 @@ export default function CheckoutPage() {
         note: String(form.get("note") || ""),
         paymentMethod: method,
         couponCode: applied?.code,
+        giftCode: gift.trim() || undefined,
         innerCity,
         pointsToUse: usePoints ? 100 : undefined,
         items,
@@ -226,6 +228,15 @@ export default function CheckoutPage() {
           )}
           {error && <p className="mt-2 text-xs text-accent">{error}</p>}
           {applied && <p className="mt-2 text-xs text-primary">Đã áp dụng {applied.code}</p>}
+          <div className="mt-4 flex gap-2">
+            <input
+              value={gift}
+              onChange={(e) => setGift(e.target.value)}
+              placeholder="Thẻ quà tặng (nếu có)"
+              className="flex-1 rounded-full border border-line px-3 py-2 text-sm"
+            />
+          </div>
+          <p className="-mt-2 text-[11px] text-muted">Thẻ quà trừ vào tổng lúc ghi đơn.</p>
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Tạm tính</span>

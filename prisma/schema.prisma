@@ -145,6 +145,28 @@ model CouponRedemption {
   @@index([email])
 }
 
+model GiftCard {
+  id          String            @id @default(cuid())
+  code        String            @unique
+  balance     Int
+  active      Boolean           @default(true)
+  note        String            @default("")
+  expiresAt   DateTime?
+  redemptions GiftRedemption[]
+  createdAt   DateTime          @default(now())
+}
+
+model GiftRedemption {
+  id        String   @id @default(cuid())
+  giftId    String
+  gift      GiftCard @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  orderId   String
+  amount    Int
+  createdAt DateTime @default(now())
+
+  @@index([giftId])
+}
+
 model Order {
   id            String      @id @default(cuid())
   code          String      @unique

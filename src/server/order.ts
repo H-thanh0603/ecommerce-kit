@@ -74,6 +74,7 @@ export type CheckoutInput = {
   note?: string;
   paymentMethod: string;
   couponCode?: string;
+  giftCode?: string;
   items: CartItem[];
   userId?: string;
   innerCity?: boolean;
@@ -162,7 +163,10 @@ export async function createOrder(input: CheckoutInput) {
   if ((await isFeatureOn("membership")) && input.userId && input.pointsToUse) {
     pointsDiscount = discountFromPoints(input.pointsToUse);
   }
-  const total = Math.max(0, subtotal + ship - off - pointsDiscount);
+  const { quoteGift } = await import("@/server/giftcard");
+  const gift = input.giftCode ? await quoteGift(input.giftCode, subtotal + shipRaw - off - pointsDiscount) : null;
+  const giftAmount = gift?.amount || 0;
+  const total = Math.max(0, subtotal + ship - off - pointsDiscount - giftAmount);
 
   const order = await prisma.$transaction(async (tx) => {
     const seq = await nextOrderSeq(tx);
@@ -248,6 +252,11 @@ export async function createOrder(input: CheckoutInput) {
           orderId: created.id,
         },
       });
+    }
+
+    if (gift && giftAmount > 0) {
+      const { consumeGiftTx } = await import("@/server/giftcard");
+      await consumeGiftTx(tx, gift.gift.id, created.id, giftAmount);
     }
 
     if (input.userId) {
