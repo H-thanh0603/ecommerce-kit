@@ -11,6 +11,7 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3000}
     volumes:
       - ek-data:/app/prisma
+      - ek-uploads:/app/public/uploads
     restart: unless-stopped
 
   # Hồ sơ Postgres — dùng khi đã chuyển provider trong schema (xem DEPLOY.md).
@@ -29,4 +30,5 @@ services:
 
 volumes:
   ek-data:
+  ek-uploads:
   ek-pg:

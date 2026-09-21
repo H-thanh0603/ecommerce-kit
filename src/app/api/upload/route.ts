@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
-import { writeFile, mkdir } from "fs/promises";
+import { saveImage } from "@/server/storage";
 import path from "path";
 
 export async function POST(req: Request) {
@@ -14,10 +14,9 @@ export async function POST(req: Request) {
   if (![".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(ext)) {
     return NextResponse.json({ message: "Chỉ ảnh jpg/png/webp" }, { status: 400 });
   }
-  const dir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(dir, { recursive: true });
   const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   const buf = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(dir, name), buf);
-  return NextResponse.json({ url: `/uploads/${name}` });
+  const saved = await saveImage(buf, name, file.type || "application/octet-stream");
+  if (!saved.ok) return NextResponse.json({ message: saved.message || "Upload thất bại" }, { status: 502 });
+  return NextResponse.json({ url: saved.url });
 }
