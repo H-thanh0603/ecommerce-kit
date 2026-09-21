@@ -77,6 +77,7 @@ export type CheckoutInput = {
   paymentMethod: string;
   couponCode?: string;
   giftCode?: string;
+  bundleId?: string;
   items: CartItem[];
   userId?: string;
   innerCity?: boolean;
@@ -168,7 +169,21 @@ export async function createOrder(input: CheckoutInput) {
   const { quoteGift } = await import("@/server/giftcard");
   const gift = input.giftCode ? await quoteGift(input.giftCode, subtotal + shipRaw - off - pointsDiscount) : null;
   const giftAmount = gift?.amount || 0;
-  const total = Math.max(0, subtotal + ship - off - pointsDiscount - giftAmount);
+  const { quoteBundle } = await import("@/server/bundle");
+  const bundle = input.bundleId
+    ? await quoteBundle(
+        input.bundleId,
+        lines.map((l) => ({
+          productId: l.product.id,
+          skuId: l.sku?.id,
+          price: l.product.price,
+          quantity: l.quantity,
+          unit: l.product.unit,
+        })),
+      )
+    : null;
+  const bundleDiscount = bundle?.discount || 0;
+  const total = Math.max(0, subtotal + ship - off - pointsDiscount - giftAmount - bundleDiscount);
 
   const order = await prisma.$transaction(async (tx) => {
     const seq = await nextOrderSeq(tx);
@@ -221,12 +236,13 @@ export async function createOrder(input: CheckoutInput) {
         note: input.note || "",
         subtotal,
         shippingFee: ship,
-        discount: off,
+        discount: off + bundleDiscount,
         total,
         paymentMethod: input.paymentMethod,
         paymentStatus: input.paymentMethod === "vnpay" ? "pending" : "unpaid",
         status: "pending",
         couponCode: coupon?.code,
+        bundleCode: bundle?.name || "",
         pointsUsed: input.pointsToUse || 0,
         warehouseId: warehouse?.id,
         items: {

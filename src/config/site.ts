@@ -43,6 +43,7 @@ export const siteConfig = {
 
   nav: [
     { href: "/san-pham", label: "Sản phẩm" },
+    { href: "/combo", label: "Combo", feature: "bundles" as const },
     { href: "/tin-tuc", label: "Journal", feature: "blog" as const },
     { href: "/so-sanh", label: "So sánh", feature: "compare" as const },
     { href: "/dat-lich", label: "Đặt lịch", feature: "booking" as const },
@@ -58,6 +59,7 @@ export const siteConfig = {
     wishlist: true,
     reviews: true,
     coupons: true,
+    bundles: true,
     flashSale: true,
     blog: true,
     newsletter: true,

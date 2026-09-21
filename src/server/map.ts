@@ -142,6 +142,8 @@ export function toOrder(row: {
   paymentMethod: string;
   paymentStatus: string;
   ghnOrderCode?: string | null;
+  couponCode?: string | null;
+  bundleCode?: string | null;
   status: string;
   createdAt: Date;
   items: Array<{
@@ -182,6 +184,8 @@ export function toOrder(row: {
     paymentMethod: row.paymentMethod,
     paymentStatus: row.paymentStatus,
     ghnOrderCode: row.ghnOrderCode || undefined,
+    couponCode: row.couponCode || undefined,
+    bundleCode: row.bundleCode || undefined,
     status: row.status as Order["status"],
     createdAt: row.createdAt.toISOString().slice(0, 10),
   };

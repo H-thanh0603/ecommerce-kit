@@ -79,6 +79,8 @@ export type Order = {
   paymentMethod: string;
   paymentStatus?: string;
   ghnOrderCode?: string;
+  couponCode?: string;
+  bundleCode?: string;
   status: OrderStatus;
   createdAt: string;
   note?: string;

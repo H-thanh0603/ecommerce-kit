@@ -25,6 +25,7 @@ const checkoutSchema = z.object({
   paymentMethod: z.string(),
   couponCode: z.string().optional(),
   giftCode: z.string().optional(),
+  bundleId: z.string().optional(),
   innerCity: z.boolean().optional(),
   pointsToUse: z.number().optional(),
   items: z.array(itemSchema).min(1),

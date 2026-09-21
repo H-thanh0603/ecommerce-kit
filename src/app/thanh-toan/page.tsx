@@ -6,6 +6,7 @@ import { enabledPayments, isEnabled, siteConfig } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { discountAmount, money, shippingFee, vietQrUrl } from "@/lib/format";
+import { clearBundleId, readBundleId } from "@/components/bundle/AddBundleButton";
 
 type Coupon = { code: string; type: "percent" | "fixed" | "shipping"; value: number; minOrder: number };
 
@@ -18,6 +19,11 @@ export default function CheckoutPage() {
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<Coupon | null>(null);
   const [gift, setGift] = useState("");
+  const [bundleId, setBundleId] = useState("");
+
+  useEffect(() => {
+    setBundleId(readBundleId());
+  }, []);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [innerCity, setInnerCity] = useState(false);
@@ -87,6 +93,7 @@ export default function CheckoutPage() {
         paymentMethod: method,
         couponCode: applied?.code,
         giftCode: gift.trim() || undefined,
+        bundleId: bundleId || undefined,
         innerCity,
         pointsToUse: usePoints ? 100 : undefined,
         items,
@@ -96,6 +103,7 @@ export default function CheckoutPage() {
     setPending(false);
     if (!res.ok) return setError(data.message || "Không đặt được hàng");
     clear();
+    clearBundleId();
     // Lưu địa chỉ vào sổ cho lần sau (khách đăng nhập, best-effort).
     if (user) {
       fetch("/api/addresses", {
@@ -237,6 +245,7 @@ export default function CheckoutPage() {
             />
           </div>
           <p className="-mt-2 text-[11px] text-muted">Thẻ quà trừ vào tổng lúc ghi đơn.</p>
+          {bundleId && <p className="mt-2 text-xs text-primary">Combo áp dụng — giảm giá tính lúc ghi đơn.</p>}
           <div className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Tạm tính</span>

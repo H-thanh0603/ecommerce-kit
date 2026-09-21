@@ -199,6 +199,15 @@ model WebhookEndpoint {
   createdAt DateTime @default(now())
 }
 
+model Bundle {
+  id        String   @id @default(cuid())
+  name      String
+  linesJson String   @default("[]")
+  price     Int
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 model Order {
   id            String      @id @default(cuid())
   code          String      @unique
@@ -219,6 +228,7 @@ model Order {
   paymentStatus String      @default("unpaid")
   status        String      @default("pending")
   couponCode    String?
+  bundleCode    String   @default("")
   warehouseId   String?
   warehouse     Warehouse?  @relation(fields: [warehouseId], references: [id])
   ghnOrderCode  String      @default("")
