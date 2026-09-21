@@ -18,6 +18,10 @@ export async function POST(req: Request) {
   });
   if (result.ok) {
     await logOrderEventByCode(String(data.orderId || ""), "payment", `MoMo IPN: ${result.message}`);
+    if (Number(data.resultCode) === 0) {
+      const { dispatchWebhooks } = await import("@/server/webhooks");
+      await dispatchWebhooks("order.paid", { code: String(data.orderId || ""), gateway: "momo" });
+    }
   }
   return NextResponse.json(result);
 }

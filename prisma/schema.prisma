@@ -190,6 +190,15 @@ model OrderEvent {
   @@index([orderId, createdAt])
 }
 
+model WebhookEndpoint {
+  id        String   @id @default(cuid())
+  url       String
+  secret    String
+  events    String   @default("order.created,order.status,order.paid")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 model Order {
   id            String      @id @default(cuid())
   code          String      @unique

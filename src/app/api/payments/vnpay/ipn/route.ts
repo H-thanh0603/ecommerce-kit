@@ -21,6 +21,10 @@ export async function GET(req: Request) {
   });
   if (result.RspCode === "00") {
     await logOrderEventByCode(query.vnp_TxnRef || "", "payment", `VNPay IPN: ${result.Message}`);
+    if (query.vnp_ResponseCode === "00") {
+      const { dispatchWebhooks } = await import("@/server/webhooks");
+      await dispatchWebhooks("order.paid", { code: query.vnp_TxnRef, gateway: "vnpay" });
+    }
   }
   return NextResponse.json(result);
 }
