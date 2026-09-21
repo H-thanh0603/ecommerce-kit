@@ -17,6 +17,7 @@ model User {
   reviews      Review[]
   cartLines    CartLine[]
   wishlist     WishlistItem[]
+  addresses    Address[]
   redemptions  CouponRedemption[]
   resets       PasswordReset[]
   bookings     Booking[]
@@ -245,6 +246,20 @@ model WishlistItem {
   createdAt DateTime @default(now())
 
   @@unique([userId, productId])
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   @default("Nhà")
+  name      String
+  phone     String
+  address   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model StockMovement {

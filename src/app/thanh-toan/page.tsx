@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { enabledPayments, isEnabled, siteConfig } from "@/config/site";
 import { useCart } from "@/lib/cart";
@@ -23,6 +23,23 @@ export default function CheckoutPage() {
   const [usePoints, setUsePoints] = useState(false);
   const [buyer, setBuyer] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
+  const [buyerAddress, setBuyerAddress] = useState("");
+  const [savedAddr, setSavedAddr] = useState<Array<{ id: string; label: string; name: string; phone: string; address: string }>>([]);
+
+  useEffect(() => {
+    fetch("/api/addresses")
+      .then((r) => r.json())
+      .then((j) => {
+        if (Array.isArray(j.addresses) && j.addresses.length) {
+          setSavedAddr(j.addresses);
+          const d = j.addresses[0];
+          setBuyer(d.name);
+          setBuyerPhone(d.phone);
+          setBuyerAddress(d.address);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const shipRaw = shippingFee(subtotal, { innerCity });
   const ship = applied?.type === "shipping" ? 0 : shipRaw;
@@ -77,6 +94,18 @@ export default function CheckoutPage() {
     setPending(false);
     if (!res.ok) return setError(data.message || "Không đặt được hàng");
     clear();
+    // Lưu địa chỉ vào sổ cho lần sau (khách đăng nhập, best-effort).
+    if (user) {
+      fetch("/api/addresses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: String(form.get("name") || ""),
+          phone: String(form.get("phone") || ""),
+          address: String(form.get("address") || ""),
+        }),
+      }).catch(() => {});
+    }
     if (data.payUrl) {
       window.location.href = data.payUrl;
       return;
@@ -91,11 +120,31 @@ export default function CheckoutPage() {
         <div className="space-y-6">
           <section className="rounded-2xl border border-line bg-white p-5">
             <h2 className="font-medium">Thông tin nhận hàng</h2>
+            {savedAddr.length > 0 && (
+              <select
+                className="mt-3 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm"
+                defaultValue={0}
+                onChange={(e) => {
+                  const a = savedAddr[Number(e.target.value)];
+                  if (a) {
+                    setBuyer(a.name);
+                    setBuyerPhone(a.phone);
+                    setBuyerAddress(a.address);
+                  }
+                }}
+              >
+                {savedAddr.map((a, i) => (
+                  <option key={a.id} value={i}>
+                    {a.label}: {a.name} · {a.address}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <input required name="name" defaultValue={user?.name || ""} onChange={(e) => setBuyer(e.target.value)} placeholder="Họ tên" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
-              <input required name="phone" onChange={(e) => setBuyerPhone(e.target.value)} placeholder="Số điện thoại" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
+              <input required name="name" value={buyer || user?.name || ""} onChange={(e) => setBuyer(e.target.value)} placeholder="Họ tên" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
+              <input required name="phone" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} placeholder="Số điện thoại" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
               <input required type="email" name="email" defaultValue={user?.email || ""} placeholder="Email" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
-              <input required name="address" placeholder="Địa chỉ" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
+              <input required name="address" value={buyerAddress} onChange={(e) => setBuyerAddress(e.target.value)} placeholder="Địa chỉ" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
               <textarea name="note" placeholder="Ghi chú đơn hàng" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" rows={3} />
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input type="checkbox" checked={innerCity} onChange={(e) => setInnerCity(e.target.checked)} />
