@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   if (order.paymentStatus !== "paid") {
     await prisma.order.updateMany({
       where: { code },
-      data: { paymentStatus: ok ? "paid" : "failed" },
+      data: { paymentStatus: ok ? "paid" : "failed", paymentRef: ok ? query.vnp_TransactionNo || order.paymentRef : order.paymentRef },
     });
   }
   if (!ok) return fail("failed");

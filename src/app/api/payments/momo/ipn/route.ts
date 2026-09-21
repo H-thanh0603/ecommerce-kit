@@ -9,8 +9,11 @@ export async function POST(req: Request) {
   const result = await handleMomoIpn(data, {
     findOrder: async (code) =>
       prisma.order.findUnique({ where: { code }, select: { code: true, total: true, paymentStatus: true } }),
-    markPaid: async (code) => {
-      await prisma.order.updateMany({ where: { code }, data: { paymentStatus: "paid" } });
+    markPaid: async (code, transId) => {
+      await prisma.order.updateMany({
+        where: { code },
+        data: { paymentStatus: "paid", paymentRef: transId || String(data.transId || "") },
+      });
     },
     markFailed: async (code) => {
       await prisma.order.updateMany({ where: { code }, data: { paymentStatus: "failed" } });

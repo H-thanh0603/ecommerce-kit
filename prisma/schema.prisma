@@ -179,6 +179,19 @@ model ReturnRequest {
   @@index([orderId, status])
 }
 
+model Refund {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount    Int
+  method    String   @default("bank")
+  status    String   @default("pending")
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([orderId, status])
+}
+
 model OrderEvent {
   id        String   @id @default(cuid())
   orderId   String
@@ -226,6 +239,7 @@ model Order {
   total         Int
   paymentMethod String
   paymentStatus String      @default("unpaid")
+  paymentRef    String      @default("")
   status        String      @default("pending")
   couponCode    String?
   bundleCode    String   @default("")
@@ -237,6 +251,7 @@ model Order {
   items         OrderItem[]
   invoice       Invoice?
   returns       ReturnRequest[]
+  refunds       Refund[]
   events        OrderEvent[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

@@ -13,7 +13,10 @@ export async function GET(req: Request) {
     findOrder: async (code) =>
       prisma.order.findUnique({ where: { code }, select: { code: true, total: true, paymentStatus: true } }),
     markPaid: async (code) => {
-      await prisma.order.updateMany({ where: { code }, data: { paymentStatus: "paid" } });
+      await prisma.order.updateMany({
+        where: { code },
+        data: { paymentStatus: "paid", paymentRef: query.vnp_TransactionNo || "" },
+      });
     },
     markFailed: async (code) => {
       await prisma.order.updateMany({ where: { code }, data: { paymentStatus: "failed" } });

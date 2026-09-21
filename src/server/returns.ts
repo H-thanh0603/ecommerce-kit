@@ -80,15 +80,20 @@ async function restockTx(tx: Prisma.TransactionClient, orderId: string, items: R
   }
 }
 
-/** Duyệt = hoàn tồn + sold; từ chối = đóng yêu cầu. */
-export async function resolveReturn(id: string, approve: boolean) {
-  const req = await prisma.returnRequest.findUnique({ where: { id } });
+/** Duyệt = hoàn tồn (+ tạo phiếu hoàn tiền nếu có refundAmount); từ chối = đóng yêu cầu. */
+export async function resolveReturn(id: string, approve: boolean, refundAmount = 0) {
+  const req = await prisma.returnRequest.findUnique({ where: { id }, include: { order: true } });
   if (!req || req.status !== "pending") throw new Error("Yêu cầu không ở trạng thái chờ");
   if (!approve) {
     return prisma.returnRequest.update({ where: { id }, data: { status: "rejected" } });
   }
-  return prisma.$transaction(async (tx) => {
+  const done = await prisma.$transaction(async (tx) => {
     await restockTx(tx, req.orderId, parseItems(req.itemsJson), `RET-${req.id.slice(-6)}`);
     return tx.returnRequest.update({ where: { id }, data: { status: "completed" } });
   });
+  if (refundAmount > 0) {
+    const { createRefund } = await import("@/server/refunds");
+    await createRefund(req.order.code, refundAmount, "bank", `Hoàn theo duyệt trả ${req.id.slice(-6)}`);
+  }
+  return done;
 }

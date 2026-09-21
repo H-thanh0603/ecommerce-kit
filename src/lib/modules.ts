@@ -102,6 +102,7 @@ export const moduleCatalog = [
   { id: "vietqr", name: "VietQR chuyển khoản", included: true, files: ["src/lib/format.ts"] },
   { id: "giftcard", name: "Thẻ quà tặng", included: true, files: ["src/server/giftcard.ts", "src/app/admin/qua-tang"] },
   { id: "returns", name: "Đổi/trả hàng", included: true, files: ["src/server/returns.ts", "src/app/admin/tra-hang"] },
+  { id: "refunds", name: "Hoàn tiền", included: true, files: ["src/server/refunds.ts", "src/app/admin/hoan-tien"] },
   { id: "order-events", name: "Nhật ký đơn", included: true, files: ["src/server/order-events.ts"] },
   { id: "webhooks-out", name: "Webhook đi", included: true, files: ["src/server/webhooks.ts", "src/app/admin/webhooks"] },
   { id: "address-book", name: "Sổ địa chỉ", included: true, files: ["src/app/api/addresses/route.ts"] },

@@ -42,7 +42,7 @@ export async function PUT(req: Request) {
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   try {
-    const r = await resolveReturn(String(body.id || ""), body.approve === true);
+    const r = await resolveReturn(String(body.id || ""), body.approve === true, Number(body.refundAmount || 0));
     return NextResponse.json({ ok: true, status: r.status });
   } catch (e) {
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : "Xử lý thất bại" }, { status: 400 });

@@ -105,3 +105,41 @@ export async function handleMomoIpn(
   await store.markFailed(code);
   return { ok: true, message: "Recorded failed payment" };
 }
+
+export type MomoRefundInput = { orderId: string; amount: number; transId: string; description?: string };
+
+/** Dựng request hoàn tiền MoMo — pure để test chữ ký. */
+export function buildMomoRefund(input: MomoRefundInput) {
+  if (!momoConfigured()) throw new Error("Chưa cấu hình MOMO_PARTNER_CODE / ACCESS_KEY / SECRET_KEY");
+  const body = {
+    partnerCode: process.env.MOMO_PARTNER_CODE!,
+    orderId: input.orderId,
+    requestId: `${input.orderId}-refund-${Date.now()}`,
+    amount: String(Math.round(input.amount)),
+    transId: input.transId,
+    lang: "vi",
+    description: (input.description || `Hoan tien don ${input.orderId}`).slice(0, 100),
+  };
+  const raw =
+    `accessKey=${process.env.MOMO_ACCESS_KEY!}&amount=${body.amount}&description=${body.description}` +
+    `&orderId=${body.orderId}&partnerCode=${body.partnerCode}&requestId=${body.requestId}&transId=${body.transId}`;
+  const signature = hmacHex(process.env.MOMO_SECRET_KEY!, raw);
+  return { ...body, signature };
+}
+
+function momoRefundApi() {
+  return process.env.MOMO_REFUND_URL || "https://test-payment.momo.vn/v2/gateway/api/refund";
+}
+
+/** Gọi hoàn tiền thật — cần transId gốc (lưu ở Order.paymentRef), test tay sandbox trước. */
+export async function refundMomo(input: MomoRefundInput) {
+  const body = buildMomoRefund(input);
+  const res = await fetch(momoRefundApi(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => null);
+  if (data?.resultCode === 0) return { ok: true as const, message: "Hoàn tiền thành công" };
+  return { ok: false as const, message: `MoMo từ chối: ${data?.message || data?.resultCode || res.status}` };
+}
