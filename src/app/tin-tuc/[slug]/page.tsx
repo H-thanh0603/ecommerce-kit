@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getArticle } from "@/server/commerce";
+import { SmartImage } from "@/components/ui/SmartImage";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -24,8 +25,7 @@ export default async function ArticlePage({ params }: Props) {
       </p>
       <h1 className="mt-2 font-serif text-4xl text-primary">{article.title}</h1>
       <div className="mt-6 overflow-hidden rounded-3xl">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={article.cover} alt="" className="w-full object-cover" />
+        <SmartImage src={article.cover} alt={article.title} className="aspect-[16/9] w-full" eager />
       </div>
       <div className="mt-8 space-y-4 leading-relaxed text-muted">
         <p>{article.body || article.excerpt}</p>

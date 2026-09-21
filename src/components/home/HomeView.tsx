@@ -2,6 +2,7 @@ import Link from "next/link";
 import { siteConfig, isEnabled } from "@/config/site";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { RecentSection } from "@/components/home/RecentSection";
+import { SmartImage } from "@/components/ui/SmartImage";
 import { IconRefresh, IconShield, IconTruck } from "@/components/icons";
 import { money } from "@/lib/format";
 import type { Article, Category, Product } from "@/types";
@@ -38,11 +39,12 @@ export function HomeView({
             </div>
           </div>
           <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] md:aspect-[5/4]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <SmartImage
               src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&q=80"
               alt="Atelier"
-              className="h-full w-full object-cover"
+              className="h-full w-full"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              eager
             />
           </div>
         </div>
@@ -76,8 +78,13 @@ export function HomeView({
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {categories.map((c) => (
             <Link key={c.id} href={`/san-pham?cat=${c.slug}`} className="group relative overflow-hidden rounded-2xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={c.image} alt={c.name} className="aspect-[3/4] w-full object-cover transition group-hover:scale-105" />
+              <SmartImage
+                src={c.image}
+                alt={c.name}
+                className="aspect-[3/4] w-full"
+                imgClassName="transition group-hover:scale-105"
+                sizes="(max-width: 768px) 50vw, 25vw"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 text-white">
                 <p className="font-serif text-xl">{c.name}</p>
@@ -103,8 +110,7 @@ export function HomeView({
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
               {flash.map((p) => (
                 <Link key={p.id} href={`/san-pham/${p.slug}`} className="overflow-hidden rounded-2xl bg-white text-ink">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.images[0]} alt={p.name} className="aspect-[4/3] w-full object-cover" />
+                  <SmartImage src={p.images[0]} alt={p.name} className="aspect-[4/3] w-full" sizes="(max-width: 768px) 50vw, 33vw" />
                   <div className="p-3">
                     <p className="font-medium">{p.name}</p>
                     <p className="mt-1 text-sm">
@@ -146,8 +152,13 @@ export function HomeView({
               {articles.map((a) => (
                 <Link key={a.id} href={`/tin-tuc/${a.slug}`} className="group">
                   <div className="overflow-hidden rounded-2xl">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={a.cover} alt={a.title} className="aspect-[16/10] w-full object-cover transition group-hover:scale-105" />
+                    <SmartImage
+                      src={a.cover}
+                      alt={a.title}
+                      className="aspect-[16/10] w-full"
+                      imgClassName="transition group-hover:scale-105"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
                   </div>
                   <p className="mt-3 text-xs text-muted">
                     {a.date} · {a.minutes} phút đọc

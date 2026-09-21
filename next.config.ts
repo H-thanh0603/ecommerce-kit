@@ -3,10 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "bcryptjs", "nodemailer"],
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "plus.unsplash.com" },
-    ],
+    // S3/R2/domain khách tự thêm host tại đây nếu không dùng wildcard.
+    remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
 };
 

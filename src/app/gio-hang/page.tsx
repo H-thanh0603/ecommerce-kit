@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { money, shippingFee } from "@/lib/format";
 import { siteConfig } from "@/config/site";
+import { SmartImage } from "@/components/ui/SmartImage";
 
 export default function CartPage() {
   const { items, setQty, remove, subtotal } = useCart();
@@ -31,8 +32,7 @@ export default function CartPage() {
               key={item.productId + (item.variantLabel || "")}
               className="flex gap-4 rounded-2xl border border-line bg-white p-3"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={item.image} alt="" className="h-24 w-20 rounded-xl object-cover" />
+              <SmartImage src={item.image} alt={item.name} className="h-24 w-20 shrink-0 rounded-xl" sizes="80px" />
               <div className="flex flex-1 flex-col">
                 <Link href={`/san-pham/${item.slug}`} className="font-medium">
                   {item.name}

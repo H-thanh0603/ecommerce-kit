@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listArticles } from "@/server/commerce";
 import { isEnabled } from "@/config/site";
+import { SmartImage } from "@/components/ui/SmartImage";
 
 export const metadata = { title: "Journal" };
 
@@ -17,8 +18,13 @@ export default async function BlogPage() {
         {articles.map((a) => (
           <Link key={a.id} href={`/tin-tuc/${a.slug}`} className="group">
             <div className="overflow-hidden rounded-2xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={a.cover} alt="" className="aspect-[16/10] w-full object-cover transition group-hover:scale-105" />
+              <SmartImage
+                src={a.cover}
+                alt={a.title}
+                className="aspect-[16/10] w-full"
+                imgClassName="transition group-hover:scale-105"
+                sizes="(max-width: 768px) 100vw, 33vw"
+              />
             </div>
             <p className="mt-3 text-xs text-muted">
               {a.date} · {a.minutes} phút

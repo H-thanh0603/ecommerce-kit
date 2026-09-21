@@ -8,6 +8,7 @@ import { useWishlist } from "@/lib/wishlist";
 import { useCompare } from "@/lib/compare";
 import type { Product } from "@/types";
 import { IconHeart, IconHeartFill, IconStar } from "@/components/icons";
+import { SmartImage } from "@/components/ui/SmartImage";
 
 export function ProductCard({ product }: { product: Product }) {
   const { add } = useCart();
@@ -23,11 +24,12 @@ export function ProductCard({ product }: { product: Product }) {
     <article className="group flex flex-col">
       <div className="relative overflow-hidden rounded-2xl bg-white">
         <Link href={`/san-pham/${product.slug}`} className="block aspect-[4/5] overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <SmartImage
             src={product.images[0]}
             alt={product.name}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            className="h-full w-full"
+            imgClassName="transition duration-500 group-hover:scale-105"
+            sizes="(max-width: 768px) 50vw, 25vw"
           />
         </Link>
         <div className="absolute left-3 top-3 flex flex-col gap-1">

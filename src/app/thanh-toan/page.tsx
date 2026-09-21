@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { enabledPayments, isEnabled, siteConfig } from "@/config/site";
 import { useCart } from "@/lib/cart";
@@ -186,8 +187,7 @@ export default function CheckoutPage() {
             </div>
             {method === "bankTransfer" && (
               <div className="mt-3 rounded-xl bg-canvas p-3 text-sm text-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={vietQrUrl({
                     shortCode: siteConfig.payments.bankTransfer.shortCode,
                     accountNumber: siteConfig.payments.bankTransfer.accountNumber,
@@ -196,7 +196,9 @@ export default function CheckoutPage() {
                     addInfo: `DH ${buyer} ${buyerPhone}`.trim().slice(0, 25) || "Thanh toan don hang",
                   })}
                   alt="VietQR chuyển khoản"
-                  className="mx-auto w-44 rounded-lg bg-white p-2"
+                  width={176}
+                  height={176}
+                  className="mx-auto rounded-lg bg-white p-2"
                   loading="lazy"
                 />
                 <p className="mt-2 text-center font-medium text-ink">{money(total)}</p>
