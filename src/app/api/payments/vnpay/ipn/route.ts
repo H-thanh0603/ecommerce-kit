@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyVnpay } from "@/server/vnpay";
+import { handleVnpayIpn } from "@/server/vnpay";
 import { prisma } from "@/server/db";
 
 export async function GET(req: Request) {
@@ -8,14 +8,15 @@ export async function GET(req: Request) {
   url.searchParams.forEach((v, k) => {
     query[k] = v;
   });
-  if (!verifyVnpay(query)) return NextResponse.json({ RspCode: "97", Message: "Fail checksum" });
-  const code = query.vnp_TxnRef;
-  const ok = query.vnp_ResponseCode === "00";
-  if (code) {
-    await prisma.order.updateMany({
-      where: { code },
-      data: { paymentStatus: ok ? "paid" : "failed" },
-    });
-  }
-  return NextResponse.json({ RspCode: "00", Message: "Success" });
+  const result = await handleVnpayIpn(query, {
+    findOrder: async (code) =>
+      prisma.order.findUnique({ where: { code }, select: { code: true, total: true, paymentStatus: true } }),
+    markPaid: async (code) => {
+      await prisma.order.updateMany({ where: { code }, data: { paymentStatus: "paid" } });
+    },
+    markFailed: async (code) => {
+      await prisma.order.updateMany({ where: { code }, data: { paymentStatus: "failed" } });
+    },
+  });
+  return NextResponse.json(result);
 }

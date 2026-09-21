@@ -47,3 +47,63 @@ export async function quoteShipping(opts: {
     eta: site.shipping.estimatedDays,
   };
 }
+
+export type GhnCreateInput = {
+  toName: string;
+  toPhone: string;
+  toAddress: string;
+  toWardCode: string;
+  toDistrictId: number;
+  weightGrams?: number;
+  codAmount?: number;
+  note?: string;
+  items: Array<{ name: string; quantity: number; price?: number; weight?: number }>;
+};
+
+export type GhnCreateResult = { ok: boolean; orderCode?: string; message: string };
+
+/** Tạo đơn GHN thật, trả về mã vận đơn để lưu vào `Order.ghnOrderCode`. */
+export async function createGhnOrder(input: GhnCreateInput): Promise<GhnCreateResult> {
+  if (!ghnConfigured()) return { ok: false, message: "Chưa cấu hình GHN_TOKEN / GHN_SHOP_ID" };
+  if (!input.toWardCode || !input.toDistrictId || !input.toPhone || !input.toAddress) {
+    return { ok: false, message: "Thiếu phường/xã, quận/huyện, SĐT hoặc địa chỉ người nhận" };
+  }
+  if (!input.items.length) return { ok: false, message: "Đơn trống, không tạo vận đơn" };
+  try {
+    const res = await fetch("https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/create", {
+      method: "POST",
+      headers: {
+        Token: process.env.GHN_TOKEN!,
+        ShopId: process.env.GHN_SHOP_ID!,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        payment_type_id: 2,
+        note: input.note || "Giao hàng, cho xem hàng",
+        required_note: "CHOXEMHANGKHONGTHU",
+        to_name: input.toName,
+        to_phone: input.toPhone,
+        to_address: input.toAddress,
+        to_ward_code: input.toWardCode,
+        to_district_id: input.toDistrictId,
+        weight: Math.max(100, input.weightGrams || 500),
+        service_type_id: 2,
+        cod_amount: Math.max(0, input.codAmount || 0),
+        items: input.items.map((i) => ({
+          name: i.name,
+          quantity: i.quantity,
+          price: i.price || 0,
+          weight: i.weight || 200,
+        })),
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    const orderCode = data?.data?.order_code as string | undefined;
+    if (data?.code === 200 && orderCode) {
+      return { ok: true, orderCode, message: "Đã tạo vận đơn GHN" };
+    }
+    return { ok: false, message: `GHN từ chối: ${data?.message || data?.code || res.status}` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Lỗi gọi GHN" };
+  }
+}
