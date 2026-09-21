@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
+import { ReturnForm } from "@/components/account/ReturnForm";
 import type { Order } from "@/types";
 
 const statusLabel: Record<string, string> = {
@@ -81,6 +82,8 @@ export default function AccountPage() {
           </li>
         ))}
       </ul>
+
+      <ReturnForm orders={mine} email={user.email} />
     </div>
   );
 }

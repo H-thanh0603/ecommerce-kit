@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listReturns, requestReturn, resolveReturn } from "@/server/returns";
-import { requireAdmin } from "@/server/auth";
+import { getSession, requireAdmin } from "@/server/auth";
+import { prisma } from "@/server/db";
 
 /** Khách gửi yêu cầu trả hàng. */
 export async function POST(req: Request) {
@@ -18,12 +19,22 @@ export async function POST(req: Request) {
   }
 }
 
-/** Admin xem/duyệt yêu cầu. */
+/** Admin xem tất cả; khách xem yêu cầu của chính mình. */
 export async function GET(req: Request) {
   const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const status = new URL(req.url).searchParams.get("status") || undefined;
-  return NextResponse.json({ returns: await listReturns(status) });
+  if (admin) return NextResponse.json({ returns: await listReturns(status) });
+  const session = await getSession();
+  if (!session) return NextResponse.json({ message: "Cần đăng nhập" }, { status: 401 });
+  const rows = await prisma.returnRequest.findMany({
+    where: {
+      ...(status ? { status } : {}),
+      order: { OR: [{ userId: session.id }, { email: session.email }] },
+    },
+    orderBy: { createdAt: "desc" },
+    include: { order: { select: { code: true } } },
+  });
+  return NextResponse.json({ returns: rows });
 }
 
 export async function PUT(req: Request) {
