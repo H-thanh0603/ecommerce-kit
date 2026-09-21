@@ -14,13 +14,19 @@ export const moduleCatalog = [
     id: "core-catalog",
     name: "Danh mục & sản phẩm",
     included: true,
-    files: ["src/app/san-pham", "src/server/commerce.ts"],
+    files: ["src/app/san-pham", "src/server/catalog.ts"],
   },
   {
     id: "core-cart",
     name: "Giỏ hàng & checkout",
     included: true,
-    files: ["src/app/gio-hang", "src/app/thanh-toan", "src/lib/cart.tsx"],
+    files: ["src/app/gio-hang", "src/app/thanh-toan", "src/lib/cart.tsx", "src/server/cart.ts", "src/server/order.ts"],
+  },
+  {
+    id: "core-coupon",
+    name: "Mã giảm giá (lõi)",
+    included: true,
+    files: ["src/server/coupon.ts"],
   },
   {
     id: "core-auth",

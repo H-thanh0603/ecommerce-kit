@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { prisma } from "./db";
 import { createOrder, getProductById } from "./commerce";
 
 describe("createOrder", () => {
   it("trừ tồn SKU, không tin giá client, mã ATL- tuần tự", async () => {
     const before = await getProductById("p1");
     expect(before).toBeTruthy();
-    const sku = before!.skus?.[0];
+    const sku = before!.skus?.find((s) => s.stock > 0) ?? before!.skus?.[0];
     expect(sku).toBeTruthy();
-    const stockBefore = sku!.stock;
+    // Nạp lại tồn để test chạy lặp (idempotent), không phụ thuộc số lần chạy trước.
+    await prisma.sku.update({ where: { id: sku!.id }, data: { stock: 5 } });
+    const stockBefore = 5;
 
     const order = await createOrder({
       customer: "Tester",
