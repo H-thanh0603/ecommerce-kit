@@ -5,7 +5,7 @@ import { clientKey, rateLimit } from "@/server/rate-limit";
 
 export async function POST(req: Request) {
   if (!isEnabled("newsletter")) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
-  if (!rateLimit(clientKey(req, "news"), 8, 60_000).ok) {
+  if (!(await rateLimit(clientKey(req, "news"), 8, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
   const body = await req.json().catch(() => ({}));

@@ -4,7 +4,7 @@ import { aiConfigured, shopChat } from "@/server/ai";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 
 export async function POST(req: Request) {
-  if (!rateLimit(clientKey(req, "ai-chat"), 20, 60_000).ok) {
+  if (!(await rateLimit(clientKey(req, "ai-chat"), 20, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
   if (!isEnabled("aiChatbot")) {

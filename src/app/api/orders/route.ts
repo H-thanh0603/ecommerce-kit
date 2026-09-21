@@ -40,7 +40,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  if (!rateLimit(clientKey(req, "checkout"), 10, 60_000).ok) {
+  if (!(await rateLimit(clientKey(req, "checkout"), 10, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
   const session = await getSession();

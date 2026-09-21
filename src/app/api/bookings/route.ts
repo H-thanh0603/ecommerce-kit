@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   if (!isEnabled("booking")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
-  if (!rateLimit(clientKey(req, "book"), 8, 60_000).ok) {
+  if (!(await rateLimit(clientKey(req, "book"), 8, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
   const session = await getSession();
