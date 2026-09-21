@@ -14,6 +14,7 @@ export default async function InvoicePrint({ params }: { params: Promise<{ numbe
       <h1 className="font-serif text-3xl text-primary">{invoice.number}</h1>
       <p className="mt-2">{siteConfig.brand.name} · {siteConfig.brand.address}</p>
       <p className="mt-4">Khách: {invoice.buyerName} {invoice.buyerTax ? `· MST ${invoice.buyerTax}` : ""}</p>
+      {invoice.buyerAddress && <p>Địa chỉ: {invoice.buyerAddress}</p>}
       <p>Đơn {order.code} · {order.createdAt}</p>
       <ul className="mt-6 space-y-1">
         {order.items.map((i) => (
@@ -23,7 +24,9 @@ export default async function InvoicePrint({ params }: { params: Promise<{ numbe
           </li>
         ))}
       </ul>
-      <p className="mt-4 font-medium">Tổng {money(order.total)}</p>
+      <p className="mt-4 text-muted">Tiền hàng (chưa VAT) {money(order.total - invoice.vatAmount)}</p>
+      <p className="text-muted">VAT {invoice.taxRate}% {money(invoice.vatAmount)}</p>
+      <p className="mt-1 font-medium">Tổng {money(order.total)}</p>
       <p className="mt-8 text-xs text-muted print:hidden">Ctrl+P / Cmd+P để in.</p>
     </div>
   );

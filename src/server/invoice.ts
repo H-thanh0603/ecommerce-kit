@@ -1,11 +1,14 @@
 import { prisma } from "@/server/db";
 import { toOrder } from "@/server/map";
 
-export async function issueInvoice(orderId: string, buyerTax = "") {
+export async function issueInvoice(orderId: string, buyerTax = "", opts?: { buyerAddress?: string; taxRate?: number }) {
   const existing = await prisma.invoice.findUnique({ where: { orderId } });
   if (existing) return existing;
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) throw new Error("Không thấy đơn");
+  const taxRate = Math.min(100, Math.max(0, opts?.taxRate ?? 10));
+  // Giá đã gồm VAT → tách VAT: vat = total * rate / (100 + rate)
+  const vatAmount = Math.round((order.total * taxRate) / (100 + taxRate));
   const counter = await prisma.orderCounter.upsert({
     where: { id: "invoice" },
     create: { id: "invoice", value: 1 },
@@ -18,6 +21,9 @@ export async function issueInvoice(orderId: string, buyerTax = "") {
       number,
       buyerName: order.customer,
       buyerTax,
+      buyerAddress: opts?.buyerAddress || order.address,
+      taxRate,
+      vatAmount,
     },
   });
 }
