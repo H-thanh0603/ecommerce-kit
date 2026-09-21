@@ -47,7 +47,16 @@ Vercel: thêm env `DATABASE_URL` (pooling, thêm `?pgbouncer=true` nếu dùng t
 pooler — lưu ý `migrate deploy` cần direct connection), Build Command giữ mặc định
 (`prisma generate && next build` đã có trong `package.json`).
 
-## 4. Checklist production
+## 4. Cron nhắc giỏ bỏ quên
+
+Vercel: `vercel.json` đã khai báo cron hàng ngày, chỉ cần thêm env `CRON_SECRET`
+(trùng giá trị gọi đi). VPS: thêm crontab:
+
+```bash
+0 8 * * * curl -s -H "Authorization: Bearer $CRON_SECRET" https://domain/api/cron/abandoned-cart
+```
+
+## 5. Checklist production
 
 - [ ] `AUTH_SECRET` ngẫu nhiên (script `new:project` đã tự sinh)
 - [ ] Đổi `ADMIN_PASSWORD`, seed lại

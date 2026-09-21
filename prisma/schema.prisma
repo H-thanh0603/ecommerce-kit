@@ -299,6 +299,7 @@ model CartLine {
   sku          Sku?    @relation(fields: [skuId], references: [id])
   quantity     Int
   variantLabel String  @default("")
+  updatedAt    DateTime @updatedAt
 
   @@unique([userId, productId, variantLabel])
 }

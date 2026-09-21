@@ -106,4 +106,6 @@ export const moduleCatalog = [
   { id: "webhooks-out", name: "Webhook đi", included: true, files: ["src/server/webhooks.ts", "src/app/admin/webhooks"] },
   { id: "address-book", name: "Sổ địa chỉ", included: true, files: ["src/app/api/addresses/route.ts"] },
   { id: "review-moderation", name: "Duyệt đánh giá", included: true, files: ["src/app/admin/danh-gia"] },
+  { id: "bundles", name: "Combo", flag: "bundles", files: ["src/server/bundle.ts", "src/app/combo"] },
+  { id: "abandoned", name: "Nhắc giỏ bỏ quên", included: true, files: ["src/server/abandoned.ts", "src/app/api/cron/abandoned-cart"] },
 ] as const;

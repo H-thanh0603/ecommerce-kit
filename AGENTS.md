@@ -41,6 +41,9 @@ npx prisma migrate dev --name <ten>   # đổi schema
   VAT, gift card, returns.
 - E2E (`e2e/`) chạy trên production build + Chrome hệ thống (`channel: "chrome"`),
   chặn ảnh remote, `workers: 1`.
+- KHÔNG ghi ngày giờ bằng raw SQL trên SQLite — Prisma tự serialize (epoch-ms);
+  raw SQL sai format làm hỏng so sánh ngày. Cần backdate trong test thì
+  `UPDATE ... SET col = ${date.getTime()}` (xem `abandoned.test.ts`).
 
 ## Khi thêm module theo khách
 
