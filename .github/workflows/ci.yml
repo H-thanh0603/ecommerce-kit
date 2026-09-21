@@ -24,3 +24,11 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run build
+      - run: npx playwright install chromium --with-deps
+      - run: npm start -- --port 3100 &
+        env:
+          DATABASE_URL: file:./dev.db
+      - run: sleep 8 && E2E_URL=http://localhost:3100 npm run test:e2e
+        env:
+          ADMIN_EMAIL: admin@atelier.vn
+          ADMIN_PASSWORD: admin123

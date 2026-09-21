@@ -37,7 +37,8 @@ type ProductRow = {
 
 export function toProduct(row: ProductRow): Product {
   const variants = parseJson<ProductVariant[]>(row.optionsJson, []);
-  const skuStock = row.skus?.reduce((s, k) => s + k.stock, 0);
+  const hasSkus = (row.skus?.length || 0) > 0;
+  const skuStock = hasSkus ? row.skus!.reduce((s, k) => s + k.stock, 0) : row.stock;
   const flash = {
     flashSale: row.flashSale,
     flashSaleStartsAt: row.flashSaleStartsAt,
@@ -56,7 +57,7 @@ export function toProduct(row: ProductRow): Product {
     tags: row.tags ? row.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
     rating: row.rating,
     reviewCount: row.reviewCount,
-    stock: skuStock ?? row.stock,
+    stock: skuStock,
     sold: row.sold,
     featured: row.featured,
     flashSale: isFlashLive(flash),
