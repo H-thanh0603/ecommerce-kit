@@ -8,9 +8,15 @@ export function money(value: number) {
   }).format(value);
 }
 
-export function shippingFee(subtotal: number, opts?: { innerCity?: boolean }) {
-  if (subtotal >= siteConfig.shipping.freeFrom) return 0;
-  return opts?.innerCity ? siteConfig.shipping.innerCityFee : siteConfig.shipping.defaultFee;
+export type ShippingSchedule = { freeFrom: number; defaultFee: number; innerCityFee: number };
+
+export function shippingFee(
+  subtotal: number,
+  opts?: { innerCity?: boolean; schedule?: ShippingSchedule },
+) {
+  const s = opts?.schedule ?? siteConfig.shipping;
+  if (subtotal >= s.freeFrom) return 0;
+  return opts?.innerCity ? s.innerCityFee : s.defaultFee;
 }
 
 export function isFlashLive(p: {

@@ -339,3 +339,14 @@ model Booking {
 
   @@index([startsAt])
 }
+
+/**
+ * Ghi đè cấu hình site theo DB — ưu tiên hơn `src/config/site.ts` (file chỉ còn là default).
+ * key: "brand" | "theme" | "shipping" | "features", value: JSON string.
+ * Sửa trên trang /admin/cai-dat, áp dụng ngay không cần rebuild.
+ */
+model SiteSetting {
+  key       String   @id
+  value     String   @default("{}")
+  updatedAt DateTime @updatedAt
+}

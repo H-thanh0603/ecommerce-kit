@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { siteConfig, isEnabled } from "@/config/site";
+import { getEffectiveSiteConfig } from "@/server/settings";
 import type { Category } from "@/types";
 import { NewsletterForm } from "@/components/layout/NewsletterForm";
 
-export function Footer({ categories }: { categories: Category[] }) {
+export async function Footer({ categories }: { categories: Category[] }) {
+  const site = await getEffectiveSiteConfig().catch(() => null);
+  const b = site?.brand ?? siteConfig.brand;
   return (
     <footer className="mt-auto border-t border-line bg-white">
       {isEnabled("newsletter") && (
@@ -22,9 +25,9 @@ export function Footer({ categories }: { categories: Category[] }) {
 
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="font-serif text-2xl text-primary">{siteConfig.brand.name}</p>
+          <p className="font-serif text-2xl text-primary">{b.name}</p>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
-            {siteConfig.brand.tagline}. {siteConfig.brand.description}
+            {b.tagline}. {b.description}
           </p>
         </div>
         <div>
@@ -59,16 +62,16 @@ export function Footer({ categories }: { categories: Category[] }) {
         <div>
           <p className="text-sm font-medium">Cửa hàng</p>
           <ul className="mt-3 space-y-2 text-sm text-muted">
-            <li>{siteConfig.brand.address}</li>
-            <li>{siteConfig.brand.workingHours}</li>
-            <li>{siteConfig.brand.phone}</li>
-            <li>{siteConfig.brand.email}</li>
+            <li>{b.address}</li>
+            <li>{b.workingHours}</li>
+            <li>{b.phone}</li>
+            <li>{b.email}</li>
           </ul>
         </div>
       </div>
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col justify-between gap-2 px-4 py-4 text-xs text-muted sm:flex-row">
-          <p>© {new Date().getFullYear()} {siteConfig.brand.name}. Khung TMĐT tái sử dụng.</p>
+          <p>© {new Date().getFullYear()} {b.name}. Khung TMĐT tái sử dụng.</p>
           <p>COD · Chuyển khoản{siteConfig.payments.momo.enabled ? " · MoMo" : ""}{siteConfig.payments.vnpay.enabled ? " · VNPay" : ""}</p>
         </div>
       </div>

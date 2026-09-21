@@ -4,7 +4,7 @@ import { processPayment } from "@/server/payments";
 import { onOrderCreated, onOrderStatusChanged } from "@/server/events";
 import { discountAmount } from "@/lib/format";
 import { quoteShipping } from "@/server/shipping";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { defaultWarehouse } from "@/server/warehouse";
 import { discountFromPoints, grantOrderPoints, spendPoints } from "@/server/membership";
 import { productInclude } from "@/server/product-include";
@@ -59,7 +59,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
   });
   const order = toOrder(row);
   await onOrderStatusChanged(order, status);
-  if (status === "completed" && isEnabled("membership") && row.userId) {
+  if (status === "completed" && (await isFeatureOn("membership")) && row.userId) {
     const g = await grantOrderPoints(row.userId, order.total);
     await prisma.order.update({ where: { id }, data: { pointsEarned: g.earned } });
   }
@@ -98,7 +98,7 @@ export async function createOrder(input: CheckoutInput) {
     const { vnpayConfigured } = await import("@/server/vnpay");
     if (!vnpayConfigured()) throw new Error("Chưa cấu hình VNPay (.env VNPAY_*)");
   }
-  const warehouse = isEnabled("multiWarehouse") ? await defaultWarehouse() : null;
+  const warehouse = (await isFeatureOn("multiWarehouse")) ? await defaultWarehouse() : null;
 
   const ids = [...new Set(input.items.map((i) => i.productId))];
   const dbProducts = await prisma.product.findMany({
@@ -155,7 +155,7 @@ export async function createOrder(input: CheckoutInput) {
       })
     : 0;
   let pointsDiscount = 0;
-  if (isEnabled("membership") && input.userId && input.pointsToUse) {
+  if ((await isFeatureOn("membership")) && input.userId && input.pointsToUse) {
     pointsDiscount = discountFromPoints(input.pointsToUse);
   }
   const total = Math.max(0, subtotal + ship - off - pointsDiscount);
@@ -250,7 +250,7 @@ export async function createOrder(input: CheckoutInput) {
 
   const mapped = toOrder(order);
   await onOrderCreated(mapped);
-  if (isEnabled("membership") && input.userId && input.pointsToUse) {
+  if ((await isFeatureOn("membership")) && input.userId && input.pointsToUse) {
     await spendPoints(input.userId, input.pointsToUse);
   }
   let payUrl: string | undefined;

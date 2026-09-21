@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { siteConfig, isEnabled } from "@/config/site";
+import type { EffectiveSite } from "@/server/settings";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
@@ -17,11 +18,21 @@ import {
   IconUser,
 } from "@/components/icons";
 
-export function Header({ categories }: { categories: Category[] }) {
+export function Header({
+  categories,
+  brand,
+  shippingEta,
+}: {
+  categories: Category[];
+  brand?: EffectiveSite["brand"];
+  shippingEta?: string;
+}) {
   const { count } = useCart();
   const { user } = useAuth();
   const { ids } = useWishlist();
   const [open, setOpen] = useState(false);
+  const b = brand ?? siteConfig.brand;
+  const eta = shippingEta ?? siteConfig.shipping.estimatedDays;
   const [q, setQ] = useState("");
   const router = useRouter();
 
@@ -36,8 +47,8 @@ export function Header({ categories }: { categories: Category[] }) {
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur">
       <div className="bg-primary text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 text-[11px] tracking-wide sm:text-xs">
-          <p>Giao hàng toàn quốc · Đổi trả 7 ngày · {siteConfig.shipping.estimatedDays}</p>
-          <p className="hidden sm:block">Hotline {siteConfig.brand.hotline}</p>
+          <p>Giao hàng toàn quốc · Đổi trả 7 ngày · {eta}</p>
+          <p className="hidden sm:block">Hotline {b.hotline}</p>
         </div>
       </div>
 
@@ -51,7 +62,7 @@ export function Header({ categories }: { categories: Category[] }) {
         </button>
 
         <Link href="/" className="font-serif text-2xl tracking-tight text-primary">
-          {siteConfig.brand.logoText}
+          {b.logoText}
         </Link>
 
         <nav className="ml-6 hidden items-center gap-6 text-sm md:flex">

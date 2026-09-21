@@ -1,4 +1,4 @@
-import { isEnabled, siteConfig } from "@/config/site";
+import { getEffectiveSiteConfig } from "@/server/settings";
 import { shippingFee } from "@/lib/format";
 
 export type ShipQuote = { fee: number; provider: "local" | "ghn"; eta?: string };
@@ -14,7 +14,8 @@ export async function quoteShipping(opts: {
   toDistrictId?: number;
   toWardCode?: string;
 }): Promise<ShipQuote> {
-  if (isEnabled("ghn") && ghnConfigured() && opts.toDistrictId && opts.toWardCode) {
+  const site = await getEffectiveSiteConfig();
+  if (site.features.ghn && ghnConfigured() && opts.toDistrictId && opts.toWardCode) {
     try {
       const res = await fetch("https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee", {
         method: "POST",
@@ -34,15 +35,15 @@ export async function quoteShipping(opts: {
       const data = await res.json();
       const fee = Number(data?.data?.total);
       if (Number.isFinite(fee)) {
-        return { fee: opts.subtotal >= siteConfig.shipping.freeFrom ? 0 : fee, provider: "ghn", eta: "2–3 ngày (GHN)" };
+        return { fee: opts.subtotal >= site.shipping.freeFrom ? 0 : fee, provider: "ghn", eta: "2–3 ngày (GHN)" };
       }
     } catch {
       /* fallback */
     }
   }
   return {
-    fee: shippingFee(opts.subtotal, { innerCity: opts.innerCity }),
+    fee: shippingFee(opts.subtotal, { innerCity: opts.innerCity, schedule: site.shipping }),
     provider: "local",
-    eta: siteConfig.shipping.estimatedDays,
+    eta: site.shipping.estimatedDays,
   };
 }

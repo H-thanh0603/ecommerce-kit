@@ -4,13 +4,18 @@ import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ChatWidget } from "@/components/ai/ChatWidget";
+import type { EffectiveSite } from "@/server/settings";
 import type { Category } from "@/types";
 
 export function AppChrome({
   categories,
+  brand,
+  shippingEta,
   children,
 }: {
   categories: Category[];
+  brand?: EffectiveSite["brand"];
+  shippingEta?: string;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -19,7 +24,7 @@ export function AppChrome({
   }
   return (
     <>
-      <Header categories={categories} />
+      <Header categories={categories} brand={brand} shippingEta={shippingEta} />
       <main className="flex-1">{children}</main>
       <Footer categories={categories} />
       <ChatWidget />
