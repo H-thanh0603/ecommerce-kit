@@ -88,7 +88,10 @@ export async function listProducts(opts?: {
 export async function getProductBySlug(slug: string) {
   const row = await prisma.product.findUnique({
     where: { slug },
-    include: { ...productInclude, reviews: { orderBy: { createdAt: "desc" } } },
+    include: {
+      ...productInclude,
+      reviews: { where: { status: "approved" }, orderBy: { createdAt: "desc" } },
+    },
   });
   if (!row) return null;
   return { product: toProduct(row), reviews: row.reviews.map(toReview) };
@@ -127,6 +130,7 @@ export async function addReview(data: {
 }) {
   if (data.rating < 1 || data.rating > 5) throw new Error("Điểm 1–5");
   if (!data.content.trim()) throw new Error("Nhập nội dung");
+  // Đánh giá mới chờ duyệt — chỉ hiện sau khi admin bấm Duyệt.
   const review = await prisma.review.create({
     data: {
       productId: data.productId,
@@ -134,10 +138,11 @@ export async function addReview(data: {
       author: data.author,
       rating: data.rating,
       content: data.content.trim(),
+      status: "pending",
     },
   });
   const agg = await prisma.review.aggregate({
-    where: { productId: data.productId },
+    where: { productId: data.productId, status: "approved" },
     _avg: { rating: true },
     _count: true,
   });
@@ -149,6 +154,41 @@ export async function addReview(data: {
     },
   });
   return toReview(review);
+}
+
+export async function listPendingReviews() {
+  return prisma.review.findMany({
+    where: { status: "pending" },
+    orderBy: { createdAt: "desc" },
+    include: { product: { select: { name: true, slug: true } } },
+  });
+}
+
+export async function approveReview(id: string) {
+  const review = await prisma.review.update({ where: { id }, data: { status: "approved" } });
+  const agg = await prisma.review.aggregate({
+    where: { productId: review.productId, status: "approved" },
+    _avg: { rating: true },
+    _count: true,
+  });
+  await prisma.product.update({
+    where: { id: review.productId },
+    data: { rating: Number((agg._avg.rating || 0).toFixed(1)), reviewCount: agg._count },
+  });
+  return toReview(review);
+}
+
+export async function deleteReview(id: string) {
+  const review = await prisma.review.delete({ where: { id } });
+  const agg = await prisma.review.aggregate({
+    where: { productId: review.productId, status: "approved" },
+    _avg: { rating: true },
+    _count: true,
+  });
+  await prisma.product.update({
+    where: { id: review.productId },
+    data: { rating: Number((agg._avg.rating || 0).toFixed(1)), reviewCount: agg._count },
+  });
 }
 
 export async function upsertProduct(data: {

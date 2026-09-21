@@ -109,6 +109,7 @@ model Review {
   author    String
   rating    Int
   content   String
+  status    String   @default("approved")
   createdAt DateTime @default(now())
 
   @@index([productId])
