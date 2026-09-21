@@ -77,6 +77,8 @@ export type Order = {
   discount: number;
   total: number;
   paymentMethod: string;
+  paymentStatus?: string;
+  ghnOrderCode?: string;
   status: OrderStatus;
   createdAt: string;
   note?: string;

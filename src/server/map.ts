@@ -139,6 +139,8 @@ export function toOrder(row: {
   discount: number;
   total: number;
   paymentMethod: string;
+  paymentStatus: string;
+  ghnOrderCode?: string | null;
   status: string;
   createdAt: Date;
   items: Array<{
@@ -177,6 +179,8 @@ export function toOrder(row: {
     discount: row.discount,
     total: row.total,
     paymentMethod: row.paymentMethod,
+    paymentStatus: row.paymentStatus,
+    ghnOrderCode: row.ghnOrderCode || undefined,
     status: row.status as Order["status"],
     createdAt: row.createdAt.toISOString().slice(0, 10),
   };

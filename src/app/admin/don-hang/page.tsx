@@ -4,6 +4,7 @@ import { OrderStatusForm } from "@/components/admin/OrderStatusForm";
 import { money, qtyLabel } from "@/lib/format";
 import { isEnabled } from "@/config/site";
 import { IssueInvoiceButton } from "@/components/admin/IssueInvoiceButton";
+import { GhnButton, PayBadge } from "@/components/admin/OrderActions";
 
 const statuses = [
   { value: "", label: "Tất cả" },
@@ -52,6 +53,9 @@ export default async function AdminOrders({
               {o.customer} · {o.email} · {o.phone} · {o.address}
             </p>
             <p className="text-xs text-muted">{o.createdAt} · {o.paymentMethod}</p>
+            <div className="mt-1">
+              <PayBadge status={o.paymentStatus} method={o.paymentMethod} />
+            </div>
             <ul className="mt-3 text-sm">
               {o.items.map((i) => (
                 <li key={i.productId + (i.variantLabel || "")}>
@@ -61,6 +65,9 @@ export default async function AdminOrders({
             </ul>
             <p className="mt-3 text-sm font-medium">Tổng {money(o.total)}</p>
             {isEnabled("invoices") && <IssueInvoiceButton orderId={o.id} />}
+            {isEnabled("ghn") && o.status !== "cancelled" && (
+              <GhnButton orderCode={o.code} hasLabel={o.ghnOrderCode} />
+            )}
           </article>
         ))}
         {orders.length === 0 && <p className="text-sm text-muted">Không có đơn khớp bộ lọc.</p>}
