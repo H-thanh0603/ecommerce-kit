@@ -47,6 +47,7 @@ model Product {
   compareAtPrice    Int?
   tags              String          @default("")
   optionsJson       String          @default("[]")
+  attrsJson         String          @default("{}")
   rating            Float           @default(0)
   reviewCount       Int             @default(0)
   stock             Int             @default(0)

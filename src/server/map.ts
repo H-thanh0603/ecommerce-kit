@@ -19,6 +19,7 @@ type ProductRow = {
   compareAtPrice: number | null;
   tags: string;
   optionsJson: string;
+  attrsJson: string;
   rating: number;
   reviewCount: number;
   stock: number;
@@ -37,6 +38,7 @@ type ProductRow = {
 
 export function toProduct(row: ProductRow): Product {
   const variants = parseJson<ProductVariant[]>(row.optionsJson, []);
+  const attrs = parseJson<Record<string, string>>(row.attrsJson || "{}", {});
   const hasSkus = (row.skus?.length || 0) > 0;
   const skuStock = hasSkus ? row.skus!.reduce((s, k) => s + k.stock, 0) : row.stock;
   const flash = {
@@ -66,6 +68,7 @@ export function toProduct(row: ProductRow): Product {
     published: row.published,
     variants: variants.length ? variants : undefined,
     skus: row.skus,
+    attrs: Object.keys(attrs).length ? attrs : undefined,
     unit: row.unit === "kg" ? "kg" : "cai",
     weightGrams: row.weightGrams,
   };

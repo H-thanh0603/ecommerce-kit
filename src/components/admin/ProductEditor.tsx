@@ -4,6 +4,19 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Category, Product } from "@/types";
 
+/** "Tên: giá trị" mỗi dòng → object thuộc tính. */
+export function parseAttrs(raw: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of raw.split("\n")) {
+    const i = line.indexOf(":");
+    if (i <= 0) continue;
+    const k = line.slice(0, i).trim().slice(0, 60);
+    const v = line.slice(i + 1).trim().slice(0, 200);
+    if (k && v) out[k] = v;
+  }
+  return out;
+}
+
 export function ProductEditor({
   categories,
   products,
@@ -37,6 +50,7 @@ export function ProductEditor({
         .map((s) => s.trim())
         .filter(Boolean),
       tags: String(form.get("tags") || ""),
+      attrs: parseAttrs(String(form.get("attrsText") || "")),
       featured: form.get("featured") === "on",
       flashSale: form.get("flashSale") === "on",
       published: form.get("published") !== "off",
@@ -118,6 +132,13 @@ export function ProductEditor({
             }}
           />
           <textarea required name="description" rows={3} defaultValue={editing?.description} placeholder="Mô tả" className="rounded-xl border border-line px-3 py-2 text-sm sm:col-span-2" />
+          <textarea
+            name="attrsText"
+            rows={2}
+            defaultValue={editing?.attrs ? Object.entries(editing.attrs).map(([k, v]) => `${k}: ${v}`).join("\n") : ""}
+            placeholder="Thuộc tính mỗi dòng một cái — VD: Chất liệu: cotton 100%"
+            className="rounded-xl border border-line px-3 py-2 text-sm sm:col-span-2"
+          />
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="featured" defaultChecked={editing?.featured} /> Nổi bật</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="flashSale" defaultChecked={editing?.flashSale} /> Flash sale</label>
           <button className="rounded-full bg-primary py-2 text-sm text-white sm:col-span-2">Lưu</button>

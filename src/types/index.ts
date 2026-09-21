@@ -32,6 +32,7 @@ export type Product = {
   published?: boolean;
   variants?: ProductVariant[];
   skus?: ProductSku[];
+  attrs?: Record<string, string>;
   unit?: "cai" | "kg";
   weightGrams?: number;
 };

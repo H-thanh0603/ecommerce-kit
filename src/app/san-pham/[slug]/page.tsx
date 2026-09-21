@@ -70,6 +70,16 @@ export default async function ProductPage({ params }: Props) {
             </p>
           )}
           <p className="mt-6 leading-relaxed text-muted">{product.description}</p>
+          {product.attrs && (
+            <dl className="mt-6 divide-y divide-line rounded-2xl border border-line bg-white text-sm">
+              {Object.entries(product.attrs).map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-4 px-4 py-2">
+                  <dt className="text-muted">{k}</dt>
+                  <dd className="text-right font-medium">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
           <div className="mt-8">
             <AddToCart product={product} />
           </div>

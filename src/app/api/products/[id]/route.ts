@@ -23,7 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       featured: Boolean(body.featured),
       flashSale: Boolean(body.flashSale),
       published: body.published !== false,
-      variants: body.variants,
+      attrs: body.attrs && typeof body.attrs === "object" ? body.attrs : undefined,
     });
     return NextResponse.json({ product });
   } catch (e) {

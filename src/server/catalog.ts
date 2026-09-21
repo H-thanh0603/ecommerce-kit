@@ -209,12 +209,14 @@ export async function upsertProduct(data: {
   flashSaleEndsAt?: Date | null;
   published?: boolean;
   variants?: Product["variants"];
+  attrs?: Record<string, string>;
   unit?: "cai" | "kg";
 }) {
   const category = await prisma.category.findUnique({ where: { slug: data.categorySlug } });
   if (!category) throw new Error("Danh mục không tồn tại");
   const options = data.variants || [];
   const labels = cartesianLabels(options);
+  const attrs = data.attrs || {};
   const payload = {
     slug: data.slug,
     name: data.name,
@@ -223,8 +225,11 @@ export async function upsertProduct(data: {
     price: data.price,
     compareAtPrice: data.compareAtPrice ?? null,
     tags: data.tags.join(","),
-    searchText: normVi([data.name, data.subtitle || "", data.description, data.tags.join(" ")].join(" ")),
     optionsJson: JSON.stringify(options),
+    attrsJson: JSON.stringify(attrs),
+    searchText: normVi(
+      [data.name, data.subtitle || "", data.description, data.tags.join(" "), Object.entries(attrs).map(([k, v]) => `${k} ${v}`).join(" ")].join(" "),
+    ),
     stock: data.stock,
     featured: Boolean(data.featured),
     flashSale: Boolean(data.flashSale),
