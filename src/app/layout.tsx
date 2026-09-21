@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro, Noto_Serif } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { AppChrome } from "@/components/layout/AppChrome";
+import { OrganizationJsonLd } from "@/components/seo/JsonLd";
 import { listCategories } from "@/server/commerce";
 import { getEffectiveSiteConfig } from "@/server/settings";
 
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="vi" className={`${sans.variable} ${serif.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas text-ink">
+        {site && <OrganizationJsonLd name={site.brand.name} description={site.brand.description} />}
         {theme && (
           <style>{`:root{--brand-primary:${theme.primary};--brand-accent:${theme.accent};--brand-ink:${theme.ink};--brand-muted:${theme.muted};--brand-canvas:${theme.canvas};--brand-line:${theme.line};}`}</style>
         )}

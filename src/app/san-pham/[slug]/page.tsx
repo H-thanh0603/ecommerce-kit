@@ -6,6 +6,7 @@ import { isEnabled, siteConfig } from "@/config/site";
 import { AddToCart } from "@/components/product/AddToCart";
 import { Reviews } from "@/components/product/Reviews";
 import { ProductGrid } from "@/components/product/ProductGrid";
+import { BreadcrumbJsonLd, ProductJsonLd } from "@/components/seo/JsonLd";
 import { IconStar } from "@/components/icons";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -25,6 +26,14 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <ProductJsonLd product={product} category={product.category} />
+      <BreadcrumbJsonLd
+        trail={[
+          { name: "Trang chủ", href: "/" },
+          { name: "Sản phẩm", href: "/san-pham" },
+          { name: product.name, href: `/san-pham/${product.slug}` },
+        ]}
+      />
       <p className="text-sm text-muted">
         <Link href="/">Trang chủ</Link> / <Link href="/san-pham">Sản phẩm</Link> / {product.name}
       </p>
