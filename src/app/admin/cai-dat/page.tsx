@@ -8,6 +8,7 @@ type Payload = {
   theme: Record<string, string>;
   shipping: { freeFrom: number; defaultFee: number; innerCityFee: number; estimatedDays: string };
   features: Record<string, boolean>;
+  currency: { code: string; locale: string };
 };
 
 const BRAND_FIELDS = [
@@ -152,6 +153,31 @@ export default function AdminSettings() {
             <input
               value={data.shipping.estimatedDays}
               onChange={(e) => setData({ ...data, shipping: { ...data.shipping, estimatedDays: e.target.value } })}
+              className="rounded-lg border border-line px-3 py-2"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-line bg-white p-5">
+        <h2 className="font-medium">Tiền tệ</h2>
+        <p className="mt-1 text-xs text-muted">
+          Áp dụng ngay cho hóa đơn in; giá ngoài storefront theo bản build.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1 text-sm">
+            <span className="text-muted">Mã tiền (VND, USD…)</span>
+            <input
+              value={data.currency.code}
+              onChange={(e) => setData({ ...data, currency: { ...data.currency, code: e.target.value.toUpperCase() } })}
+              className="rounded-lg border border-line px-3 py-2"
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-muted">Locale (vi-VN, en-US…)</span>
+            <input
+              value={data.currency.locale}
+              onChange={(e) => setData({ ...data, currency: { ...data.currency, locale: e.target.value } })}
               className="rounded-lg border border-line px-3 py-2"
             />
           </label>

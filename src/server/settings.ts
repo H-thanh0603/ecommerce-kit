@@ -46,11 +46,17 @@ export const shippingSchema = z.object({
   estimatedDays: z.string().max(60),
 });
 
+export const localeSchema = z.object({
+  code: z.string().min(3).max(3),
+  locale: z.string().min(2).max(12),
+});
+
 export const siteSettingsInput = z.object({
   brand: brandSchema.partial().optional(),
   theme: themeSchema.partial().optional(),
   shipping: shippingSchema.partial().optional(),
   features: z.record(z.string(), z.boolean()).optional(),
+  currency: localeSchema.partial().optional(),
 });
 
 export type { EffectiveSite };
@@ -59,6 +65,7 @@ export type SiteOverrides = {
   theme?: Partial<z.infer<typeof themeSchema>>;
   shipping?: Partial<z.infer<typeof shippingSchema>>;
   features?: Partial<Record<FeatureKey, boolean>>;
+  currency?: Partial<z.infer<typeof localeSchema>>;
 };
 
 /** Pure — test được không cần DB. */
@@ -76,6 +83,7 @@ export function mergeSiteConfig(overrides: SiteOverrides): EffectiveSite {
     theme: { ...siteConfig.theme, ...overrides.theme } as EffectiveSite["theme"],
     shipping: { ...siteConfig.shipping, ...overrides.shipping },
     features: pickFeatures,
+    currency: { ...siteConfig.currency, ...overrides.currency },
   };
 }
 
@@ -95,7 +103,7 @@ const loadOverrides = unstable_cache(
     for (const r of rows) {
       const v = safeParse(r.value);
       if (v === undefined) continue;
-      if (r.key === "brand" || r.key === "theme" || r.key === "shipping" || r.key === "features") {
+      if (r.key === "brand" || r.key === "theme" || r.key === "shipping" || r.key === "features" || r.key === "currency") {
         (out as Record<string, unknown>)[r.key] = v;
       }
     }

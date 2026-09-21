@@ -1,9 +1,12 @@
 import { siteConfig } from "@/config/site";
 
-export function money(value: number) {
-  return new Intl.NumberFormat(siteConfig.currency.locale, {
+export type MoneyLocale = { code: string; locale: string };
+
+export function money(value: number, currency?: MoneyLocale) {
+  const c = currency ?? siteConfig.currency;
+  return new Intl.NumberFormat(c.locale, {
     style: "currency",
-    currency: siteConfig.currency.code,
+    currency: c.code,
     maximumFractionDigits: 0,
   }).format(value);
 }

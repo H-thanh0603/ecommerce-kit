@@ -142,6 +142,7 @@ export type EffectiveSite = {
   theme: EffectiveTheme;
   shipping: EffectiveShipping;
   features: EffectiveFeatures;
+  currency: { code: string; locale: string };
 };
 
 export function isEnabled(feature: FeatureKey): boolean {
