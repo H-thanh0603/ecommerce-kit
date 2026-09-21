@@ -59,6 +59,8 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
   });
   const order = toOrder(row);
   await onOrderStatusChanged(order, status);
+  const { logOrderEvent } = await import("@/server/order-events");
+  await logOrderEvent(row.id, "status", `Chuyển trạng thái → ${status}`);
   if (status === "completed" && (await isFeatureOn("membership")) && row.userId) {
     const g = await grantOrderPoints(row.userId, order.total);
     await prisma.order.update({ where: { id }, data: { pointsEarned: g.earned } });
@@ -268,6 +270,8 @@ export async function createOrder(input: CheckoutInput) {
 
   const mapped = toOrder(order);
   await onOrderCreated(mapped);
+  const { logOrderEvent } = await import("@/server/order-events");
+  await logOrderEvent(order.id, "created", `Ghi đơn ${mapped.code} · ${mapped.paymentMethod} · ${mapped.total}đ`);
   if ((await isFeatureOn("membership")) && input.userId && input.pointsToUse) {
     await spendPoints(input.userId, input.pointsToUse);
   }

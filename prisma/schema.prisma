@@ -179,6 +179,17 @@ model ReturnRequest {
   @@index([orderId, status])
 }
 
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind      String
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}
+
 model Order {
   id            String      @id @default(cuid())
   code          String      @unique
@@ -207,6 +218,7 @@ model Order {
   items         OrderItem[]
   invoice       Invoice?
   returns       ReturnRequest[]
+  events        OrderEvent[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 

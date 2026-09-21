@@ -4,7 +4,7 @@ import { OrderStatusForm } from "@/components/admin/OrderStatusForm";
 import { money, qtyLabel } from "@/lib/format";
 import { isEnabled } from "@/config/site";
 import { IssueInvoiceButton } from "@/components/admin/IssueInvoiceButton";
-import { GhnButton, PayBadge } from "@/components/admin/OrderActions";
+import { GhnButton, OrderTimeline, PayBadge } from "@/components/admin/OrderActions";
 
 const statuses = [
   { value: "", label: "Tất cả" },
@@ -68,6 +68,7 @@ export default async function AdminOrders({
             {isEnabled("ghn") && o.status !== "cancelled" && (
               <GhnButton orderCode={o.code} hasLabel={o.ghnOrderCode} />
             )}
+            <OrderTimeline orderCode={o.code} />
           </article>
         ))}
         {orders.length === 0 && <p className="text-sm text-muted">Không có đơn khớp bộ lọc.</p>}

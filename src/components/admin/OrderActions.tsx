@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-
 const payLabel: Record<string, string> = {
   unpaid: "Chưa trả",
   pending: "Chờ cổng",
@@ -20,8 +19,7 @@ export function PayBadge({ status, method }: { status?: string; method: string }
   );
 }
 
-export function GhnButton({ orderCode, hasLabel }: { orderCode: string; hasLabel?: string }) {
-  const [msg, setMsg] = useState(hasLabel || "");
+export function GhnButton({ orderCode, hasLabel }: { orderCode: string; hasLabel?: string }) {  const [msg, setMsg] = useState(hasLabel || "");
   const [busy, setBusy] = useState(false);
   if (hasLabel) return <p className="mt-1 text-xs text-muted">GHN: {hasLabel}</p>;
   async function create() {
@@ -51,6 +49,37 @@ export function GhnButton({ orderCode, hasLabel }: { orderCode: string; hasLabel
         {busy ? "Đang tạo…" : msg.startsWith("Lỗi") ? "Thử lại GHN" : "Tạo vận đơn GHN"}
       </button>
       {msg && <span className="text-xs text-muted">{msg}</span>}
+    </div>
+  );
+}
+
+type TimelineEvent = { id: string; kind: string; message: string; createdAt: string };
+
+export function OrderTimeline({ orderCode }: { orderCode: string }) {
+  const [open, setOpen] = useState(false);
+  const [events, setEvents] = useState<TimelineEvent[] | null>(null);
+  async function toggle() {
+    if (!open && events === null) {
+      const r = await fetch(`/api/orders/${encodeURIComponent(orderCode)}/events`).then((x) => x.json());
+      setEvents(r.events || []);
+    }
+    setOpen((v) => !v);
+  }
+  return (
+    <div className="mt-2">
+      <button onClick={toggle} className="text-xs underline">
+        {open ? "Ẩn nhật ký" : "Nhật ký đơn"}
+      </button>
+      {open && (
+        <ul className="mt-1 space-y-1 border-l-2 border-line pl-3 text-xs text-muted">
+          {(events || []).map((e) => (
+            <li key={e.id}>
+              <b className="text-ink">[{e.kind}]</b> {e.message}
+            </li>
+          ))}
+          {events?.length === 0 && <li>Chưa có sự kiện.</li>}
+        </ul>
+      )}
     </div>
   );
 }

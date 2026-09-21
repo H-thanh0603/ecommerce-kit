@@ -35,5 +35,7 @@ export async function POST(req: Request) {
   });
   if (!result.ok) return NextResponse.json(result, { status: 400 });
   await prisma.order.update({ where: { code }, data: { ghnOrderCode: result.orderCode } });
+  const { logOrderEvent } = await import("@/server/order-events");
+  await logOrderEvent(order.id, "shipping", `Tạo vận đơn GHN ${result.orderCode}`);
   return NextResponse.json(result);
 }
