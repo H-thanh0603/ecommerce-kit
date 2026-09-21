@@ -21,14 +21,16 @@ const serif = Noto_Serif({
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getEffectiveSiteConfig().catch(() => null);
   const name = site?.brand.name || "Atelier";
+  const description =
+    site?.brand.description ||
+    "Mua sắm thời trang, nhà cửa và lifestyle. Giao hàng toàn quốc, đổi trả 7 ngày.";
   return {
     title: {
       default: `${name} — Cửa hàng trực tuyến`,
       template: `%s · ${name}`,
     },
-    description:
-      site?.brand.description ||
-      "Mua sắm thời trang, nhà cửa và lifestyle. Giao hàng toàn quốc, đổi trả 7 ngày.",
+    description,
+    openGraph: { title: name, description, type: "website", locale: "vi_VN" },
   };
 }
 
