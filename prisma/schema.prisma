@@ -167,6 +167,18 @@ model GiftRedemption {
   @@index([giftId])
 }
 
+model ReturnRequest {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemsJson String   @default("[]")
+  reason    String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+
+  @@index([orderId, status])
+}
+
 model Order {
   id            String      @id @default(cuid())
   code          String      @unique
@@ -194,6 +206,7 @@ model Order {
   pointsEarned  Int         @default(0)
   items         OrderItem[]
   invoice       Invoice?
+  returns       ReturnRequest[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
