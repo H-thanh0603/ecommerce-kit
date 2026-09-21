@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { prisma } from "./db";
 import { createOrder, getProductById } from "./commerce";
+import { defaultWarehouse, setWarehouseStock } from "./warehouse";
+
+async function restock(pickStock = 5, whStock = 5) {
+  const before = await getProductById("p1");
+  const sku = before!.skus?.[0];
+  await prisma.sku.update({ where: { id: sku!.id }, data: { stock: pickStock } });
+  const wh = await defaultWarehouse();
+  if (wh) await setWarehouseStock(wh.id, "p1", sku!.label, whStock);
+  return { before: before!, sku: sku!, wh };
+}
 
 describe("createOrder", () => {
   it("trừ tồn SKU, không tin giá client, mã ATL- tuần tự", async () => {
-    const before = await getProductById("p1");
-    expect(before).toBeTruthy();
-    const sku = before!.skus?.find((s) => s.stock > 0) ?? before!.skus?.[0];
-    expect(sku).toBeTruthy();
-    // Nạp lại tồn để test chạy lặp (idempotent), không phụ thuộc số lần chạy trước.
-    await prisma.sku.update({ where: { id: sku!.id }, data: { stock: 5 } });
+    // Nạp lại tồn (SKU + kho) để test chạy lặp, không phụ thuộc số lần chạy trước.
+    const { before, sku } = await restock(5, 5);
     const stockBefore = 5;
 
     const order = await createOrder({
@@ -42,9 +48,7 @@ describe("createOrder", () => {
   });
 
   it("không bán quá tồn: hết hàng thì đơn sau bị từ chối, tồn không âm", async () => {
-    const before = await getProductById("p1");
-    const sku = before!.skus?.find((s) => s.stock > 0) ?? before!.skus?.[0];
-    await prisma.sku.update({ where: { id: sku!.id }, data: { stock: 1 } });
+    const { before, sku } = await restock(1, 10);
     const item = (price: number) => ({
       productId: "p1",
       slug: before!.slug,
