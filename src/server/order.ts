@@ -272,6 +272,7 @@ export async function createOrder(input: CheckoutInput) {
   await onOrderCreated(mapped);
   const { logOrderEvent } = await import("@/server/order-events");
   await logOrderEvent(order.id, "created", `Ghi đơn ${mapped.code} · ${mapped.paymentMethod} · ${mapped.total}đ`);
+  await alertLowStock(lines.map((l) => ({ productId: l.product.id, skuId: l.sku?.id })));
   if ((await isFeatureOn("membership")) && input.userId && input.pointsToUse) {
     await spendPoints(input.userId, input.pointsToUse);
   }
@@ -285,6 +286,37 @@ export async function createOrder(input: CheckoutInput) {
     if (!pay.ok) throw new Error(pay.message);
   }
   return Object.assign(mapped, { payUrl });
+}
+
+export const LOW_STOCK_THRESHOLD = 5;
+
+/** Mail cho admin khi tồn chạm ngưỡng — mỗi SKU 1 mail/ngày (chống spam). */
+export async function alertLowStock(items: Array<{ productId: string; skuId?: string }>) {
+  try {
+    const admin = process.env.ADMIN_EMAIL || "admin@atelier.vn";
+    const startDay = new Date();
+    startDay.setHours(0, 0, 0, 0);
+    for (const it of items) {
+      const sku = it.skuId ? await prisma.sku.findUnique({ where: { id: it.skuId }, include: { product: true } }) : null;
+      const product = sku?.product || (await prisma.product.findUnique({ where: { id: it.productId } }));
+      if (!product) continue;
+      const stock = sku ? sku.stock : product.stock;
+      if (stock > LOW_STOCK_THRESHOLD) continue;
+      const tag = `lowstock:${sku?.id || product.id}`;
+      const sent = await prisma.mailLog.findFirst({
+        where: { to: admin, createdAt: { gte: startDay }, body: { contains: tag } },
+      });
+      if (sent) continue;
+      const { sendMail } = await import("@/server/mail");
+      await sendMail(
+        admin,
+        `[Tồn thấp] ${product.name}${sku ? ` (${sku.label})` : ""} còn ${stock}`,
+        `${tag} — nhập thêm hàng. Ngưỡng ${LOW_STOCK_THRESHOLD}.`,
+      );
+    }
+  } catch {
+    /* best-effort */
+  }
 }
 
 export async function shopStats() {
