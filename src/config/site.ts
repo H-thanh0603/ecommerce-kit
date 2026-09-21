@@ -143,6 +143,8 @@ export type EffectiveSite = {
   shipping: EffectiveShipping;
   features: EffectiveFeatures;
   currency: { code: string; locale: string };
+  announcement: { enabled: boolean; text: string };
+  consent: { enabled: boolean; text: string };
 };
 
 export function isEnabled(feature: FeatureKey): boolean {

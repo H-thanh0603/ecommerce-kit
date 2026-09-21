@@ -51,12 +51,19 @@ export const localeSchema = z.object({
   locale: z.string().min(2).max(12),
 });
 
+export const bannerSchema = z.object({
+  enabled: z.boolean(),
+  text: z.string().max(200),
+});
+
 export const siteSettingsInput = z.object({
   brand: brandSchema.partial().optional(),
   theme: themeSchema.partial().optional(),
   shipping: shippingSchema.partial().optional(),
   features: z.record(z.string(), z.boolean()).optional(),
   currency: localeSchema.partial().optional(),
+  announcement: bannerSchema.partial().optional(),
+  consent: bannerSchema.partial().optional(),
 });
 
 export type { EffectiveSite };
@@ -66,6 +73,8 @@ export type SiteOverrides = {
   shipping?: Partial<z.infer<typeof shippingSchema>>;
   features?: Partial<Record<FeatureKey, boolean>>;
   currency?: Partial<z.infer<typeof localeSchema>>;
+  announcement?: Partial<z.infer<typeof bannerSchema>>;
+  consent?: Partial<z.infer<typeof bannerSchema>>;
 };
 
 /** Pure — test được không cần DB. */
@@ -84,6 +93,12 @@ export function mergeSiteConfig(overrides: SiteOverrides): EffectiveSite {
     shipping: { ...siteConfig.shipping, ...overrides.shipping },
     features: pickFeatures,
     currency: { ...siteConfig.currency, ...overrides.currency },
+    announcement: { enabled: false, text: "", ...overrides.announcement },
+    consent: {
+      enabled: true,
+      text: "Cửa hàng dùng cookie để ghi nhớ giỏ hàng và cải thiện trải nghiệm (NĐ 13/2023).",
+      ...overrides.consent,
+    },
   };
 }
 
@@ -103,7 +118,7 @@ const loadOverrides = unstable_cache(
     for (const r of rows) {
       const v = safeParse(r.value);
       if (v === undefined) continue;
-      if (r.key === "brand" || r.key === "theme" || r.key === "shipping" || r.key === "features" || r.key === "currency") {
+      if (["brand", "theme", "shipping", "features", "currency", "announcement", "consent"].includes(r.key)) {
         (out as Record<string, unknown>)[r.key] = v;
       }
     }

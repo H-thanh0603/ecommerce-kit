@@ -9,6 +9,8 @@ type Payload = {
   shipping: { freeFrom: number; defaultFee: number; innerCityFee: number; estimatedDays: string };
   features: Record<string, boolean>;
   currency: { code: string; locale: string };
+  announcement: { enabled: boolean; text: string };
+  consent: { enabled: boolean; text: string };
 };
 
 const BRAND_FIELDS = [
@@ -181,6 +183,31 @@ export default function AdminSettings() {
               className="rounded-lg border border-line px-3 py-2"
             />
           </label>
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-line bg-white p-5">
+        <h2 className="font-medium">Thông báo & cookie</h2>
+        <div className="mt-3 grid gap-3">
+          {(["announcement", "consent"] as const).map((k) => (
+            <div key={k} className="grid gap-2 rounded-lg border border-line p-3">
+              <label className="flex items-center justify-between text-sm">
+                <span>{k === "announcement" ? "Thanh thông báo đầu trang" : "Banner đồng ý cookie (NĐ 13/2023)"}</span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(data[k]?.enabled)}
+                  onChange={(e) => setData({ ...data, [k]: { ...data[k], enabled: e.target.checked } })}
+                  className="h-4 w-4"
+                />
+              </label>
+              <input
+                value={data[k]?.text || ""}
+                onChange={(e) => setData({ ...data, [k]: { ...data[k], text: e.target.value } })}
+                placeholder={k === "announcement" ? "VD: Freeship đơn từ 500K hôm nay" : ""}
+                className="rounded-lg border border-line px-3 py-2 text-sm"
+              />
+            </div>
+          ))}
         </div>
       </section>
 

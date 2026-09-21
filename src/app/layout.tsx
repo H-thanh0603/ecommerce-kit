@@ -51,7 +51,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <style>{`:root{--brand-primary:${theme.primary};--brand-accent:${theme.accent};--brand-ink:${theme.ink};--brand-muted:${theme.muted};--brand-canvas:${theme.canvas};--brand-line:${theme.line};}`}</style>
         )}
         <Providers>
-          <AppChrome categories={categories} brand={brand || undefined} shippingEta={shippingEta}>
+          <AppChrome
+            categories={categories}
+            brand={brand || undefined}
+            shippingEta={shippingEta}
+            announcement={site?.announcement}
+            consent={site?.consent}
+          >
             {children}
           </AppChrome>
         </Providers>
