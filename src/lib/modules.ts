@@ -97,4 +97,13 @@ export const moduleCatalog = [
   { id: "booking", name: "Đặt lịch", flag: "booking", files: ["src/app/dat-lich"] },
   { id: "warehouse", name: "Đa kho", flag: "multiWarehouse", files: ["src/server/warehouse.ts"] },
   { id: "excel", name: "Excel nhập/xuất", flag: "excel", files: ["src/server/excel.ts"] },
+  { id: "momo", name: "MoMo", included: true, files: ["src/server/momo.ts"] },
+  { id: "sepay", name: "SePay đối soát CK", included: true, files: ["src/server/sepay.ts"] },
+  { id: "vietqr", name: "VietQR chuyển khoản", included: true, files: ["src/lib/format.ts"] },
+  { id: "giftcard", name: "Thẻ quà tặng", included: true, files: ["src/server/giftcard.ts", "src/app/admin/qua-tang"] },
+  { id: "returns", name: "Đổi/trả hàng", included: true, files: ["src/server/returns.ts", "src/app/admin/tra-hang"] },
+  { id: "order-events", name: "Nhật ký đơn", included: true, files: ["src/server/order-events.ts"] },
+  { id: "webhooks-out", name: "Webhook đi", included: true, files: ["src/server/webhooks.ts", "src/app/admin/webhooks"] },
+  { id: "address-book", name: "Sổ địa chỉ", included: true, files: ["src/app/api/addresses/route.ts"] },
+  { id: "review-moderation", name: "Duyệt đánh giá", included: true, files: ["src/app/admin/danh-gia"] },
 ] as const;
