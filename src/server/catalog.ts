@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import { toArticle, toCategory, toProduct, toReview } from "@/server/map";
+import { normVi } from "@/lib/format";
 import type { Prisma } from "@prisma/client";
 import { unstable_cache, revalidateTag } from "next/cache";
 import type { Product, ProductVariant } from "@/types";
@@ -62,8 +63,8 @@ export async function listProducts(opts?: {
     ];
   }
   if (opts?.q) {
-    const q = opts.q.trim();
-    where.OR = [{ name: { contains: q } }, { description: { contains: q } }, { tags: { contains: q } }, { slug: { contains: q } }];
+    const q = normVi(opts.q);
+    where.OR = [{ searchText: { contains: q } }, { slug: { contains: opts.q.trim() } }];
   }
 
   let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: "desc" };
@@ -182,6 +183,7 @@ export async function upsertProduct(data: {
     price: data.price,
     compareAtPrice: data.compareAtPrice ?? null,
     tags: data.tags.join(","),
+    searchText: normVi([data.name, data.subtitle || "", data.description, data.tags.join(" ")].join(" ")),
     optionsJson: JSON.stringify(options),
     stock: data.stock,
     featured: Boolean(data.featured),

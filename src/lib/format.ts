@@ -49,3 +49,15 @@ export function qtyLabel(qty: number, unit?: string) {
 export function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
+
+/** Chuẩn hoá tiếng Việt để tìm kiếm: "Áo Dài" → "ao dai". */
+export function normVi(raw: string) {
+  return raw
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}

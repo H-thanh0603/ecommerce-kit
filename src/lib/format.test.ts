@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { discountAmount, isFlashLive, shippingFee } from "./format";
+import { discountAmount, isFlashLive, normVi, shippingFee } from "./format";
 
 describe("discountAmount", () => {
   it("percent", () => {
@@ -29,5 +29,13 @@ describe("isFlashLive", () => {
     expect(isFlashLive({ flashSale: true, flashSaleEndsAt: "2000-01-01" })).toBe(false);
     expect(isFlashLive({ flashSale: true })).toBe(true);
     expect(isFlashLive({ flashSale: false })).toBe(false);
+  });
+});
+
+describe("normVi", () => {
+  it("bỏ dấu, đ→d, thường hoá", () => {
+    expect(normVi("Áo Dài Đẹp 123!")).toBe("ao dai dep 123");
+    expect(normVi("ĐỒNG HỒ")).toBe("dong ho");
+    expect(normVi("  Cà   phê  ")).toBe("ca phe");
   });
 });

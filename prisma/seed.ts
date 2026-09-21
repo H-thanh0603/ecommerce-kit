@@ -2,6 +2,17 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { articles, categories, coupons, orders, products, reviews } from "../src/data/catalog";
 
+function normVi(raw: string) {
+  return raw
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const prisma = new PrismaClient();
 
 function cartesian(groups: { options: string[] }[]) {
@@ -78,6 +89,7 @@ async function main() {
         price: p.price,
         compareAtPrice: p.compareAtPrice,
         tags: p.tags.join(","),
+        searchText: normVi([p.name, p.subtitle || "", p.description, p.tags.join(" ")].join(" ")),
         optionsJson: JSON.stringify(p.variants || []),
         rating: p.rating,
         reviewCount: p.reviewCount,
