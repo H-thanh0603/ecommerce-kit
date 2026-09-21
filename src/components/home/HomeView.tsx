@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { siteConfig, isEnabled } from "@/config/site";
 import { ProductGrid } from "@/components/product/ProductGrid";
+import { RecentSection } from "@/components/home/RecentSection";
 import { IconRefresh, IconShield, IconTruck } from "@/components/icons";
 import { money } from "@/lib/format";
 import type { Article, Category, Product } from "@/types";
@@ -129,6 +130,8 @@ export function HomeView({
         </div>
         <ProductGrid products={featured} />
       </section>
+
+      <RecentSection />
 
       {isEnabled("blog") && (
         <section className="border-t border-line bg-white py-14">
