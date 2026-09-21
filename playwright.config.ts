@@ -10,7 +10,14 @@ export default defineConfig({
     baseURL: process.env.E2E_URL || "http://localhost:3000",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], channel: "chrome" } }],
+  projects: [
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    {
+      name: "chromium",
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"], channel: "chrome", storageState: "e2e/.auth/admin.json" },
+    },
+  ],
   webServer: process.env.E2E_URL
     ? undefined
     : {

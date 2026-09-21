@@ -68,7 +68,7 @@ export default async function AdminOrders({
             {isEnabled("ghn") && o.status !== "cancelled" && (
               <GhnButton orderCode={o.code} hasLabel={o.ghnOrderCode} />
             )}
-            <OrderTimeline orderCode={o.code} />
+            <OrderTimeline orderId={o.id} />
           </article>
         ))}
         {orders.length === 0 && <p className="text-sm text-muted">Không có đơn khớp bộ lọc.</p>}

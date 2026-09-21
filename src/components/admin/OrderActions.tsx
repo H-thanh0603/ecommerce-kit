@@ -55,12 +55,12 @@ export function GhnButton({ orderCode, hasLabel }: { orderCode: string; hasLabel
 
 type TimelineEvent = { id: string; kind: string; message: string; createdAt: string };
 
-export function OrderTimeline({ orderCode }: { orderCode: string }) {
+export function OrderTimeline({ orderId }: { orderId: string }) {
   const [open, setOpen] = useState(false);
   const [events, setEvents] = useState<TimelineEvent[] | null>(null);
   async function toggle() {
     if (!open && events === null) {
-      const r = await fetch(`/api/orders/${encodeURIComponent(orderCode)}/events`).then((x) => x.json());
+      const r = await fetch(`/api/orders/${encodeURIComponent(orderId)}/events`).then((x) => x.json());
       setEvents(r.events || []);
     }
     setOpen((v) => !v);
