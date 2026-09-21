@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { siteConfig, isEnabled } from "@/config/site";
-import type { EffectiveSite } from "@/server/settings";
+import { siteConfig, isEnabled, type EffectiveSite } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";

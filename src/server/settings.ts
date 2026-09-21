@@ -1,4 +1,4 @@
-import { siteConfig, type FeatureKey } from "@/config/site";
+import { siteConfig, type EffectiveSite, type FeatureKey } from "@/config/site";
 import { prisma } from "@/server/db";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { z } from "zod";
@@ -53,23 +53,12 @@ export const siteSettingsInput = z.object({
   features: z.record(z.string(), z.boolean()).optional(),
 });
 
+export type { EffectiveSite };
 export type SiteOverrides = {
   brand?: Partial<z.infer<typeof brandSchema>>;
   theme?: Partial<z.infer<typeof themeSchema>>;
   shipping?: Partial<z.infer<typeof shippingSchema>>;
   features?: Partial<Record<FeatureKey, boolean>>;
-};
-
-export type EffectiveSite = {
-  brand: Record<keyof typeof siteConfig.brand, string>;
-  theme: Record<keyof typeof siteConfig.theme, string>;
-  shipping: {
-    freeFrom: number;
-    defaultFee: number;
-    innerCityFee: number;
-    estimatedDays: string;
-  };
-  features: Record<FeatureKey, boolean>;
 };
 
 /** Pure — test được không cần DB. */

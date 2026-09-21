@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { siteConfig, isEnabled } from "@/config/site";
-import { getEffectiveSiteConfig } from "@/server/settings";
+import { siteConfig, isEnabled, type EffectiveSite } from "@/config/site";
 import type { Category } from "@/types";
 import { NewsletterForm } from "@/components/layout/NewsletterForm";
 
-export async function Footer({ categories }: { categories: Category[] }) {
-  const site = await getEffectiveSiteConfig().catch(() => null);
-  const b = site?.brand ?? siteConfig.brand;
+export function Footer({ categories, brand }: { categories: Category[]; brand?: EffectiveSite["brand"] }) {
+  const b = brand ?? siteConfig.brand;
   return (
     <footer className="mt-auto border-t border-line bg-white">
       {isEnabled("newsletter") && (

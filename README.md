@@ -2,6 +2,12 @@
 
 Starter shop Next.js: clone, đổi thương hiệu, bật/tắt module, thêm chức năng theo khách.
 
+```bash
+npm run new:project -- ten-khach --brand "Tên Shop"   # tách dự án khách mới
+```
+
+Triển khai production: xem `DEPLOY.md` (Docker 1 lệnh, chuyển Postgres, checklist).
+
 - Storefront: catalog, giỏ, checkout, tài khoản, journal, chatbot AI
 - Admin: sản phẩm, đơn, cài đặt, AI Agent
 - Dữ liệu: Prisma + SQLite (đổi Postgres được)

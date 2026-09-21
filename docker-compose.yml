@@ -1,0 +1,32 @@
+# Mặc định: app + SQLite (volume ek-data). Đủ chạy shop nhỏ.
+# Muốn Postgres: đọc DEPLOY.md rồi bật profile `pg`.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    volumes:
+      - ek-data:/app/prisma
+    restart: unless-stopped
+
+  # Hồ sơ Postgres — dùng khi đã chuyển provider trong schema (xem DEPLOY.md).
+  # Chạy: docker compose --profile pg up -d
+  db:
+    profiles: ["pg"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ek
+      POSTGRES_PASSWORD: ek
+      POSTGRES_DB: ek
+    volumes:
+      - ek-pg:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  ek-data:
+  ek-pg:

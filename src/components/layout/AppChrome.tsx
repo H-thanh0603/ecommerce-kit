@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ChatWidget } from "@/components/ai/ChatWidget";
-import type { EffectiveSite } from "@/server/settings";
+import type { EffectiveSite } from "@/config/site";
 import type { Category } from "@/types";
 
 export function AppChrome({
@@ -26,7 +26,7 @@ export function AppChrome({
     <>
       <Header categories={categories} brand={brand} shippingEta={shippingEta} />
       <main className="flex-1">{children}</main>
-      <Footer categories={categories} />
+      <Footer categories={categories} brand={brand} />
       <ChatWidget />
     </>
   );

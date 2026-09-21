@@ -127,6 +127,23 @@ export const siteConfig = {
 export type SiteConfig = typeof siteConfig;
 export type FeatureKey = keyof typeof siteConfig.features;
 
+/** Kiểu cấu hình hiệu lực — đặt ở đây để component client import type an toàn (không kéo Prisma). */
+export type EffectiveBrand = Record<keyof typeof siteConfig.brand, string>;
+export type EffectiveTheme = Record<keyof typeof siteConfig.theme, string>;
+export type EffectiveShipping = {
+  freeFrom: number;
+  defaultFee: number;
+  innerCityFee: number;
+  estimatedDays: string;
+};
+export type EffectiveFeatures = Record<FeatureKey, boolean>;
+export type EffectiveSite = {
+  brand: EffectiveBrand;
+  theme: EffectiveTheme;
+  shipping: EffectiveShipping;
+  features: EffectiveFeatures;
+};
+
 export function isEnabled(feature: FeatureKey): boolean {
   return Boolean(siteConfig.features[feature]);
 }
