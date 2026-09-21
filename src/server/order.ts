@@ -98,6 +98,10 @@ export async function createOrder(input: CheckoutInput) {
     const { vnpayConfigured } = await import("@/server/vnpay");
     if (!vnpayConfigured()) throw new Error("Chưa cấu hình VNPay (.env VNPAY_*)");
   }
+  if (input.paymentMethod === "momo") {
+    const { momoConfigured } = await import("@/server/momo");
+    if (!momoConfigured()) throw new Error("Chưa cấu hình MoMo (.env MOMO_*)");
+  }
   const warehouse = (await isFeatureOn("multiWarehouse")) ? await defaultWarehouse() : null;
 
   const ids = [...new Set(input.items.map((i) => i.productId))];
@@ -259,8 +263,8 @@ export async function createOrder(input: CheckoutInput) {
     await spendPoints(input.userId, input.pointsToUse);
   }
   let payUrl: string | undefined;
-  if (input.paymentMethod === "vnpay") {
-    const pay = await processPayment("vnpay", { code: mapped.code, total: mapped.total, ip: input.ip });
+  if (input.paymentMethod === "vnpay" || input.paymentMethod === "momo") {
+    const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total, ip: input.ip });
     if (!pay.ok) throw new Error(pay.message);
     payUrl = pay.payUrl;
   } else {

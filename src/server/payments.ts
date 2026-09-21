@@ -33,8 +33,11 @@ const bankTransfer: PaymentProvider = {
 const stubs: Record<string, PaymentProvider> = {
   momo: {
     key: "momo",
-    async charge() {
-      return { ok: false, paymentStatus: "failed", message: "Chưa gắn khóa MoMo — thêm adapter tại src/server/payments.ts" };
+    async charge(order) {
+      const { buildMomoPayUrl } = await import("@/server/momo");
+      const r = await buildMomoPayUrl(order);
+      if (!r.ok) return { ok: false, paymentStatus: "failed", message: r.message };
+      return { ok: true, paymentStatus: "pending", message: r.message, payUrl: r.payUrl };
     },
   },
   vnpay: {
