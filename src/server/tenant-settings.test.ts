@@ -55,4 +55,13 @@ describe("settings per-tenant (T7)", () => {
     const a2 = await runWithTenant(S1, () => getEffectiveSiteConfig());
     expect(a2.brand.name).toBe("Shop AAA");
   }, 60_000);
+
+  it("save lần 2 cùng schema bust cache, đọc thấy giá trị mới", async () => {
+    // Self-contained: tự set X rồi Y trong test — không phụ thuộc test trên.
+    // Nếu tag lệch schema (revert về SETTINGS_TAG trần) thì đọc vẫn ra X → fail.
+    await runWithTenant(S1, () => saveSiteSettings({ brand: { name: "Shop X1" } }));
+    expect((await runWithTenant(S1, () => getEffectiveSiteConfig())).brand.name).toBe("Shop X1");
+    await runWithTenant(S1, () => saveSiteSettings({ brand: { name: "Shop Y2" } }));
+    expect((await runWithTenant(S1, () => getEffectiveSiteConfig())).brand.name).toBe("Shop Y2");
+  }, 30_000);
 });
