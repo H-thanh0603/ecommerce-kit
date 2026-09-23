@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { readSessionToken, SESSION_COOKIE } from "@/server/session";
+import { PLATFORM_COOKIE, readPlatformSession } from "@/server/platform-auth";
 
 function securityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -46,6 +47,17 @@ export async function proxy(req: NextRequest) {
       if (!allowed.has(origin)) {
         return NextResponse.json({ message: "Origin không hợp lệ" }, { status: 403 });
       }
+    }
+  }
+  // /platform: gate coarse ở Edge (chỉ verify JWT, KHÔNG đụng DB) —
+  // đối chiếu PlatformAdmin Node-side trong requirePlatformAdmin.
+  if (req.nextUrl.pathname.startsWith("/platform")) {
+    const tok = req.cookies.get(PLATFORM_COOKIE)?.value;
+    const s = await readPlatformSession(tok);
+    if (!s && req.nextUrl.pathname !== "/platform/dang-nhap") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/platform/dang-nhap";
+      return securityHeaders(NextResponse.redirect(url));
     }
   }
   if (req.nextUrl.pathname.startsWith("/admin")) {
