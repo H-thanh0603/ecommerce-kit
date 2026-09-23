@@ -1,8 +1,9 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/server/db";
 import { SESSION_COOKIE, readSessionToken, sessionMatchesTenant, signSession, type SessionPayload } from "@/server/session";
 import { getTenantSchema } from "@/server/tenant-context";
+import { resolveBaseUrl } from "@/server/tenant";
 
 export type { SessionPayload };
 
@@ -172,7 +173,15 @@ export async function requestPasswordReset(email: string) {
     }),
   ]);
   const { mailPasswordReset } = await import("@/server/mail");
-  const base = process.env.APP_URL || "http://localhost:3000";
+  // Link mail theo Host của request đang gõ (domain tenant); ngoài request
+  // context (script/test/cron) → fallback APP_URL.
+  let host: string | null = null;
+  try {
+    host = (await headers()).get("host");
+  } catch {
+    /* ngoài request context → fallback APP_URL */
+  }
+  const base = resolveBaseUrl(host);
   // Token ở fragment (#) — không lọt access log / Referer của server.
   await mailPasswordReset(user.email, `${base}/dat-lai-mat-khau#email=${encodeURIComponent(user.email)}&token=${token}`);
   return { ok: true as const, message: "Nếu email tồn tại, link đã được gửi." };

@@ -146,6 +146,9 @@ trong checklist team — **không commit key**.
       (seed `deleteMany()` toàn bảng = xóa sạch data prod; đổi password
       bằng cách tạo admin mới hoặc UPDATE SQL, không chạy seed)
 - [ ] `APP_URL` đúng domain (VNPay ReturnUrl/IPN ăn theo)
+      — Multi-tenant: mail link đã tự theo Host, nhưng **mỗi tenant bật
+      payment cần `APP_URL` riêng → phase sau resolve Host lúc tạo payment**
+      (vnpay/momo/sitemap/robots vẫn giữ `APP_URL` — YAGNI Task 7)
 - [ ] `npx prisma migrate deploy` đã chạy (Docker tự chạy)
 - [ ] VNPay: `VNPAY_TMN_CODE/HASH_SECRET`, khai báo IPN
   `https://domain/api/payments/vnpay/ipn` + ReturnUrl trên cổng

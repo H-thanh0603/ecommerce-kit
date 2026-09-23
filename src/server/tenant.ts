@@ -11,6 +11,15 @@ export function parseHost(host: string): string {
   return host.split(":")[0].toLowerCase();
 }
 
+/** Host → base URL cho link mail: prod https, dev http; thiếu Host → APP_URL fallback. */
+export function resolveBaseUrl(host: string | null): string {
+  if (host) {
+    const proto = process.env.NODE_ENV === "production" ? "https" : "http";
+    return `${proto}://${parseHost(host)}`;
+  }
+  return process.env.APP_URL || "http://localhost:3000";
+}
+
 type Lookup = (host: string) => Promise<TenantInfo | null>;
 let lookup: Lookup = async () => null;
 const cache = new Map<string, { value: TenantInfo | null; exp: number }>();
@@ -39,6 +48,11 @@ export async function resolveTenant(host: string): Promise<TenantInfo | null> {
 
 import { findTenantByHost } from "./platform-db";
 
+let wired = false;
+
+/** Set lookup từ platform DB — idempotent: set 1 lần/module, không wipe cache mỗi request. */
 export function wireTenantLookup() {
+  if (wired) return;
+  wired = true;
   setTenantLookup(findTenantByHost);
 }

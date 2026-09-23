@@ -56,6 +56,39 @@ describe("resolveTenant", () => {
   });
 });
 
+describe("resolveBaseUrl", () => {
+  // NEXT_BUILD/Next types khai báo NODE_ENV read-only — ghi qua cast rồi restore.
+  const mutableEnv = process.env as { NODE_ENV?: string; APP_URL?: string };
+
+  it("host → base theo env; null → APP_URL fallback", async () => {
+    const { resolveBaseUrl } = await import("./tenant");
+    const prevNode = process.env.NODE_ENV;
+    const prevApp = process.env.APP_URL;
+    try {
+      process.env.APP_URL = "http://fallback.vn";
+      // test dev (NODE_ENV trong vitest = test)
+      expect(resolveBaseUrl("shopa.vn")).toBe("http://shopa.vn");
+      expect(resolveBaseUrl("shopa.vn:3000")).toBe("http://shopa.vn");
+      expect(resolveBaseUrl(null)).toBe("http://fallback.vn");
+    } finally {
+      mutableEnv.NODE_ENV = prevNode;
+      process.env.APP_URL = prevApp;
+    }
+  });
+
+  it("NODE_ENV=production → https (set env rồi restore)", async () => {
+    const { resolveBaseUrl } = await import("./tenant");
+    const prevNode = process.env.NODE_ENV;
+    try {
+      mutableEnv.NODE_ENV = "production";
+      expect(resolveBaseUrl("shopa.vn")).toBe("https://shopa.vn");
+      expect(resolveBaseUrl(null)).toBe(process.env.APP_URL || "http://localhost:3000");
+    } finally {
+      mutableEnv.NODE_ENV = prevNode;
+    }
+  });
+});
+
 describe("tenant-context", () => {
   it("default public; runWithTenant set trong scope async rồi thoát", async () => {
     expect(getTenantSchema()).toBe("public");
