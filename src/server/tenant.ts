@@ -36,3 +36,9 @@ export async function resolveTenant(host: string): Promise<TenantInfo | null> {
   cache.set(h, { value, exp: Date.now() + TTL });
   return value;
 }
+
+import { findTenantByHost } from "./platform-db";
+
+export function wireTenantLookup() {
+  setTenantLookup(findTenantByHost);
+}
