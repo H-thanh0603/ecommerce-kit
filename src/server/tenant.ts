@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { runWithTenant } from "./tenant-context";
+
+/** Chạy fn trong schema DEFAULT_TENANT (fallback "public") — dùng cho cron/IPN không có Host tenant. */
+export function withDefaultTenant<T>(fn: () => T): T {
+  return runWithTenant(process.env.DEFAULT_TENANT || "public", fn);
+}
 
 export const slugSchema = z
   .string()

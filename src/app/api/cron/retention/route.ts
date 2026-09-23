@@ -11,7 +11,9 @@ export async function GET(req: Request) {
   }
   try {
     const { runRetentionPurge } = await import("@/server/retention");
-    const result = await runRetentionPurge();
+    const { withDefaultTenant } = await import("@/server/tenant");
+    // Cron không có Host tenant — chạy cố định ở schema DEFAULT_TENANT (T5).
+    const result = await withDefaultTenant(() => runRetentionPurge());
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     return NextResponse.json(
