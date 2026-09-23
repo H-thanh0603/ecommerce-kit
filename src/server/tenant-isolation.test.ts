@@ -33,7 +33,20 @@ describe("isolation 2 schema (T3)", () => {
     const email = `proxy.${Date.now()}@iso.test`;
     await runWithTenant(A, () => prisma.user.create({ data: { email, name: "P", passwordHash: "x" } }));
     expect(await runWithTenant(B, () => prisma.user.findUnique({ where: { email } }))).toBeNull();
+    // Acceptance plan: row trong tenant A VÔ HÌNH từ default scope (ngoài ALS → public)
+    expect(await prisma.user.findUnique({ where: { email } })).toBeNull();
     expect(await runWithTenant(A, () => prisma.user.findUnique({ where: { email } }))).not.toBeNull();
     await runWithTenant(A, () => prisma.user.delete({ where: { email } }));
   }, 30_000);
+
+  it("schema chưa migrate → lỗi rõ tiếng Việt, không cache client chết", () => {
+    const missing = `nope_${Date.now()}`;
+    expect(() => getClientForSchema(missing)).toThrowError(
+      `Thiếu schema ${missing} — chạy migrate-all trước`,
+    );
+    const map = (globalThis as { prismaClients?: Map<string, unknown> }).prismaClients;
+    expect(map?.has(missing)).toBe(false);
+    // public giữ nguyên đường cũ — không qua guard
+    expect(() => getClientForSchema("public")).not.toThrow();
+  });
 });
