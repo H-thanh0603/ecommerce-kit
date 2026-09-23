@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/server/db";
-import { SESSION_COOKIE, readSessionToken, signSession, type SessionPayload } from "@/server/session";
+import { SESSION_COOKIE, readSessionToken, sessionMatchesTenant, signSession, type SessionPayload } from "@/server/session";
+import { getTenantSchema } from "@/server/tenant-context";
 
 export type { SessionPayload };
 
@@ -17,6 +18,7 @@ export async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
   const session = await readSessionToken(jar.get(SESSION_COOKIE)?.value);
   if (!session) return null;
+  if (!sessionMatchesTenant(session, getTenantSchema())) return null;
   // Đối chiếu tokenVersion với DB — JWT cũ sau khi đổi mật khẩu / reset bị từ chối.
   try {
     const user = await prisma.user.findUnique({
@@ -78,6 +80,7 @@ export async function registerUser(name: string, email: string, password: string
     email: user.email,
     role: "customer",
     tokenVersion: user.tokenVersion,
+    tenantSlug: getTenantSchema(),
   };
   await setSessionCookie(session);
   return { ok: true as const, message: "Tạo tài khoản thành công", user: session };
@@ -112,6 +115,7 @@ export async function loginUser(email: string, password: string, mfaCode?: strin
     points: user.points,
     memberTier: user.memberTier,
     tokenVersion: user.tokenVersion,
+    tenantSlug: getTenantSchema(),
   };
   await setSessionCookie(session);
   return { ok: true, message: "Đăng nhập thành công", user: session };

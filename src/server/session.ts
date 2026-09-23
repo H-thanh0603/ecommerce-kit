@@ -3,7 +3,11 @@ import type { UserSession } from "@/types";
 
 export const SESSION_COOKIE = "ek_session";
 
-export type SessionPayload = UserSession & { id: string; tokenVersion?: number };
+export type SessionPayload = UserSession & {
+  id: string;
+  tokenVersion?: number;
+  tenantSlug?: string;
+};
 
 function secret() {
   const raw = process.env.AUTH_SECRET;
@@ -22,6 +26,7 @@ export async function signSession(user: SessionPayload) {
     email: user.email,
     role: user.role,
     tv: user.tokenVersion ?? 0,
+    ...(user.tenantSlug ? { t: user.tenantSlug } : {}),
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -40,8 +45,15 @@ export async function readSessionToken(token: string | undefined): Promise<Sessi
       email: String(payload.email),
       role: payload.role === "admin" ? "admin" : "customer",
       tokenVersion: Number(payload.tv || 0),
+      tenantSlug: payload.t ? String(payload.t) : undefined,
     };
   } catch {
     return null;
   }
+}
+
+/** Session hợp lệ với tenant hiện tại? Thiếu claim (token cũ) → true. */
+export function sessionMatchesTenant(s: SessionPayload, currentSlug: string): boolean {
+  if (!s.tenantSlug) return true;
+  return s.tenantSlug === currentSlug;
 }
