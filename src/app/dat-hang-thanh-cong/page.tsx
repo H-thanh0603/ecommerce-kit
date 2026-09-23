@@ -1,3 +1,4 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 
 export const metadata = { title: "Đặt hàng thành công" };
@@ -7,6 +8,7 @@ export default async function SuccessPage({
 }: {
   searchParams: Promise<{ code?: string }>;
 }) {
+  enterTenant(await resolveRequestTenant());
   const { code } = await searchParams;
   return (
     <div className="mx-auto max-w-xl px-4 py-24 text-center">

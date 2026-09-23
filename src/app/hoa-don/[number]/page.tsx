@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import { canViewInvoice, getInvoiceByNumber } from "@/server/invoice";
 import { getSession } from "@/server/auth";
 import { getEffectiveSiteConfig } from "@/server/settings";
@@ -6,6 +7,7 @@ import { money } from "@/lib/format";
 import { siteConfig } from "@/config/site";
 
 export default async function InvoicePrint({ params }: { params: Promise<{ number: string }> }) {
+  enterTenant(await resolveRequestTenant());
   const { number } = await params;
   const data = await getInvoiceByNumber(decodeURIComponent(number));
   if (!data) notFound();

@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/server/db";
 import { SESSION_COOKIE, readSessionToken, sessionMatchesTenant, signSession, type SessionPayload } from "@/server/session";
 import { getTenantSchema } from "@/server/tenant-context";
-import { resolveBaseUrl } from "@/server/tenant";
+import { resolveTrustedBaseUrl } from "@/server/request-tenant";
 
 export type { SessionPayload };
 
@@ -173,15 +173,15 @@ export async function requestPasswordReset(email: string) {
     }),
   ]);
   const { mailPasswordReset } = await import("@/server/mail");
-  // Link mail theo Host của request đang gõ (domain tenant); ngoài request
-  // context (script/test/cron) → fallback APP_URL.
+  // Link mail theo Host của request — CHỈ tin Host khi resolve ra tenant
+  // (chống Host-header poisoning); Host forged/ thiếu → APP_URL.
   let host: string | null = null;
   try {
     host = (await headers()).get("host");
   } catch {
-    /* ngoài request context → fallback APP_URL */
+    /* ngoài request context (script/test/cron) → fallback APP_URL */
   }
-  const base = resolveBaseUrl(host);
+  const base = await resolveTrustedBaseUrl(host);
   // Token ở fragment (#) — không lọt access log / Referer của server.
   await mailPasswordReset(user.email, `${base}/dat-lai-mat-khau#email=${encodeURIComponent(user.email)}&token=${token}`);
   return { ok: true as const, message: "Nếu email tồn tại, link đã được gửi." };

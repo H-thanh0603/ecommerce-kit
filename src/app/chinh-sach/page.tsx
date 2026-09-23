@@ -1,3 +1,4 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import { siteConfig } from "@/config/site";
 import { money } from "@/lib/format";
 
@@ -6,7 +7,8 @@ export const metadata = {
   description: "Vận chuyển, đổi trả, bảo mật và điều khoản sử dụng cửa hàng.",
 };
 
-export default function PolicyPage() {
+export default async function PolicyPage() {
+  enterTenant(await resolveRequestTenant());
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="font-serif text-4xl text-primary">Chính sách cửa hàng</h1>

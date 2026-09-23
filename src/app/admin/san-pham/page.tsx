@@ -1,3 +1,4 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listCategories, listProducts } from "@/server/commerce";
 import { money } from "@/lib/format";
@@ -11,6 +12,7 @@ export default async function AdminProducts({
 }: {
   searchParams: Promise<{ q?: string; edit?: string; page?: string }>;
 }) {
+  enterTenant(await resolveRequestTenant());
   const sp = await searchParams;
   const [result, categories] = await Promise.all([
     listProducts({

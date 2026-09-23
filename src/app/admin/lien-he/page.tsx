@@ -1,8 +1,10 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listLeads, listNewsletter } from "@/server/commerce";
 import { listMailLog } from "@/server/mail";
 
 export default async function AdminInbox() {
+  enterTenant(await resolveRequestTenant());
   const [leads, news, mail] = await Promise.all([listLeads(), listNewsletter(), listMailLog(20)]);
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">

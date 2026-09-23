@@ -1,3 +1,4 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { listCategories, listProducts } from "@/server/commerce";
 import { siteConfig } from "@/config/site";
@@ -10,6 +11,7 @@ type Props = {
 export const metadata = { title: "Sản phẩm" };
 
 export default async function ProductsPage({ searchParams }: Props) {
+  enterTenant(await resolveRequestTenant());
   const sp = await searchParams;
   const page = Number(sp.page || 1);
   const [categories, result] = await Promise.all([

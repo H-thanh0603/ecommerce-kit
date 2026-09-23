@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import { getArticle } from "@/server/commerce";
 import { SmartImage } from "@/components/ui/SmartImage";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props) {
+  enterTenant(await resolveRequestTenant());
   const { slug } = await params;
   const article = await getArticle(slug);
   return { title: article?.title ?? "Bài viết" };
 }
 
 export default async function ArticlePage({ params }: Props) {
+  enterTenant(await resolveRequestTenant());
   const { slug } = await params;
   const article = await getArticle(slug);
   if (!article) notFound();

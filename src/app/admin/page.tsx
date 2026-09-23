@@ -1,3 +1,4 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listOrders, shopStats } from "@/server/commerce";
 import { money } from "@/lib/format";
@@ -11,6 +12,7 @@ const statusLabel: Record<string, string> = {
 };
 
 export default async function AdminHome() {
+  enterTenant(await resolveRequestTenant());
   const [stats, orders] = await Promise.all([shopStats(), listOrders()]);
   const maxDay = Math.max(1, ...stats.days.map((d) => d.total));
   const cards = [

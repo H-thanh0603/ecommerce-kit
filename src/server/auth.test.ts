@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock cookie jar của next/headers để test auth ngoài Next runtime.
 const jar = new Map<string, string>();
+let reqHost: string | null = null;
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (k: string) => (jar.has(k) ? { value: jar.get(k) } : undefined),
@@ -12,6 +13,7 @@ vi.mock("next/headers", () => ({
       jar.delete(k);
     },
   }),
+  headers: async () => new Headers(reqHost ? { host: reqHost } : {}),
 }));
 
 import { prisma } from "./db";
@@ -28,6 +30,7 @@ const uid = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
 beforeEach(() => {
   jar.clear();
+  reqHost = null;
 });
 
 describe("auth register/login", () => {
@@ -92,5 +95,34 @@ describe("auth reset + phân quyền", () => {
     await loginUser(email, "matkhau1");
     expect((await requireAdmin())?.email).toBe(email);
     await prisma.user.deleteMany({ where: { email } });
+  });
+});
+
+describe("mail link không tin Host forged (T7 fix)", () => {
+  it("Host forged → base APP_URL; Host local → base local", async () => {
+    const prevApp = process.env.APP_URL;
+    process.env.APP_URL = "http://safe.vn";
+    const email = `ph${uid()}@kit.vn`.replace(/-/g, "");
+    try {
+      await registerUser("Tester", email, "matkhau1");
+      // Host forged: không resolve ra tenant → link reset PHẢI rơi về APP_URL
+      reqHost = "evil.vn";
+      expect((await requestPasswordReset(email)).ok).toBe(true);
+      let log = await prisma.mailLog.findFirst({ where: { to: email }, orderBy: { createdAt: "desc" } });
+      expect(log?.body).not.toContain("evil.vn");
+      expect(log?.body).toContain("http://safe.vn/dat-lai-mat-khau");
+      // Host local (T2) → được tin (parseHost bỏ port — brief verbatim resolveBaseUrl)
+      reqHost = "localhost:3000";
+      expect((await requestPasswordReset(email)).ok).toBe(true);
+      log = await prisma.mailLog.findFirst({ where: { to: email }, orderBy: { createdAt: "desc" } });
+      expect(log?.body).toContain("http://localhost/dat-lai-mat-khau");
+      expect(log?.body).not.toContain("evil.vn");
+    } finally {
+      process.env.APP_URL = prevApp;
+      reqHost = null;
+      await prisma.passwordReset.deleteMany({ where: { user: { email } } });
+      await prisma.mailLog.deleteMany({ where: { to: email } });
+      await prisma.user.deleteMany({ where: { email } });
+    }
   });
 });

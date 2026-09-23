@@ -1,3 +1,4 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listArticles } from "@/server/commerce";
 import { isEnabled } from "@/config/site";
@@ -6,6 +7,7 @@ import { SmartImage } from "@/components/ui/SmartImage";
 export const metadata = { title: "Journal" };
 
 export default async function BlogPage() {
+  enterTenant(await resolveRequestTenant());
   if (!isEnabled("blog")) {
     return <p className="px-4 py-20 text-center">Module journal đang tắt.</p>;
   }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { parseHost, resolveTenant, setTenantLookup, slugSchema } from "./tenant";
+import { parseHost, resolveTenant, setTenantLookup, slugSchema, wireTenantLookup } from "./tenant";
 import { runWithTenant, getTenantSchema } from "./tenant-context";
 
 describe("slugSchema", () => {
@@ -85,6 +85,35 @@ describe("resolveBaseUrl", () => {
       expect(resolveBaseUrl(null)).toBe(process.env.APP_URL || "http://localhost:3000");
     } finally {
       mutableEnv.NODE_ENV = prevNode;
+    }
+  });
+});
+
+describe("resolveTrustedBaseUrl (chống Host-header poisoning)", () => {
+  it("host không resolve ra tenant → APP_URL; tenant khớp/local → dùng host", async () => {
+    const { resolveTrustedBaseUrl } = await import("./request-tenant");
+    const prevApp = process.env.APP_URL;
+    process.env.APP_URL = "http://fallback.vn";
+    try {
+      // wire TRƯỚC rồi mới set fake — helper bên trong cũng gọi wireTenantLookup
+      // (idempotent, wired=true → không ghi đè fake).
+      wireTenantLookup();
+      setTenantLookup(async (h) => (h === "shopa.vn" ? { slug: "shopa", name: "A" } : null));
+      // Host forged không có tenant → không được dựng link từ Host
+      expect(await resolveTrustedBaseUrl("evil.vn")).toBe("http://fallback.vn");
+      expect(await resolveTrustedBaseUrl("shopa.vn")).toBe("http://shopa.vn");
+      expect(await resolveTrustedBaseUrl("shopa.vn:3000")).toBe("http://shopa.vn");
+      // Local theo T2 luôn được tin (parseHost bỏ port — brief verbatim)
+      expect(await resolveTrustedBaseUrl("localhost:3000")).toBe("http://localhost");
+      expect(await resolveTrustedBaseUrl(null)).toBe("http://fallback.vn");
+      // Lookup ném lỗi (platform DB chết) → fail-closed APP_URL
+      setTenantLookup(async () => {
+        throw new Error("platform db down");
+      });
+      expect(await resolveTrustedBaseUrl("shopa.vn")).toBe("http://fallback.vn");
+    } finally {
+      process.env.APP_URL = prevApp;
+      setTenantLookup(async () => null);
     }
   });
 });

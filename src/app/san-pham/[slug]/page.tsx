@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import { getProductBySlug, relatedProducts } from "@/server/commerce";
 import { money } from "@/lib/format";
 import { isEnabled, siteConfig } from "@/config/site";
@@ -14,12 +15,14 @@ import { IconStar } from "@/components/icons";
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props) {
+  enterTenant(await resolveRequestTenant());
   const { slug } = await params;
   const data = await getProductBySlug(slug);
   return { title: data?.product.name ?? "Sản phẩm" };
 }
 
 export default async function ProductPage({ params }: Props) {
+  enterTenant(await resolveRequestTenant());
   const { slug } = await params;
   const data = await getProductBySlug(slug);
   if (!data) notFound();

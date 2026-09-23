@@ -1,7 +1,9 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listInvoices } from "@/server/invoice";
 
 export default async function AdminInvoices() {
+  enterTenant(await resolveRequestTenant());
   const invoices = await listInvoices();
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">

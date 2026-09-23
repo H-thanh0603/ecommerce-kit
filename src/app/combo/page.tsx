@@ -1,3 +1,4 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listBundles } from "@/server/bundle";
 import { getProductById } from "@/server/catalog";
@@ -6,6 +7,7 @@ import { isEnabled } from "@/config/site";
 import { AddBundleButton } from "@/components/bundle/AddBundleButton";
 
 export default async function ComboPage() {
+  enterTenant(await resolveRequestTenant());
   if (!isEnabled("bundles")) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">

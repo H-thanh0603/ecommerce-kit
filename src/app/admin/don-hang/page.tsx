@@ -1,3 +1,4 @@
+import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listOrders } from "@/server/commerce";
 import { OrderStatusForm } from "@/components/admin/OrderStatusForm";
@@ -20,6 +21,7 @@ export default async function AdminOrders({
 }: {
   searchParams: Promise<{ status?: string; q?: string }>;
 }) {
+  enterTenant(await resolveRequestTenant());
   const sp = await searchParams;
   const orders = await listOrders({ status: sp.status || undefined, q: sp.q || undefined });
   return (
