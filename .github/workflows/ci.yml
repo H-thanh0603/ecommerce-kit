@@ -52,7 +52,11 @@ jobs:
             console.log("audit OK (known-excepted:", known.join(",")||"none", ")");
           '
       - run: npm test
+        env:
+          DATABASE_URL: postgresql://ek:ek@localhost:5432/ek_test?schema=public
       - run: npm run build
+        env:
+          DATABASE_URL: postgresql://ek:ek@localhost:5432/ek_test?schema=public
       - run: npx playwright install chromium --with-deps
       - run: npm start -- --port 3100 &
         env:
