@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createLead } from "@/server/commerce";
 import { clientKey, rateLimit } from "@/server/rate-limit";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!(await rateLimit(clientKey(req, "contact"), 5, 600_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
@@ -26,3 +27,5 @@ export async function POST(req: Request) {
   }
   return NextResponse.json({ ok: true });
 }
+
+export const POST = withTenantHandler(postHandler);

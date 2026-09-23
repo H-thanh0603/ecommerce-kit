@@ -56,3 +56,18 @@ export async function resolveRequestTenant(): Promise<TenantInfo | null> {
 export function enterTenant(tenant: TenantInfo | null): void {
   enterTenantScope(tenant?.slug ?? "public");
 }
+
+/**
+ * API route entry: resolve Host của request → runWithTenant quanh toàn bộ handler.
+ * Nhận cả Request lẫn context (Next truyền `(req, ctx)` hoặc `()` tùy route).
+ * Host không resolve/forged → schema "public" (fail-closed).
+ */
+export function withTenantHandler<A extends unknown[], R>(
+  handler: (...args: A) => Promise<R>,
+): (...args: A) => Promise<R> {
+  return async (...args: A) => {
+    const req = args.find((a): a is Request => a instanceof Request);
+    const host = req?.headers.get("host") ?? (req ? new URL(req.url).host : null);
+    return withTenantFromRequest(host, () => handler(...args));
+  };
+}

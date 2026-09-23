@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { issueInvoice, listInvoices } from "@/server/invoice";
 import { requireAdmin } from "@/server/auth";
 import { isEnabled } from "@/config/site";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET() {
+async function getHandler() {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
   return NextResponse.json({ invoices: await listInvoices() });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!isEnabled("invoices")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
@@ -21,3 +22,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
   }
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);

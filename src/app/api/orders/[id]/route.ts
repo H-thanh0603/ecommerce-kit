@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { updateOrderStatus } from "@/server/commerce";
 import type { OrderStatus } from "@/types";
+import { withTenantHandler } from "@/server/request-tenant";
 
 const allowed: OrderStatus[] = ["pending", "confirmed", "shipping", "completed", "cancelled"];
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function patchHandler(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   const { id } = await params;
@@ -17,3 +18,5 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const order = await updateOrderStatus(id, status, admin.email);
   return NextResponse.json({ order });
 }
+
+export const PATCH = withTenantHandler(patchHandler);

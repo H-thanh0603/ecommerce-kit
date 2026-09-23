@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { isEnabled } from "@/config/site";
 import { aiConfigured, shopChat } from "@/server/ai";
 import { clientKey, rateLimit } from "@/server/rate-limit";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!(await rateLimit(clientKey(req, "ai-chat"), 20, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
@@ -29,3 +30,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "Lỗi AI — thử lại sau" }, { status: 500 });
   }
 }
+
+export const POST = withTenantHandler(postHandler);

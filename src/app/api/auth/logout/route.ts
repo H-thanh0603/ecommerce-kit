@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { clearSessionCookie } from "@/server/auth";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function POST() {
+async function postHandler() {
   await clearSessionCookie();
   return NextResponse.json({ ok: true });
 }
+
+export const POST = withTenantHandler(postHandler);

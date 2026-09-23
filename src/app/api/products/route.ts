@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { listProducts } from "@/server/commerce";
 import { requireAdmin } from "@/server/auth";
 import { upsertProduct } from "@/server/commerce";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { clientKey, rateLimit } = await import("@/server/rate-limit");
   if (!(await rateLimit(clientKey(req, "products"), 120, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ products: result.items, total: result.total, page: result.page, pages: result.pages });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   try {
@@ -57,3 +58,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
   }
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);

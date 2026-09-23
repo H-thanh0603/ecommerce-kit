@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { verifyVnpay } from "@/server/vnpay";
 import { prisma } from "@/server/db";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const url = new URL(req.url);
   const query: Record<string, string> = {};
   url.searchParams.forEach((v, k) => {
@@ -26,3 +27,5 @@ export async function GET(req: Request) {
   if (!ok) return fail("failed");
   return NextResponse.redirect(`${app}/dat-hang-thanh-cong?code=${code}`);
 }
+
+export const GET = withTenantHandler(getHandler);

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { approveReview, deleteReview, listPendingReviews } from "@/server/catalog";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET() {
+async function getHandler() {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   return NextResponse.json({ reviews: await listPendingReviews() });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
@@ -21,3 +22,6 @@ export async function POST(req: Request) {
   const review = await approveReview(id);
   return NextResponse.json({ ok: true, review });
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);

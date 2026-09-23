@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { saveImage } from "@/server/storage";
 import path from "path";
+import { withTenantHandler } from "@/server/request-tenant";
 
 /** Magic-byte check — chặn upload file mù / polyglot chỉ đổi phần mở rộng. */
 function isImageMagic(buf: Buffer, ext: string): boolean {
@@ -14,7 +15,7 @@ function isImageMagic(buf: Buffer, ext: string): boolean {
   return false;
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   const form = await req.formData();
@@ -34,3 +35,5 @@ export async function POST(req: Request) {
   if (!saved.ok) return NextResponse.json({ message: saved.message || "Upload thất bại" }, { status: 502 });
   return NextResponse.json({ url: saved.url });
 }
+
+export const POST = withTenantHandler(postHandler);

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { deleteProduct, setProductPublished, upsertProduct } from "@/server/commerce";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function patchHandler(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   const { id } = await params;
@@ -40,7 +41,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   const { id } = await params;
@@ -56,7 +57,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json(result);
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function putHandler(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   const { id } = await params;
@@ -76,3 +77,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
   return NextResponse.json({ message: "Không có thay đổi" }, { status: 400 });
 }
+
+export const PATCH = withTenantHandler(patchHandler);
+export const DELETE = withTenantHandler(deleteHandler);
+export const PUT = withTenantHandler(putHandler);

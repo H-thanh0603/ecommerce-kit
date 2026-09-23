@@ -3,9 +3,10 @@ import { requireAdmin } from "@/server/auth";
 import { createGhnOrder, ghnConfigured } from "@/server/shipping";
 import { isFeatureOn } from "@/server/settings";
 import { prisma } from "@/server/db";
+import { withTenantHandler } from "@/server/request-tenant";
 
 /** Admin tạo vận đơn GHN cho 1 đơn hàng, lưu mã vào Order.ghnOrderCode. */
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ ok: false, message: "Cần quyền admin" }, { status: 403 });
   if (!(await isFeatureOn("ghn"))) {
@@ -39,3 +40,5 @@ export async function POST(req: Request) {
   await logOrderEvent(order.id, "shipping", `Tạo vận đơn GHN ${result.orderCode}`);
   return NextResponse.json(result);
 }
+
+export const POST = withTenantHandler(postHandler);

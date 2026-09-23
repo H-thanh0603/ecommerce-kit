@@ -4,6 +4,7 @@ import { createOrder, listOrders } from "@/server/commerce";
 import { getSession } from "@/server/auth";
 import { isEnabled } from "@/config/site";
 import { clientKey, rateLimit } from "@/server/rate-limit";
+import { withTenantHandler } from "@/server/request-tenant";
 
 const itemSchema = z.object({
   productId: z.string(),
@@ -33,7 +34,7 @@ const checkoutSchema = z.object({
   items: z.array(itemSchema).min(1),
 });
 
-export async function GET() {
+async function getHandler() {
   const session = await getSession();
   if (!session) return NextResponse.json({ orders: [] });
   const orders =
@@ -43,7 +44,7 @@ export async function GET() {
   return NextResponse.json({ orders });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!(await rateLimit(clientKey(req, "checkout"), 10, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
@@ -81,3 +82,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: e instanceof Error ? e.message : "Không đặt được hàng" }, { status: 400 });
   }
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);

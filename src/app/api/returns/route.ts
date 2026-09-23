@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { listReturns, requestReturn, resolveReturn } from "@/server/returns";
 import { getSession, requireAdmin } from "@/server/auth";
 import { prisma } from "@/server/db";
+import { withTenantHandler } from "@/server/request-tenant";
 
 /** Khách gửi yêu cầu trả hàng. */
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const { clientKey, rateLimit } = await import("@/server/rate-limit");
   if (!(await rateLimit(clientKey(req, "returns"), 8, 60_000)).ok) {
     return NextResponse.json({ ok: false, message: "Thử lại sau" }, { status: 429 });
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
 }
 
 /** Admin xem tất cả; khách xem yêu cầu của chính mình. */
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const admin = await requireAdmin();
   const status = new URL(req.url).searchParams.get("status") || undefined;
   if (admin) return NextResponse.json({ returns: await listReturns(status) });
@@ -41,7 +42,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ returns: rows });
 }
 
-export async function PUT(req: Request) {
+async function putHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
@@ -52,3 +53,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : "Xử lý thất bại" }, { status: 400 });
   }
 }
+
+export const POST = withTenantHandler(postHandler);
+export const GET = withTenantHandler(getHandler);
+export const PUT = withTenantHandler(putHandler);

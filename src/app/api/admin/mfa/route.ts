@@ -4,6 +4,7 @@ import { isFeatureOn } from "@/server/settings";
 import { prisma } from "@/server/db";
 import { generateRecoveryCodes, generateTotpSecret, totpUri, verifyTotp } from "@/server/mfa";
 import { hashPassword, verifyPassword } from "@/server/auth";
+import { withTenantHandler } from "@/server/request-tenant";
 
 /**
  * MFA TOTP cho admin (Q29) — cờ feature `mfa` default OFF.
@@ -20,7 +21,7 @@ async function gate() {
   return { admin };
 }
 
-export async function GET() {
+async function getHandler() {
   const g = await gate();
   if (g instanceof NextResponse) return g;
   const user = await prisma.user.findUnique({
@@ -30,7 +31,7 @@ export async function GET() {
   return NextResponse.json({ mfaEnabled: Boolean(user?.mfaEnabled) });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const g = await gate();
   if (g instanceof NextResponse) return g;
   const { admin } = g;
@@ -107,3 +108,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ message: "action không hỗ trợ" }, { status: 400 });
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);

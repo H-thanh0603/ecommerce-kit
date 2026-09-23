@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { quoteShipping } from "@/server/shipping";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const body = await req.json().catch(() => ({}));
   const quote = await quoteShipping({
     subtotal: Number(body.subtotal || 0),
@@ -12,3 +13,5 @@ export async function POST(req: Request) {
   });
   return NextResponse.json(quote);
 }
+
+export const POST = withTenantHandler(postHandler);

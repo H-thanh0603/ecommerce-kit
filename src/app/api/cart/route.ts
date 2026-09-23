@@ -2,14 +2,15 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/server/auth";
 import { loadCart, syncCart } from "@/server/commerce";
 import type { CartItem } from "@/types";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET() {
+async function getHandler() {
   const session = await getSession();
   if (!session) return NextResponse.json({ items: null });
   return NextResponse.json({ items: await loadCart(session.id) });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ ok: true });
   const body = await req.json().catch(() => ({}));
@@ -17,3 +18,6 @@ export async function POST(req: Request) {
   await syncCart(session.id, items);
   return NextResponse.json({ ok: true });
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);

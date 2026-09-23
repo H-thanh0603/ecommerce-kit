@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { isEnabled } from "@/config/site";
 import { exportProductsXlsx, importProductsXlsx } from "@/server/excel";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET() {
+async function getHandler() {
   if (!isEnabled("excel")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
@@ -16,7 +17,7 @@ export async function GET() {
   });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!isEnabled("excel")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
@@ -32,3 +33,6 @@ export async function POST(req: Request) {
   const n = await importProductsXlsx(buf);
   return NextResponse.json({ imported: n });
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);

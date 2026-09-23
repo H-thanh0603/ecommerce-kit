@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { assertCoupon } from "@/server/commerce";
 import { isEnabled } from "@/config/site";
 import { getSession } from "@/server/auth";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!isEnabled("coupons")) {
     return NextResponse.json({ message: "Module mã giảm giá đang tắt" }, { status: 404 });
   }
@@ -23,3 +24,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: e instanceof Error ? e.message : "Mã không hợp lệ" }, { status: 400 });
   }
 }
+
+export const POST = withTenantHandler(postHandler);

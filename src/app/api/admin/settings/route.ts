@@ -3,8 +3,9 @@ import { requireAdmin } from "@/server/auth";
 import { getEffectiveSiteConfig, getSiteOverrides, saveSiteSettings } from "@/server/settings";
 import { siteConfig } from "@/config/site";
 import { revalidateTag } from "next/cache";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET() {
+async function getHandler() {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const [effective, overrides] = await Promise.all([getEffectiveSiteConfig(), getSiteOverrides()]);
@@ -20,7 +21,7 @@ export async function GET() {
   });
 }
 
-export async function PUT(req: Request) {
+async function putHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   try {
@@ -44,3 +45,6 @@ export async function PUT(req: Request) {
   }
 }
 
+
+export const GET = withTenantHandler(getHandler);
+export const PUT = withTenantHandler(putHandler);

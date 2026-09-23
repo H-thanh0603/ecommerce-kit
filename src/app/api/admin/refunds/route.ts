@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { createRefund, executeGatewayRefund, listRefunds, setRefundStatus } from "@/server/refunds";
 import { prisma } from "@/server/db";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const status = new URL(req.url).searchParams.get("status") || undefined;
   return NextResponse.json({ refunds: await listRefunds(status) });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
@@ -60,3 +61,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : "Thất bại" }, { status: 400 });
   }
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);

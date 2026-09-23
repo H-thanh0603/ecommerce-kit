@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/server/auth";
 import { prisma } from "@/server/db";
+import { withTenantHandler } from "@/server/request-tenant";
 
 /**
  * Quyền chủ dữ liệu (Q62/Q69):
  * GET  → export JSON dữ liệu cá nhân (orders, addresses, reviews).
  * DELETE → xóa/ẩn danh tài khoản + PII (orders giữ lại ở dạng ẩn danh cho kế toán).
  */
-export async function GET() {
+async function getHandler() {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Cần đăng nhập" }, { status: 401 });
   const user = await prisma.user.findUnique({
@@ -53,7 +54,7 @@ export async function GET() {
   });
 }
 
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Cần đăng nhập" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
@@ -107,3 +108,6 @@ export async function DELETE(req: Request) {
   });
   return NextResponse.json({ ok: true, message: "Đã xóa tài khoản và ẩn danh dữ liệu" });
 }
+
+export const GET = withTenantHandler(getHandler);
+export const DELETE = withTenantHandler(deleteHandler);

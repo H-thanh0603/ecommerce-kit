@@ -4,8 +4,9 @@ import { isEnabled } from "@/config/site";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { prisma } from "@/server/db";
 import { logAudit } from "@/server/audit";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!isEnabled("newsletter")) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
   if (!(await rateLimit(clientKey(req, "news"), 8, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
 }
 
 /** Huỷ đăng ký (Q156) — không cần login, rate limit theo IP. */
-export async function DELETE(req: Request) {
+async function deleteHandler(req: Request) {
   if (!isEnabled("newsletter")) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
   if (!(await rateLimit(clientKey(req, "news-unsub"), 8, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
@@ -33,3 +34,6 @@ export async function DELETE(req: Request) {
     message: res.count > 0 ? "Đã huỷ đăng ký" : "Email chưa có trong danh sách",
   });
 }
+
+export const POST = withTenantHandler(postHandler);
+export const DELETE = withTenantHandler(deleteHandler);

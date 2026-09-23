@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { loginUser } from "@/server/auth";
 import { clientKey, rateLimit } from "@/server/rate-limit";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!(await rateLimit(clientKey(req, "login"), 8, 60_000)).ok) {
     return NextResponse.json({ ok: false, message: "Thử lại sau" }, { status: 429 });
   }
@@ -16,3 +17,5 @@ export async function POST(req: Request) {
   const status = result.ok ? 200 : result.mfaRequired ? 401 : 400;
   return NextResponse.json(result, { status });
 }
+
+export const POST = withTenantHandler(postHandler);

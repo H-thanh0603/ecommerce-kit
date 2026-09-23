@@ -3,8 +3,9 @@ import { createBooking, listBookings, listServices } from "@/server/booking";
 import { getSession, requireAdmin } from "@/server/auth";
 import { isEnabled } from "@/config/site";
 import { clientKey, rateLimit } from "@/server/rate-limit";
+import { withTenantHandler } from "@/server/request-tenant";
 
-export async function GET() {
+async function getHandler() {
   if (!isEnabled("booking")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const session = await getSession();
   if (session?.role === "admin") {
@@ -13,7 +14,7 @@ export async function GET() {
   return NextResponse.json({ services: await listServices() });
 }
 
-export async function POST(req: Request) {
+async function postHandler(req: Request) {
   if (!isEnabled("booking")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   if (!(await rateLimit(clientKey(req, "book"), 8, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function PATCH(req: Request) {
+async function patchHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
@@ -44,3 +45,7 @@ export async function PATCH(req: Request) {
   const booking = await setBookingStatus(String(body.id), String(body.status));
   return NextResponse.json({ booking });
 }
+
+export const GET = withTenantHandler(getHandler);
+export const POST = withTenantHandler(postHandler);
+export const PATCH = withTenantHandler(patchHandler);
