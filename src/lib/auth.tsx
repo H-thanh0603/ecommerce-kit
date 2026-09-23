@@ -3,11 +3,18 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { UserSession } from "@/types";
 
+type AuthResult = {
+  ok: boolean;
+  message: string;
+  user?: UserSession | null;
+  mfaRequired?: boolean;
+};
+
 type AuthValue = {
   user: UserSession | null;
   ready: boolean;
-  login: (email: string, password: string) => Promise<{ ok: boolean; message: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; message: string }>;
+  login: (email: string, password: string, mfaCode?: string) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
 };
 
@@ -29,15 +36,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       ready,
-      login: async (email, password) => {
+      login: async (email, password, mfaCode) => {
         const res = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, ...(mfaCode ? { mfaCode } : {}) }),
         });
         const data = await res.json();
         if (data.ok) setUser(data.user);
-        return { ok: Boolean(data.ok), message: data.message || "" };
+        return {
+          ok: Boolean(data.ok),
+          message: data.message || "",
+          user: data.user ?? null,
+          mfaRequired: Boolean(data.mfaRequired),
+        };
       },
       register: async (name, email, password) => {
         const res = await fetch("/api/auth/register", {
@@ -47,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         const data = await res.json();
         if (data.ok) setUser(data.user);
-        return { ok: Boolean(data.ok), message: data.message || "" };
+        return { ok: Boolean(data.ok), message: data.message || "", user: data.user ?? null };
       },
       logout: async () => {
         await fetch("/api/auth/logout", { method: "POST" });

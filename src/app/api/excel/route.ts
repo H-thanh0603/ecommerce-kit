@@ -23,7 +23,12 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return NextResponse.json({ message: "Thiếu file" }, { status: 400 });
+  if (file.size > 5 * 1024 * 1024) return NextResponse.json({ message: "Tối đa 5MB" }, { status: 400 });
   const buf = Buffer.from(await file.arrayBuffer());
+  // xlsx = ZIP (PK\x03\x04) — chặn upload file mù
+  if (buf.length < 4 || buf[0] !== 0x50 || buf[1] !== 0x4b) {
+    return NextResponse.json({ message: "File không phải .xlsx hợp lệ" }, { status: 400 });
+  }
   const n = await importProductsXlsx(buf);
   return NextResponse.json({ imported: n });
 }

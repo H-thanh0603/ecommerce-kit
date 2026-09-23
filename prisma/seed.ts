@@ -26,6 +26,25 @@ function cartesian(groups: { options: string[] }[]) {
 }
 
 async function main() {
+  const isProd = process.env.NODE_ENV === "production";
+  // Seed = xóa toàn bộ bảng demo → TUYỆT ĐỐI không chạy bừa trên production.
+  if (isProd && process.env.ALLOW_SEED !== "1") {
+    throw new Error(
+      "Từ chối seed ở production (seed xóa toàn bộ dữ liệu). " +
+        "Nếu chắc chắn (lần đầu lập DB trống), đặt ALLOW_SEED=1 rồi chạy lại.",
+    );
+  }
+  const adminEmail = process.env.ADMIN_EMAIL || (isProd ? "" : "admin@atelier.vn");
+  const adminPass = process.env.ADMIN_PASSWORD || (isProd ? "" : "admin123");
+  if (isProd) {
+    if (!adminEmail || !adminPass || adminPass === "admin123") {
+      throw new Error(
+        "Production yêu cầu ADMIN_EMAIL + ADMIN_PASSWORD mạnh (không dùng được admin123). " +
+          "Đặt trong .env rồi chạy lại — seed TỪ CHỐI tạo tài khoản admin mặc định.",
+      );
+    }
+  }
+
   await prisma.booking.deleteMany();
   await prisma.bookingService.deleteMany();
   await prisma.invoice.deleteMany();
@@ -51,8 +70,6 @@ async function main() {
   await prisma.orderCounter.deleteMany();
   await prisma.user.deleteMany();
 
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@atelier.vn";
-  const adminPass = process.env.ADMIN_PASSWORD || "admin123";
   const admin = await prisma.user.create({
     data: {
       email: adminEmail,
@@ -219,7 +236,7 @@ async function main() {
     data: { unit: "kg", price: 240_000, weightGrams: 1000 },
   });
 
-  console.log("Seed xong. Admin:", adminEmail, "/", adminPass);
+  console.log("Seed xong. Admin:", adminEmail, isProd ? "" : "(mật khẩu: ADMIN_PASSWORD trong .env)");
 }
 
 main()

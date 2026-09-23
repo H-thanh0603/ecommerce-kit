@@ -1,4 +1,6 @@
 import { createHmac } from "crypto";
+import { safeEqual } from "@/server/crypto-util";
+import { assertProdGateway } from "@/server/gateway-guard";
 
 /**
  * MoMo adapter (gateway v2).
@@ -15,7 +17,9 @@ function hmacHex(secret: string, raw: string) {
 }
 
 function momoApi() {
-  return process.env.MOMO_URL || "https://test-payment.momo.vn/v2/gateway/api/create";
+  const url = process.env.MOMO_URL || "https://test-payment.momo.vn/v2/gateway/api/create";
+  assertProdGateway("MoMo", url);
+  return url;
 }
 
 export function signMomoCreate(p: {
@@ -57,6 +61,7 @@ export async function buildMomoPayUrl(order: { code: string; total: number }): P
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...body, signature }),
+      signal: AbortSignal.timeout(10_000),
     });
     const data = await res.json().catch(() => null);
     if (data?.resultCode === 0 && data?.payUrl) {
@@ -78,7 +83,7 @@ export function verifyMomoIpn(data: Record<string, string | number>) {
     `&orderId=${s("orderId")}&orderInfo=${s("orderInfo")}&orderType=${s("orderType")}` +
     `&partnerCode=${s("partnerCode")}&payType=${s("payType")}&requestId=${s("requestId")}` +
     `&responseTime=${s("responseTime")}&resultCode=${s("resultCode")}&transId=${s("transId")}`;
-  return hmacHex(secret, raw) === String(data.signature);
+  return safeEqual(hmacHex(secret, raw), String(data.signature));
 }
 
 export type MomoOrderStore = {
@@ -87,17 +92,19 @@ export type MomoOrderStore = {
   markFailed: (code: string) => Promise<void>;
 };
 
+export type MomoIpnResult = { ok: boolean; message: string; alreadyPaid?: boolean };
+
 export async function handleMomoIpn(
   data: Record<string, string | number>,
   store: MomoOrderStore,
-): Promise<{ ok: boolean; message: string }> {
+): Promise<MomoIpnResult> {
   if (!verifyMomoIpn(data)) return { ok: false, message: "Fail checksum" };
   const code = String(data.orderId || "").trim();
   if (!code) return { ok: false, message: "Order not found" };
   const order = await store.findOrder(code).catch(() => null);
   if (!order) return { ok: false, message: "Order not found" };
   if (Number(data.amount) !== order.total) return { ok: false, message: "Invalid amount" };
-  if (order.paymentStatus === "paid") return { ok: true, message: "Already confirmed" };
+  if (order.paymentStatus === "paid") return { ok: true, message: "Already confirmed", alreadyPaid: true };
   if (Number(data.resultCode) === 0) {
     await store.markPaid(code, String(data.transId || ""));
     return { ok: true, message: "Success" };
@@ -127,17 +134,16 @@ export function buildMomoRefund(input: MomoRefundInput) {
   return { ...body, signature };
 }
 
-function momoRefundApi() {
-  return process.env.MOMO_REFUND_URL || "https://test-payment.momo.vn/v2/gateway/api/refund";
-}
-
 /** Gọi hoàn tiền thật — cần transId gốc (lưu ở Order.paymentRef), test tay sandbox trước. */
 export async function refundMomo(input: MomoRefundInput) {
+  const api = process.env.MOMO_REFUND_URL || "https://test-payment.momo.vn/v2/gateway/api/refund";
+  assertProdGateway("MoMo refund", api);
   const body = buildMomoRefund(input);
-  const res = await fetch(momoRefundApi(), {
+  const res = await fetch(api, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   });
   const data = await res.json().catch(() => null);
   if (data?.resultCode === 0) return { ok: true as const, message: "Hoàn tiền thành công" };

@@ -25,8 +25,19 @@ export async function PUT(req: Request) {
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   try {
     const body = await req.json();
+    const before = await getSiteOverrides();
     const effective = await saveSiteSettings(body);
     revalidateTag("catalog", "max");
+    const { logAudit } = await import("@/server/audit");
+    await logAudit({
+      actorId: admin.id,
+      actorEmail: admin.email,
+      action: "settings.update",
+      entity: "SiteSetting",
+      before,
+      after: body,
+      ip: req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0] || "",
+    });
     return NextResponse.json({ ok: true, effective });
   } catch (e) {
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : "Lưu thất bại" }, { status: 400 });

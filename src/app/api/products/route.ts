@@ -4,6 +4,10 @@ import { requireAdmin } from "@/server/auth";
 import { upsertProduct } from "@/server/commerce";
 
 export async function GET(req: Request) {
+  const { clientKey, rateLimit } = await import("@/server/rate-limit");
+  if (!(await rateLimit(clientKey(req, "products"), 120, 60_000)).ok) {
+    return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
+  }
   const url = new URL(req.url);
   const ids = url.searchParams.get("ids");
   const result = await listProducts({
@@ -37,6 +41,16 @@ export async function POST(req: Request) {
       flashSale: Boolean(body.flashSale),
       published: body.published !== false,
       attrs: body.attrs && typeof body.attrs === "object" ? body.attrs : undefined,
+    });
+    const { logAudit } = await import("@/server/audit");
+    await logAudit({
+      actorId: admin.id,
+      actorEmail: admin.email,
+      action: "product.upsert",
+      entity: "Product",
+      entityId: product.id,
+      after: { slug: product.slug, price: product.price, stock: product.stock, published: product.published },
+      ip: req.headers.get("x-real-ip") || "",
     });
     return NextResponse.json({ product });
   } catch (e) {

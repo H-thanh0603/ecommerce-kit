@@ -19,7 +19,7 @@ function securityHeaders(res: NextResponse) {
       "media-src 'self' https:",
       "font-src 'self' data: https://fonts.gstatic.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline'",
       "connect-src 'self' https:",
       "frame-ancestors 'none'",
     ].join("; "),
@@ -28,6 +28,26 @@ function securityHeaders(res: NextResponse) {
 }
 
 export async function proxy(req: NextRequest) {
+  // CSRF defense-in-depth: API mutate từ Origin khác → chặn (IPN/webhook server-to-server không có Origin → bỏ qua).
+  if (
+    (req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE") &&
+    req.nextUrl.pathname.startsWith("/api/")
+  ) {
+    const origin = req.headers.get("origin");
+    if (origin) {
+      const allowed = new Set<string>([req.nextUrl.origin]);
+      if (process.env.APP_URL) {
+        try {
+          allowed.add(new URL(process.env.APP_URL).origin);
+        } catch {
+          /* APP_URL hỏng → chỉ so request origin */
+        }
+      }
+      if (!allowed.has(origin)) {
+        return NextResponse.json({ message: "Origin không hợp lệ" }, { status: 403 });
+      }
+    }
+  }
   if (req.nextUrl.pathname.startsWith("/admin")) {
     const session = await readSessionToken(req.cookies.get(SESSION_COOKIE)?.value);
     if (!session || session.role !== "admin") {
@@ -42,5 +62,6 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads).*)"],
+  // Bỏ `uploads` khỏi exclude để uploads cũng nhận security header.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

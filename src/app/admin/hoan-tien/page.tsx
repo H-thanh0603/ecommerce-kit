@@ -35,7 +35,7 @@ export default function AdminRefunds() {
       body: JSON.stringify({ orderCode: code, amount: Number(amount), method }),
     });
     const j = await res.json();
-    setMsg(j.ok ? "Đã tạo phiếu hoàn" : j.message);
+    setMsg(j.message || (j.ok ? "Đã tạo phiếu hoàn" : "Thất bại"));
     if (j.ok) {
       setCode("");
       setAmount("");
@@ -61,8 +61,8 @@ export default function AdminRefunds() {
         </Link>
       </div>
       <p className="mt-2 text-sm text-muted">
-        Sổ theo dõi hoàn tiền. CK tay qua ngân hàng; VNPay/MoMo gọi API hoàn bằng mã giao dịch
-        lưu ở đơn (<code>paymentRef</code>).
+        Chuyển khoản / tiền mặt ghi sổ. Chọn VNPay hoặc MoMo để gọi API hoàn thật
+        (cần đơn đã thanh toán qua cổng đó, <code>paymentRef</code> = mã giao dịch gốc).
       </p>
       <div className="mt-6 flex flex-wrap gap-2">
         <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Mã đơn (ATL-…)" className="rounded-full border border-line px-4 py-2 text-sm" />
@@ -77,7 +77,11 @@ export default function AdminRefunds() {
           Tạo phiếu
         </button>
       </div>
-      {msg && <p className="mt-2 text-sm text-primary">{msg}</p>}
+      {msg && (
+        <p role="status" aria-live="polite" className="mt-2 text-sm text-primary">
+          {msg}
+        </p>
+      )}
       <ul className="mt-6 space-y-2 text-sm">
         {rows.map((r) => (
           <li key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-white px-4 py-3">

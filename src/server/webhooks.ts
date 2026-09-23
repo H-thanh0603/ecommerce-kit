@@ -8,7 +8,25 @@ export function signWebhook(secret: string, timestamp: string, body: string) {
   return createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
 }
 
-/** Bắn event tới các endpoint đã đăng ký — lỗi endpoint không vỡ luồng chính. */
+/** POST 1 lần với timeout — pure network, dùng cho retry. */
+async function postOnce(url: string, headers: Record<string, string>, body: string) {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body,
+      signal: AbortSignal.timeout(8000),
+    });
+    return { ok: res.ok, status: res.status };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
+ * Bắn event tới endpoint đã đăng ký — lỗi không vỡ luồng chính.
+ * Retry tối đa 3 lần (Q85): backoff 200ms → 600ms, chỉ khi network/5xx.
+ */
 export async function dispatchWebhooks(
   event: string,
   payload: unknown,
@@ -24,22 +42,19 @@ export async function dispatchWebhooks(
   const results = await Promise.all(
     targets.map(async (t) => {
       const ts = String(Date.now());
-      try {
-        const res = await fetch(t.url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-EK-Event": event,
-            "X-EK-Timestamp": ts,
-            "X-EK-Signature": signWebhook(t.secret, ts, body),
-          },
-          body,
-          signal: AbortSignal.timeout(8000),
-        });
-        return { url: t.url, ok: res.ok, status: res.status };
-      } catch {
-        return { url: t.url, ok: false };
+      const headers = {
+        "X-EK-Event": event,
+        "X-EK-Timestamp": ts,
+        "X-EK-Signature": signWebhook(t.secret, ts, body),
+      };
+      let out = await postOnce(t.url, headers, body);
+      let attempts = 1;
+      while (!out.ok && attempts < 3 && (out.status === undefined || out.status >= 500)) {
+        await new Promise((r) => setTimeout(r, 200 * attempts * 3));
+        out = await postOnce(t.url, headers, body);
+        attempts += 1;
       }
+      return { url: t.url, ok: out.ok, status: out.status, attempts };
     }),
   );
   return results;

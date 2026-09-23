@@ -77,6 +77,8 @@ export const siteConfig = {
     sellByWeight: true,
     multiWarehouse: true,
     ghn: false,
+    /** MFA/TOTP cho admin — default OFF; bật ở /admin/cai-dat rồi setup trên tài khoản. */
+    mfa: false,
   },
 
   membership: {
@@ -116,7 +118,7 @@ export const siteConfig = {
       "Mua sắm thời trang, nhà cửa và lifestyle. Giao hàng toàn quốc, đổi trả 7 ngày.",
   },
 
-  /** Email admin (mật khẩu seed: ADMIN_PASSWORD trong .env, mặc định admin123). */
+  /** Email admin mặc định — đổi theo shop; mật khẩu do ADMIN_PASSWORD (.env) quyết định. */
   admin: {
     email: "admin@atelier.vn",
   },

@@ -70,6 +70,6 @@ console.log(`- brand: ${brand}`);
 console.log(`- AUTH_SECRET: đã sinh ngẫu nhiên`);
 console.log(`Tiếp theo trong ${target}:`);
 console.log(`  1. npm install && npx prisma migrate deploy && npx tsx prisma/seed.ts`);
-console.log(`  2. Đổi ADMIN_PASSWORD trong .env rồi seed lại`);
+console.log(`  2. Đổi ADMIN_PASSWORD trong .env TRƯỚC khi seed lần đầu (prod không nhận admin123)`);
 console.log(`  3. Bật/tắt module trong src/config/site.ts (features)`);
 console.log(`  4. Vào /admin/cai-dat để đổi màu/logo/phí ship trên UI`);

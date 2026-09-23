@@ -25,6 +25,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       published: body.published !== false,
       attrs: body.attrs && typeof body.attrs === "object" ? body.attrs : undefined,
     });
+    const { logAudit } = await import("@/server/audit");
+    await logAudit({
+      actorId: admin.id,
+      actorEmail: admin.email,
+      action: "product.update",
+      entity: "Product",
+      entityId: id,
+      after: { slug: product.slug, price: product.price, stock: product.stock },
+    });
     return NextResponse.json({ product });
   } catch (e) {
     return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
@@ -36,6 +45,14 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   const { id } = await params;
   const result = await deleteProduct(id);
+  const { logAudit } = await import("@/server/audit");
+  await logAudit({
+    actorId: admin.id,
+    actorEmail: admin.email,
+    action: "product.delete",
+    entity: "Product",
+    entityId: id,
+  });
   return NextResponse.json(result);
 }
 
@@ -46,6 +63,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const body = await req.json().catch(() => ({}));
   if (typeof body.published === "boolean") {
     await setProductPublished(id, body.published);
+    const { logAudit } = await import("@/server/audit");
+    await logAudit({
+      actorId: admin.id,
+      actorEmail: admin.email,
+      action: "product.published",
+      entity: "Product",
+      entityId: id,
+      after: body.published,
+    });
     return NextResponse.json({ ok: true });
   }
   return NextResponse.json({ message: "Không có thay đổi" }, { status: 400 });

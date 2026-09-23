@@ -12,9 +12,17 @@ export async function POST(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
+  const { logAudit } = await import("@/server/audit");
   if (body.action === "delete") {
     try {
       await deleteGift(String(body.id || ""));
+      await logAudit({
+        actorId: admin.id,
+        actorEmail: admin.email,
+        action: "gift.delete",
+        entity: "GiftCard",
+        entityId: String(body.id || ""),
+      });
       return NextResponse.json({ ok: true });
     } catch (e) {
       return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : "Xóa thất bại" }, { status: 400 });
@@ -28,6 +36,14 @@ export async function POST(req: Request) {
       active: body.active !== false,
       note: String(body.note || ""),
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+    });
+    await logAudit({
+      actorId: admin.id,
+      actorEmail: admin.email,
+      action: "gift.upsert",
+      entity: "GiftCard",
+      entityId: gift.id,
+      after: { code: gift.code, balance: gift.balance, active: gift.active },
     });
     return NextResponse.json({ ok: true, gift });
   } catch (e) {

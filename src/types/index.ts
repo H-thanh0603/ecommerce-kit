@@ -85,6 +85,8 @@ export type Order = {
   status: OrderStatus;
   createdAt: string;
   note?: string;
+  pointsUsed?: number;
+  pointsEarned?: number;
 };
 
 export type Review = {

@@ -24,6 +24,15 @@ export async function POST(req: Request) {
       maxUsesPerUser: body.maxUsesPerUser === "" || body.maxUsesPerUser == null ? null : Number(body.maxUsesPerUser),
       endsAt: body.endsAt ? new Date(body.endsAt) : null,
     });
+    const { logAudit } = await import("@/server/audit");
+    await logAudit({
+      actorId: admin.id,
+      actorEmail: admin.email,
+      action: "coupon.upsert",
+      entity: "Coupon",
+      entityId: coupon.id,
+      after: { code: coupon.code, type: coupon.type, value: coupon.value, active: coupon.active },
+    });
     return NextResponse.json({ coupon });
   } catch (e) {
     return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
@@ -37,5 +46,13 @@ export async function DELETE(req: Request) {
   const id = url.searchParams.get("id");
   if (!id) return NextResponse.json({ message: "Thiếu id" }, { status: 400 });
   await deleteCoupon(id);
+  const { logAudit } = await import("@/server/audit");
+  await logAudit({
+    actorId: admin.id,
+    actorEmail: admin.email,
+    action: "coupon.delete",
+    entity: "Coupon",
+    entityId: id,
+  });
   return NextResponse.json({ ok: true });
 }

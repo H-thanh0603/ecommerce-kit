@@ -7,6 +7,21 @@ export function ghnConfigured() {
   return Boolean(process.env.GHN_TOKEN && process.env.GHN_SHOP_ID);
 }
 
+/** Gateway GHN — default là host DEV của GHN; production PHẢI set GHN_BASE_URL thật. */
+export function ghnBaseUrl() {
+  return (process.env.GHN_BASE_URL || "https://dev-online-gateway.ghn.vn").replace(/\/$/, "");
+}
+
+/** Chặn prod âm thầm gọi sandbox/dev (audit Q14/Q155). */
+function assertNotDevGatewayInProd() {
+  if (process.env.NODE_ENV !== "production") return;
+  if (/dev-online|localhost|127\.0\.0\.1/i.test(ghnBaseUrl())) {
+    throw new Error(
+      `GHN đang trỏ host dev (${ghnBaseUrl()}) — set GHN_BASE_URL=https://ngoai-te-api.ghn.vn (hoặc host production GHN) trước khi chạy production.`,
+    );
+  }
+}
+
 export async function quoteShipping(opts: {
   subtotal: number;
   innerCity?: boolean;
@@ -16,8 +31,9 @@ export async function quoteShipping(opts: {
 }): Promise<ShipQuote> {
   const site = await getEffectiveSiteConfig();
   if (site.features.ghn && ghnConfigured() && opts.toDistrictId && opts.toWardCode) {
+    assertNotDevGatewayInProd();
     try {
-      const res = await fetch("https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee", {
+      const res = await fetch(`${ghnBaseUrl()}/shiip/public-api/v2/shipping-order/fee`, {
         method: "POST",
         headers: {
           Token: process.env.GHN_TOKEN!,
@@ -31,6 +47,7 @@ export async function quoteShipping(opts: {
           weight: Math.max(100, opts.weightGrams || 500),
           insurance_value: opts.subtotal,
         }),
+        signal: AbortSignal.timeout(8_000),
       });
       const data = await res.json();
       const fee = Number(data?.data?.total);
@@ -69,8 +86,9 @@ export async function createGhnOrder(input: GhnCreateInput): Promise<GhnCreateRe
     return { ok: false, message: "Thiếu phường/xã, quận/huyện, SĐT hoặc địa chỉ người nhận" };
   }
   if (!input.items.length) return { ok: false, message: "Đơn trống, không tạo vận đơn" };
+  assertNotDevGatewayInProd();
   try {
-    const res = await fetch("https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/create", {
+    const res = await fetch(`${ghnBaseUrl()}/shiip/public-api/v2/shipping-order/create`, {
       method: "POST",
       headers: {
         Token: process.env.GHN_TOKEN!,
@@ -96,6 +114,7 @@ export async function createGhnOrder(input: GhnCreateInput): Promise<GhnCreateRe
           weight: i.weight || 200,
         })),
       }),
+      signal: AbortSignal.timeout(12_000),
     });
     const data = await res.json().catch(() => null);
     const orderCode = data?.data?.order_code as string | undefined;

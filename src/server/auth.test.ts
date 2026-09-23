@@ -70,8 +70,12 @@ describe("auth reset + phân quyền", () => {
     const log = await prisma.mailLog.findFirst({ where: { to: email }, orderBy: { createdAt: "desc" } });
     const token = log?.body.match(/token=([a-f0-9]+)/)?.[1];
     expect(token).toBeTruthy();
+    // Link reset dùng fragment #token= — không nằm trong query của trang.
+    expect(log?.body).toContain("#email=");
     expect((await resetPassword(email, "sai-token", "moi123456")).ok).toBe(false);
     expect((await resetPassword(email, token!, "moi123456")).ok).toBe(true);
+    // Token một lần: dùng lại sau khi đổi mật khẩu phải fail.
+    expect((await resetPassword(email, token!, "khac123456")).ok).toBe(false);
     jar.clear();
     expect((await loginUser(email, "moi123456")).ok).toBe(true);
     await prisma.passwordReset.deleteMany({ where: { user: { email } } });

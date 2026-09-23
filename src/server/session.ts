@@ -3,7 +3,7 @@ import type { UserSession } from "@/types";
 
 export const SESSION_COOKIE = "ek_session";
 
-export type SessionPayload = UserSession & { id: string };
+export type SessionPayload = UserSession & { id: string; tokenVersion?: number };
 
 function secret() {
   const raw = process.env.AUTH_SECRET;
@@ -16,7 +16,13 @@ function secret() {
 }
 
 export async function signSession(user: SessionPayload) {
-  return new SignJWT({ id: user.id, name: user.name, email: user.email, role: user.role })
+  return new SignJWT({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    tv: user.tokenVersion ?? 0,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("14d")
@@ -33,6 +39,7 @@ export async function readSessionToken(token: string | undefined): Promise<Sessi
       name: String(payload.name || ""),
       email: String(payload.email),
       role: payload.role === "admin" ? "admin" : "customer",
+      tokenVersion: Number(payload.tv || 0),
     };
   } catch {
     return null;

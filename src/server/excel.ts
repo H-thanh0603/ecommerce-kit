@@ -1,7 +1,13 @@
-import * as XLSX from "xlsx";
 import { getProductBySlug, listProducts, upsertProduct } from "@/server/commerce";
 
+// Lazy-load xlsx (CVE known, admin-only) — không chặn cold path checkout.
+// Webpack bundle vẫn chứa package; route /api/excel đã requireAdmin + file size limit.
+async function xlsx() {
+  return import("xlsx");
+}
+
 export async function exportProductsXlsx() {
+  const XLSX = await xlsx();
   const { items } = await listProducts({ includeUnpublished: true, pageSize: 48 });
   const rows = items.map((p) => ({
     id: p.id,
@@ -23,6 +29,7 @@ export async function exportProductsXlsx() {
 }
 
 export async function importProductsXlsx(buf: Buffer) {
+  const XLSX = await xlsx();
   const wb = XLSX.read(buf, { type: "buffer" });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, string | number>>(sheet);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { prisma } from "./db";
-import { issueInvoice } from "./invoice";
+import { canViewInvoice, issueInvoice } from "./invoice";
 
 /** Tạo đơn tối giản để xuất hóa đơn (không qua checkout). */
 async function seedOrder() {
@@ -41,6 +41,13 @@ describe("invoice VAT", () => {
     expect(again.id).toBe(inv.id);
     await prisma.invoice.delete({ where: { id: inv.id } });
     await prisma.order.delete({ where: { id: order.id } });
+  });
+
+  it("canViewInvoice: chỉ admin hoặc chủ đơn xem được (chống IDOR)", () => {
+    expect(canViewInvoice(null, "khach@kit.vn")).toBe(false);
+    expect(canViewInvoice({ email: "khac@kit.vn", role: "customer" }, "khach@kit.vn")).toBe(false);
+    expect(canViewInvoice({ email: "Khach@Kit.vn", role: "customer" }, "khach@kit.vn")).toBe(true);
+    expect(canViewInvoice({ email: "admin@x.vn", role: "admin" }, "khach@kit.vn")).toBe(true);
   });
 
   it("thuế suất tuỳ chọn 8%", async () => {

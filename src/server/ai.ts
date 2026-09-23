@@ -11,12 +11,33 @@ export function aiConfigured() {
 function client() {
   const key = process.env.XAI_API_KEY;
   if (!key) throw new Error("Chưa có XAI_API_KEY. Tạo key tại https://console.x.ai rồi thêm vào .env");
-  return new OpenAI({ apiKey: key, baseURL: "https://api.x.ai/v1" });
+  return new OpenAI({ apiKey: key, baseURL: "https://api.x.ai/v1", timeout: 30_000, maxRetries: 1 });
 }
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
+const MAX_MSGS = 20;
+const MAX_CONTENT = 4_000;
+const MAX_TOKENS = 600;
+
+/** Chuẩn hóa messages từ client: chỉ role hợp lệ, cắt số lượng + độ dài. */
+export function sanitizeChatMessages(raw: unknown): ChatMsg[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(-MAX_MSGS)
+    .map((m) => {
+      const role = m && typeof m === "object" ? String((m as { role?: unknown }).role || "") : "";
+      const content = m && typeof m === "object" ? String((m as { content?: unknown }).content || "") : "";
+      if (role !== "user" && role !== "assistant") return null;
+      if (!content.trim()) return null;
+      return { role, content: content.slice(0, MAX_CONTENT) } satisfies ChatMsg;
+    })
+    .filter((m): m is ChatMsg => m !== null);
+}
+
 export async function shopChat(messages: ChatMsg[]) {
+  const clean = sanitizeChatMessages(messages);
+  if (!clean.length) return "Bạn chưa gửi câu hỏi — thử hỏi size, giá hoặc còn hàng nhé.";
   const products = (await listProducts({ pageSize: 20 })).items;
   const catalog = products
     .map((p) => `- ${p.name} (${p.slug}): ${p.price}đ, còn ${p.stock}`)
@@ -25,6 +46,7 @@ export async function shopChat(messages: ChatMsg[]) {
   const openai = client();
   const response = await openai.chat.completions.create({
     model: MODEL,
+    max_tokens: MAX_TOKENS,
     messages: [
       {
         role: "system",
@@ -33,7 +55,7 @@ export async function shopChat(messages: ChatMsg[]) {
           `Chỉ tư vấn sản phẩm trong catalog. Không bịa giá. Gợi ý liên hệ ${siteConfig.brand.hotline} khi cần người thật.\n\n` +
           `Catalog:\n${catalog || "(trống)"}`,
       },
-      ...messages,
+      ...clean,
     ],
   });
   return response.choices[0]?.message?.content?.trim() || "Xin lỗi, mình chưa trả lời được.";
@@ -96,10 +118,11 @@ async function runTool(name: string, argsJson: string) {
     const openai = client();
     const drafted = await openai.chat.completions.create({
       model: MODEL,
+      max_tokens: 400,
       messages: [
         {
           role: "user",
-          content: `Viết mô tả bán hàng tiếng Việt (80-120 từ) cho: ${p.name}. Phụ đề: ${p.subtitle || ""}. Mô tả cũ: ${p.description}`,
+          content: `Viết mô tả bán hàng tiếng Việt (80-120 từ) cho: ${p.name}. Phụ đề: ${p.subtitle || ""}. Mô tả cũ: ${p.description.slice(0, 1000)}`,
         },
       ],
     });
@@ -109,6 +132,8 @@ async function runTool(name: string, argsJson: string) {
 }
 
 export async function runStoreAgent(messages: ChatMsg[]) {
+  const clean = sanitizeChatMessages(messages);
+  if (!clean.length) return "Chưa có đầu vào — hãy mô tả tác vụ.";
   const openai = client();
   const chat: OpenAI.Chat.ChatCompletionMessageParam[] = [
     {
@@ -118,12 +143,13 @@ export async function runStoreAgent(messages: ChatMsg[]) {
         `Dùng tool khi cần dữ liệu thật. Không bịa mã đơn hay tồn kho. ` +
         `Không tự ghi DB. Nếu soạn mô tả, trả về text để người quản trị bấm lưu.`,
     },
-    ...messages,
+    ...clean,
   ];
 
   for (let i = 0; i < 6; i++) {
     const response = await openai.chat.completions.create({
       model: MODEL,
+      max_tokens: MAX_TOKENS,
       messages: chat,
       tools: agentTools,
     });

@@ -7,6 +7,10 @@ export async function POST(req: Request) {
   if (!(await rateLimit(clientKey(req, "ai-chat"), 20, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
+  // Quota theo ngày cho mỗi client (chatbot công khai tốn token XAI).
+  if (!(await rateLimit(clientKey(req, "ai-chat-day"), 40, 24 * 60 * 60_000)).ok) {
+    return NextResponse.json({ message: "Đã hết hạn mức chat hôm nay" }, { status: 429 });
+  }
   if (!isEnabled("aiChatbot")) {
     return NextResponse.json({ message: "Chatbot đang tắt" }, { status: 404 });
   }
@@ -17,11 +21,11 @@ export async function POST(req: Request) {
     );
   }
   const body = await req.json().catch(() => ({}));
-  const messages = Array.isArray(body.messages) ? body.messages : [];
   try {
-    const reply = await shopChat(messages);
+    const reply = await shopChat(body.messages);
     return NextResponse.json({ reply });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi AI" }, { status: 500 });
+    console.error("[ai/chat]", e instanceof Error ? e.message : e);
+    return NextResponse.json({ message: "Lỗi AI — thử lại sau" }, { status: 500 });
   }
 }

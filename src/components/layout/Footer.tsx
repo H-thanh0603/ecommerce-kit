@@ -48,6 +48,12 @@ export function Footer({ categories, brand }: { categories: Category[]; brand?: 
               <Link href="/chinh-sach">Vận chuyển</Link>
             </li>
             <li>
+              <Link href="/chinh-sach#privacy">Quyền riêng tư</Link>
+            </li>
+            <li>
+              <Link href="/chinh-sach">Điều khoản</Link>
+            </li>
+            <li>
               <Link href="/lien-he">Liên hệ</Link>
             </li>
             {isEnabled("blog") && (

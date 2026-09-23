@@ -5,21 +5,30 @@ import { siteConfig } from "@/config/site";
 
 export default function ContactPage() {
   const [msg, setMsg] = useState("");
+  const [pending, setPending] = useState(false);
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const res = await fetch("/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.get("name"),
-        email: form.get("email"),
-        phone: form.get("phone"),
-        message: form.get("message"),
-      }),
-    });
-    setMsg(res.ok ? "Đã gửi. Cửa hàng sẽ liên hệ lại." : "Gửi chưa được, thử lại.");
-    if (res.ok) e.currentTarget.reset();
+    if (pending) return;
+    setPending(true);
+    try {
+      const form = new FormData(e.currentTarget);
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.get("name"),
+          email: form.get("email"),
+          phone: form.get("phone"),
+          message: form.get("message"),
+        }),
+      });
+      setMsg(res.ok ? "Đã gửi. Cửa hàng sẽ liên hệ lại." : "Gửi chưa được, thử lại.");
+      if (res.ok) e.currentTarget.reset();
+    } catch {
+      setMsg("Lỗi mạng — thử lại sau");
+    } finally {
+      setPending(false);
+    }
   };
   return (
     <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-2">
@@ -37,12 +46,28 @@ export default function ContactPage() {
         </ul>
       </div>
       <form onSubmit={onSubmit} className="space-y-3 rounded-2xl border border-line bg-white p-6">
-        <input required name="name" placeholder="Họ tên" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
-        <input required type="email" name="email" placeholder="Email" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
-        <input name="phone" placeholder="Số điện thoại" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
-        <textarea required name="message" rows={5} placeholder="Nội dung" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
-        <button className="rounded-full bg-primary px-5 py-2.5 text-sm text-white">Gửi tin nhắn</button>
-        {msg && <p className="text-sm text-muted">{msg}</p>}
+        <div>
+          <label htmlFor="c-name" className="sr-only">Họ tên</label>
+          <input id="c-name" required name="name" autoComplete="name" placeholder="Họ tên" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+        </div>
+        <div>
+          <label htmlFor="c-email" className="sr-only">Email</label>
+          <input id="c-email" required type="email" name="email" autoComplete="email" placeholder="Email" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+        </div>
+        <div>
+          <label htmlFor="c-phone" className="sr-only">Số điện thoại</label>
+          <input id="c-phone" name="phone" autoComplete="tel" placeholder="Số điện thoại" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+        </div>
+        <div>
+          <label htmlFor="c-msg" className="sr-only">Nội dung</label>
+          <textarea id="c-msg" required name="message" rows={5} placeholder="Nội dung" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+        </div>
+        <button disabled={pending} className="rounded-full bg-primary px-5 py-2.5 text-sm text-white disabled:opacity-60">
+          {pending ? "Đang gửi…" : "Gửi tin nhắn"}
+        </button>
+        <p role="status" aria-live="polite" className="text-sm text-muted">
+          {msg}
+        </p>
       </form>
     </div>
   );

@@ -2,7 +2,10 @@
  * SePay webhook — tự động gạch đơn chuyển khoản.
  * SePay POST JSON về route này, kèm header `Authorization: Apikey <SEPAY_API_KEY>`.
  * Khách ghi nội dung CK là mã đơn (VD: ATL-00012) thì đơn tự chuyển paid.
+ * Lưu ý: bearer bắt buộc theo docs SePay nên không thể IP-allowlist — bù bằng constant-time compare.
  */
+
+import { safeEqual } from "@/server/crypto-util";
 
 export function sepayConfigured() {
   return Boolean(process.env.SEPAY_API_KEY);
@@ -25,7 +28,8 @@ export async function handleSepayWebhook(
 ): Promise<{ ok: boolean; message: string }> {
   if (!sepayConfigured()) return { ok: false, message: "Chưa cấu hình SEPAY_API_KEY" };
   const auth = headers.authorization || "";
-  if (auth !== `Apikey ${process.env.SEPAY_API_KEY}` && auth !== `Bearer ${process.env.SEPAY_API_KEY}`) {
+  const key = process.env.SEPAY_API_KEY || "";
+  if (!safeEqual(auth, `Apikey ${key}`) && !safeEqual(auth, `Bearer ${key}`)) {
     return { ok: false, message: "Sai API key" };
   }
   const code = extractOrderCode(`${body.content || ""} ${body.code || ""}`);

@@ -5,6 +5,10 @@ import { prisma } from "@/server/db";
 
 /** Khách gửi yêu cầu trả hàng. */
 export async function POST(req: Request) {
+  const { clientKey, rateLimit } = await import("@/server/rate-limit");
+  if (!(await rateLimit(clientKey(req, "returns"), 8, 60_000)).ok) {
+    return NextResponse.json({ ok: false, message: "Thử lại sau" }, { status: 429 });
+  }
   const body = await req.json().catch(() => ({}));
   try {
     const r = await requestReturn(

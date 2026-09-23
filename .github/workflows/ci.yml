@@ -21,14 +21,31 @@ jobs:
       - run: npx tsx prisma/seed.ts
         env:
           DATABASE_URL: file:./dev.db
+          NODE_ENV: ""
       - run: npx tsc --noEmit
+      - run: npm run lint
+      # audit: fail nếu critical/high NGOẠI TRỪ known-no-fix (xlsx, prisma→deepmerge-ts) — ghi nhận thay vì || true
+      - name: npm audit
+        run: |
+          npm audit --omit=dev --json > /tmp/audit.json || true
+          node -e '
+            const fs=require("fs");
+            const EXCEPT=new Set(["xlsx","deepmerge-ts","@prisma/config","prisma"]);
+            let j; try{ j=JSON.parse(fs.readFileSync("/tmp/audit.json","utf8")); }catch{ process.exit(0); }
+            const vulns=(j.vulnerabilities||{});
+            const bad=Object.entries(vulns).filter(([,v])=>["critical","high"].includes(v.severity)&&!EXCEPT.has(v.name));
+            if(bad.length){ console.error("Vulnerable:", bad.map(([n,v])=>n+"@"+v.severity).join(", ")); process.exit(1); }
+            const known=Object.entries(vulns).filter(([,v])=>["critical","high"].includes(v.severity)&&EXCEPT.has(v.name)).map(([n,v])=>n+"@"+v.severity);
+            console.log("audit OK (known-excepted:", known.join(",")||"none", ")");
+          '
       - run: npm test
       - run: npm run build
       - run: npx playwright install chromium --with-deps
       - run: npm start -- --port 3100 &
         env:
           DATABASE_URL: file:./dev.db
-      - run: sleep 8 && E2E_URL=http://localhost:3100 npm run test:e2e
+      # Secrets bắt buộc từ repo secrets — không fallback password mặc định ngoài test local
+      - run: sleep 8 && curl -fsS http://localhost:3100/api/health && E2E_URL=http://localhost:3100 npm run test:e2e
         env:
-          ADMIN_EMAIL: admin@atelier.vn
-          ADMIN_PASSWORD: admin123
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}

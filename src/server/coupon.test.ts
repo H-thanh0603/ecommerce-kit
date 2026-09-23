@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { prisma } from "./db";
-import { assertCoupon, deleteCoupon, getCoupon, upsertCoupon } from "./coupon";
+import { assertCoupon, assertCouponTx, deleteCoupon, getCoupon, upsertCoupon } from "./coupon";
 
 const uid = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -47,6 +47,26 @@ describe("coupon", () => {
     // Email khác vẫn dùng được mã giới hạn theo user
     const ok = await assertCoupon(per, 100_000, `other${uid()}@kit.vn`.replace(/-/g, ""));
     expect(ok.id).toBe(cPer.id);
+    await prisma.couponRedemption.deleteMany({ where: { couponId: { in: [cAll.id, cPer.id] } } });
+    await deleteCoupon(cAll.id);
+    await deleteCoupon(cPer.id);
+  });
+
+  it("assertCouponTx chặn lại trong transaction (chống TOCTOU hết lượt)", async () => {
+    const code = `X${uid()}`.replace(/-/g, "").slice(0, 12);
+    const per = `Y${uid()}`.replace(/-/g, "").slice(0, 12);
+    const cAll = await upsertCoupon({ code, type: "fixed", value: 10_000, minOrder: 0, maxUses: 1 });
+    const cPer = await upsertCoupon({ code: per, type: "fixed", value: 10_000, minOrder: 0, maxUsesPerUser: 1 });
+    const email = `tx${uid()}@kit.vn`.replace(/-/g, "");
+    // Giả lập: lượt đã bị chiếm giữa assertCoupon ngoài tx và khi vào tx
+    await prisma.couponRedemption.create({ data: { couponId: cAll.id, email, orderId: `seed-${uid()}` } });
+    await expect(
+      prisma.$transaction((tx) => assertCouponTx(tx, cAll.id, 100_000, "khac@kit.vn")),
+    ).rejects.toThrow(/hết lượt/);
+    await prisma.couponRedemption.create({ data: { couponId: cPer.id, email, orderId: `seed-${uid()}` } });
+    await expect(
+      prisma.$transaction((tx) => assertCouponTx(tx, cPer.id, 100_000, email)),
+    ).rejects.toThrow(/hết lượt mã này/);
     await prisma.couponRedemption.deleteMany({ where: { couponId: { in: [cAll.id, cPer.id] } } });
     await deleteCoupon(cAll.id);
     await deleteCoupon(cPer.id);

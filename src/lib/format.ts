@@ -11,6 +11,19 @@ export function money(value: number, currency?: MoneyLocale) {
   }).format(value);
 }
 
+/** Ngày hiển thị theo Asia/Ho_Chi_Minh — tránh lệch timezone server/Vercel (Q…). */
+export function formatDate(input: string | Date, opts?: Intl.DateTimeFormatOptions) {
+  const d = typeof input === "string" ? new Date(input) : input;
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    ...opts,
+  }).format(d);
+}
+
 export type ShippingSchedule = { freeFrom: number; defaultFee: number; innerCityFee: number };
 
 export function shippingFee(

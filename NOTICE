@@ -1,0 +1,23 @@
+# NOTICE — third-party components
+
+ecommerce-kit uses open-source software. This file lists notable dependencies
+and their licenses (full list: `npm ls --omit=dev` / package-lock.json).
+
+| Package | License | Notes |
+|---|---|---|
+| next | MIT | App framework |
+| react / react-dom | MIT | UI |
+| prisma / @prisma/client | Apache-2.0 | ORM |
+| zod | MIT | Validation |
+| bcryptjs | MIT | Password hashing |
+| jose | MIT | JWT session |
+| nodemailer | MIT | SMTP |
+| openai | Apache-2.0 | AI client (optional) |
+| xlsx (SheetJS) | Apache-2.0 | Excel import/export — known CVEs, admin-only route |
+| tailwindcss | MIT | Styling |
+| vitest / @playwright/test | MIT | Tests |
+
+Product photography and brand assets in `public/` are placeholder stock —
+replace before commercial launch and keep licenses/credits under `public/CREDITS.md`.
+
+Copyright (c) ecommerce-kit contributors — see LICENSE (MIT).

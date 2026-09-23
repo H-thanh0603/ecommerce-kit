@@ -148,6 +148,8 @@ export function toOrder(row: {
   couponCode?: string | null;
   bundleCode?: string | null;
   status: string;
+  pointsUsed?: number | null;
+  pointsEarned?: number | null;
   createdAt: Date;
   items: Array<{
     productId: string;
@@ -190,6 +192,8 @@ export function toOrder(row: {
     couponCode: row.couponCode || undefined,
     bundleCode: row.bundleCode || undefined,
     status: row.status as Order["status"],
+    pointsUsed: row.pointsUsed ?? 0,
+    pointsEarned: row.pointsEarned ?? 0,
     createdAt: row.createdAt.toISOString().slice(0, 10),
   };
 }

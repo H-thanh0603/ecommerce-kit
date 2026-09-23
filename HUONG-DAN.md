@@ -17,7 +17,7 @@
 - [ ] Danh mục / sản phẩm thật
 - [ ] Chính sách đổi trả
 - [ ] COD / CK đã điền số TK
-- [ ] `AUTH_SECRET` mới, đổi mật khẩu admin rồi seed lại
+- [ ] `AUTH_SECRET` mới, đổi mật khẩu admin (không cần seed lại — seed xóa data)
 - [ ] Domain + SSL
 - [ ] (Tuỳ chọn) `XAI_API_KEY` cho chatbot
 

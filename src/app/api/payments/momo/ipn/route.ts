@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       await prisma.order.updateMany({ where: { code }, data: { paymentStatus: "failed" } });
     },
   });
-  if (result.ok) {
+  if (result.ok && !result.alreadyPaid) {
     await logOrderEventByCode(String(data.orderId || ""), "payment", `MoMo IPN: ${result.message}`);
     if (Number(data.resultCode) === 0) {
       const { dispatchWebhooks } = await import("@/server/webhooks");

@@ -1,12 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { ChatWidget } from "@/components/ai/ChatWidget";
 import { ConsentBanner } from "@/components/layout/ConsentBanner";
 import type { EffectiveSite } from "@/config/site";
 import type { Category } from "@/types";
+
+// Chat widget chỉ tải khi client — không chặn first paint (Q96).
+const ChatWidget = dynamic(() =>
+  import("@/components/ai/ChatWidget").then((m) => ({ default: m.ChatWidget })),
+);
 
 export function AppChrome({
   categories,
@@ -30,10 +35,14 @@ export function AppChrome({
   return (
     <>
       {announcement?.enabled && announcement.text && (
-        <p className="bg-accent px-4 py-2 text-center text-xs text-white">{announcement.text}</p>
+        <p className="bg-accent px-4 py-2 text-center text-xs text-white" role="status">
+          {announcement.text}
+        </p>
       )}
       <Header categories={categories} brand={brand} shippingEta={shippingEta} />
-      <main className="flex-1">{children}</main>
+      <main id="main" className="flex-1" tabIndex={-1}>
+        {children}
+      </main>
       <Footer categories={categories} brand={brand} />
       <ChatWidget />
       <ConsentBanner enabled={consent?.enabled} text={consent?.text} />

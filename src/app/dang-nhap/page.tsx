@@ -4,24 +4,44 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { siteConfig } from "@/config/site";
 
 export default function LoginPage() {
   const { login, register } = useAuth();
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    const email = String(data.get("email") || "");
-    const password = String(data.get("password") || "");
-    const name = String(data.get("name") || "");
-    const res = mode === "login" ? await login(email, password) : await register(name, email, password);
-    setMessage(res.message);
-    if (res.ok) {
-      router.push(email === siteConfig.admin.email ? "/admin" : "/tai-khoan");
+    if (pending) return;
+    setPending(true);
+    try {
+      const data = new FormData(e.currentTarget);
+      const email = String(data.get("email") || "");
+      const password = String(data.get("password") || "");
+      const name = String(data.get("name") || "");
+      const res =
+        mode === "login"
+          ? await login(email, password, mfaRequired ? mfaCode : undefined)
+          : await register(name, email, password);
+      setMessage(res.message);
+      if (res.ok) {
+        // Admin đi thẳng /admin — phát hiện theo session trả về, không lộ email trên UI.
+        if (res.user?.role === "admin") {
+          router.push("/admin");
+        } else {
+          router.push("/tai-khoan");
+        }
+      } else if ("mfaRequired" in res && res.mfaRequired) {
+        setMfaRequired(true);
+      }
+    } catch {
+      setMessage("Lỗi mạng — thử lại sau");
+    } finally {
+      setPending(false);
     }
   };
 
@@ -30,19 +50,42 @@ export default function LoginPage() {
       <h1 className="font-serif text-4xl text-primary">
         {mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}
       </h1>
-      <p className="mt-2 text-sm text-muted">
-        Admin: {siteConfig.admin.email} (mật khẩu ADMIN_PASSWORD trong .env).
-      </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-3 rounded-2xl border border-line bg-white p-5">
         {mode === "register" && (
-          <input name="name" required placeholder="Họ tên" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+          <div>
+            <label htmlFor="lg-name" className="sr-only">Họ tên</label>
+            <input id="lg-name" name="name" required autoComplete="name" placeholder="Họ tên" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+          </div>
         )}
-        <input name="email" type="email" required placeholder="Email" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
-        <input name="password" type="password" required placeholder="Mật khẩu" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
-        <button className="w-full rounded-full bg-primary py-3 text-sm text-white">
-          {mode === "login" ? "Đăng nhập" : "Đăng ký"}
+        <div>
+          <label htmlFor="lg-email" className="sr-only">Email</label>
+          <input id="lg-email" name="email" type="email" required autoComplete="email" placeholder="Email" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+        </div>
+        <div>
+          <label htmlFor="lg-pass" className="sr-only">Mật khẩu</label>
+          <input id="lg-pass" name="password" type="password" required autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="Mật khẩu" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+        </div>
+        {mfaRequired && (
+          <div>
+            <label htmlFor="lg-mfa" className="sr-only">Mã TOTP hoặc recovery</label>
+            <input
+              id="lg-mfa"
+              name="mfaCode"
+              required
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value)}
+              autoComplete="one-time-code"
+              placeholder="Mã 2 lớp (TOTP / recovery)"
+              className="w-full rounded-xl border border-line px-3 py-2.5 text-sm"
+            />
+          </div>
+        )}
+        <button disabled={pending} className="w-full rounded-full bg-primary py-3 text-sm text-white disabled:opacity-60">
+          {pending ? "Đang xử lý…" : mode === "login" ? "Đăng nhập" : "Đăng ký"}
         </button>
-        {message && <p className="text-sm text-muted">{message}</p>}
+        <p role="status" aria-live="polite" className="text-sm text-muted">
+          {message}
+        </p>
       </form>
       <button
         className="mt-4 text-sm text-muted underline"

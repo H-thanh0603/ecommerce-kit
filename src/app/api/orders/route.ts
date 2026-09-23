@@ -27,7 +27,9 @@ const checkoutSchema = z.object({
   giftCode: z.string().optional(),
   bundleId: z.string().optional(),
   innerCity: z.boolean().optional(),
-  pointsToUse: z.number().optional(),
+  pointsToUse: z.number().int().min(0).max(1_000_000).optional(),
+  /** Idempotency key phía client — double-POST không tạo 2 đơn. */
+  clientRequestId: z.string().min(8).max(64).optional(),
   items: z.array(itemSchema).min(1),
 });
 
@@ -53,6 +55,14 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ message: "Thiếu thông tin đặt hàng" }, { status: 400 });
   }
+  // Idempotency: client gửi lại cùng clientRequestId → trả đơn cũ, không tạo mới.
+  const rid = parsed.data.clientRequestId;
+  if (rid) {
+    const { prisma } = await import("@/server/db");
+    const { toOrder } = await import("@/server/map");
+    const dup = await prisma.order.findUnique({ where: { clientRequestId: rid }, include: { items: true } });
+    if (dup) return NextResponse.json({ order: toOrder(dup), idempotent: true });
+  }
   try {
     const order = await createOrder({
       ...parsed.data,
@@ -61,6 +71,13 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ order, payUrl: order.payUrl });
   } catch (e) {
+    // Race: unique clientRequestId vừa bị POST khác thắng → trả đơn đã tạo.
+    if (rid && /unique|Unique/i.test(String(e))) {
+      const { prisma } = await import("@/server/db");
+      const { toOrder } = await import("@/server/map");
+      const dup = await prisma.order.findUnique({ where: { clientRequestId: rid }, include: { items: true } });
+      if (dup) return NextResponse.json({ order: toOrder(dup), idempotent: true });
+    }
     return NextResponse.json({ message: e instanceof Error ? e.message : "Không đặt được hàng" }, { status: 400 });
   }
 }

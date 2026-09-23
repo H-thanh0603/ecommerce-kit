@@ -20,11 +20,11 @@ export async function POST(req: Request) {
     );
   }
   const body = await req.json().catch(() => ({}));
-  const messages = Array.isArray(body.messages) ? body.messages : [];
   try {
-    const reply = await runStoreAgent(messages);
+    const reply = await runStoreAgent(body.messages);
     return NextResponse.json({ reply });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi AI" }, { status: 500 });
+    console.error("[ai/agent]", e instanceof Error ? e.message : e);
+    return NextResponse.json({ message: "Lỗi AI — thử lại sau" }, { status: 500 });
   }
 }

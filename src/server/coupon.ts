@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db";
+import type { Prisma } from "@prisma/client";
 
 export async function getCoupon(code: string) {
   const normalized = code.trim().toUpperCase();
@@ -9,16 +10,29 @@ export async function getCoupon(code: string) {
 export async function assertCoupon(code: string, subtotal: number, email?: string, userId?: string) {
   const coupon = await getCoupon(code);
   if (!coupon) throw new Error("Mã không tồn tại");
+  return assertCouponTx(prisma, coupon.id, subtotal, email, userId);
+}
+
+/** Re-check coupon NGAY TRƯỚC khi ghi redemption trong transaction — đóng TOCTOU. */
+export async function assertCouponTx(
+  tx: Prisma.TransactionClient,
+  couponId: string,
+  subtotal: number,
+  email?: string,
+  userId?: string,
+) {
+  const coupon = await tx.coupon.findUnique({ where: { id: couponId } });
+  if (!coupon || !coupon.active) throw new Error("Mã không tồn tại");
   const now = new Date();
   if (coupon.startsAt && coupon.startsAt > now) throw new Error("Mã chưa tới hạn dùng");
   if (coupon.endsAt && coupon.endsAt < now) throw new Error("Mã đã hết hạn");
   if (subtotal < coupon.minOrder) throw new Error(`Đơn tối thiểu ${coupon.minOrder}`);
   if (coupon.maxUses != null) {
-    const n = await prisma.couponRedemption.count({ where: { couponId: coupon.id } });
+    const n = await tx.couponRedemption.count({ where: { couponId: coupon.id } });
     if (n >= coupon.maxUses) throw new Error("Mã đã hết lượt");
   }
   if (coupon.maxUsesPerUser != null && (email || userId)) {
-    const n = await prisma.couponRedemption.count({
+    const n = await tx.couponRedemption.count({
       where: {
         couponId: coupon.id,
         OR: [...(email ? [{ email }] : []), ...(userId ? [{ userId }] : [])],

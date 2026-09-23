@@ -88,7 +88,9 @@ describe("momo", () => {
     expect((await handleMomoIpn({ orderId: "ATL-00001" }, storeOf(order, spy))).ok).toBe(false);
     expect((await handleMomoIpn(signedIpn(), storeOf(null, spy))).message).toMatch(/not found/i);
     expect((await handleMomoIpn(signedIpn(), storeOf({ ...order, total: 1 }, spy))).message).toMatch(/amount/i);
-    expect((await handleMomoIpn(signedIpn(), storeOf({ ...order, paymentStatus: "paid" }, spy))).ok).toBe(true);
+    const replay = await handleMomoIpn(signedIpn(), storeOf({ ...order, paymentStatus: "paid" }, spy));
+    expect(replay.ok).toBe(true);
+    expect(replay.alreadyPaid).toBe(true);
     expect(spy.paid).toEqual([]);
     const r1 = await handleMomoIpn(signedIpn({ resultCode: 0 }), storeOf(order, spy));
     expect(r1.ok).toBe(true);

@@ -104,6 +104,8 @@ export const moduleCatalog = [
   { id: "returns", name: "Đổi/trả hàng", included: true, files: ["src/server/returns.ts", "src/app/admin/tra-hang"] },
   { id: "refunds", name: "Hoàn tiền", included: true, files: ["src/server/refunds.ts", "src/app/admin/hoan-tien"] },
   { id: "order-events", name: "Nhật ký đơn", included: true, files: ["src/server/order-events.ts"] },
+  { id: "audit-log", name: "Nhật ký admin (AuditLog)", included: true, files: ["src/server/audit.ts"] },
+  { id: "mfa", name: "MFA TOTP cho admin", flag: "mfa", files: ["src/server/mfa.ts"] },
   { id: "webhooks-out", name: "Webhook đi", included: true, files: ["src/server/webhooks.ts", "src/app/admin/webhooks"] },
   { id: "address-book", name: "Sổ địa chỉ", included: true, files: ["src/app/api/addresses/route.ts"] },
   { id: "review-moderation", name: "Duyệt đánh giá", included: true, files: ["src/app/admin/danh-gia"] },

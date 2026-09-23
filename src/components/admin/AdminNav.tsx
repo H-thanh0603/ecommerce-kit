@@ -16,6 +16,7 @@ const links = [
   { href: "/admin/kho", label: "Kho", flag: "multiWarehouse" as const },
   { href: "/admin/hoa-don", label: "Hóa đơn", flag: "invoices" as const },
   { href: "/admin/ai", label: "AI Agent", flag: "aiAgent" as const },
+  { href: "/admin/mfa", label: "MFA", flag: "mfa" as const },
   { href: "/admin/cai-dat", label: "Cài đặt" },
 ];
 

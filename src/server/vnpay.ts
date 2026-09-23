@@ -1,4 +1,6 @@
 import { createHmac } from "crypto";
+import { safeEqual } from "@/server/crypto-util";
+import { assertProdGateway } from "@/server/gateway-guard";
 
 /**
  * VNPay adapter — đúng quy ước ký của cổng (sắp xếp key, encode value rồi mới hash).
@@ -28,6 +30,7 @@ export function buildVnpayUrl(order: { code: string; total: number }, ip = "127.
   const tmn = process.env.VNPAY_TMN_CODE!;
   const secret = process.env.VNPAY_HASH_SECRET!;
   const payUrl = process.env.VNPAY_URL || "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+  assertProdGateway("VNPay", payUrl);
   const app = process.env.APP_URL || "http://localhost:3000";
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -62,7 +65,7 @@ export function verifyVnpay(query: Record<string, string>) {
   delete params.vnp_SecureHash;
   delete params.vnp_SecureHashType;
   const hash = signVnpayParams(params, secret);
-  return hash === received;
+  return safeEqual(hash, received);
 }
 
 export type VnpOrderRecord = { code: string; total: number; paymentStatus: string };
@@ -154,11 +157,13 @@ export function buildVnpayRefund(input: VnpRefundInput) {
 /** Gọi hoàn tiền thật — cần VNPAY_API_URL + key production, test tay 1 đơn sandbox trước. */
 export async function refundVnpay(input: VnpRefundInput) {
   const api = process.env.VNPAY_API_URL || "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
+  assertProdGateway("VNPay refund", api);
   const body = buildVnpayRefund(input);
   const res = await fetch(api, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   });
   const data = await res.json().catch(() => null);
   if (data?.vnp_ResponseCode === "00") return { ok: true as const, message: "Hoàn tiền thành công" };

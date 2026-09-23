@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getInvoiceByNumber } from "@/server/invoice";
+import { canViewInvoice, getInvoiceByNumber } from "@/server/invoice";
+import { getSession } from "@/server/auth";
 import { getEffectiveSiteConfig } from "@/server/settings";
 import { money } from "@/lib/format";
 import { siteConfig } from "@/config/site";
@@ -8,6 +9,8 @@ export default async function InvoicePrint({ params }: { params: Promise<{ numbe
   const { number } = await params;
   const data = await getInvoiceByNumber(decodeURIComponent(number));
   if (!data) notFound();
+  const session = await getSession();
+  if (!canViewInvoice(session, data.order.email)) notFound();
   const site = await getEffectiveSiteConfig().catch(() => null);
   const cur = site?.currency ?? siteConfig.currency;
   const { invoice, order } = data;

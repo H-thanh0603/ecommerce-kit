@@ -14,6 +14,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!allowed.includes(status)) {
     return NextResponse.json({ message: "Trạng thái không hợp lệ" }, { status: 400 });
   }
-  const order = await updateOrderStatus(id, status);
+  const order = await updateOrderStatus(id, status, admin.email);
   return NextResponse.json({ order });
 }

@@ -4,7 +4,8 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      # Bind loopback + reverse proxy (nginx/caddy) phía trước; đổi sang "80:3000" nếu暴露 trực tiếp.
+      - "127.0.0.1:3000:3000"
     env_file:
       - .env
     environment:
@@ -16,17 +17,19 @@ services:
 
   # Hồ sơ Postgres — dùng khi đã chuyển provider trong schema (xem DEPLOY.md).
   # Chạy: docker compose --profile pg up -d
+  # Không publish 5432 ra host ngoài (least-privilege Q70) — truy cập qua `docker compose exec db psql`.
   db:
     profiles: ["pg"]
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ek
-      POSTGRES_PASSWORD: ek
-      POSTGRES_DB: ek
+      POSTGRES_USER: ${POSTGRES_USER:-ek}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD bắt buộc}
+      POSTGRES_DB: ${POSTGRES_DB:-ek}
     volumes:
       - ek-pg:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # ports: chỉ bật khi cần truy cập từ ngoài container network
+    # ports:
+    #   - "127.0.0.1:5432:5432"
 
 volumes:
   ek-data:

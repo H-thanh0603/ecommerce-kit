@@ -38,6 +38,16 @@ export async function getInvoiceByNumber(number: string) {
   return { invoice: inv, order: toOrder(inv.order) };
 }
 
+/** Chống IDOR: chỉ admin hoặc chủ đơn (đúng email) xem được hóa đơn. */
+export function canViewInvoice(
+  session: { email: string; role: string } | null | undefined,
+  orderEmail: string,
+): boolean {
+  if (!session) return false;
+  if (session.role === "admin") return true;
+  return session.email.toLowerCase() === orderEmail.toLowerCase();
+}
+
 export async function listInvoices() {
   return prisma.invoice.findMany({ orderBy: { issuedAt: "desc" }, include: { order: true } });
 }

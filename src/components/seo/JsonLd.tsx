@@ -2,6 +2,11 @@ import type { Product } from "@/types";
 
 const APP = () => process.env.APP_URL || "http://localhost:3000";
 
+/** Escape `<` để `</script>` trong dữ liệu admin không breakout khỏi thẻ script. */
+function jsonLdScript(data: unknown) {
+  return { __html: JSON.stringify(data).replace(/</g, "\\u003c") };
+}
+
 export function OrganizationJsonLd({ name, description }: { name: string; description: string }) {
   const json = {
     "@context": "https://schema.org",
@@ -10,7 +15,7 @@ export function OrganizationJsonLd({ name, description }: { name: string; descri
     description,
     url: APP(),
   };
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />;
+  return <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(json)} />;
 }
 
 export function ProductJsonLd({ product, category }: { product: Product; category: string }) {
@@ -32,7 +37,7 @@ export function ProductJsonLd({ product, category }: { product: Product; categor
       ? { aggregateRating: { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviewCount } }
       : {}),
   };
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />;
+  return <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(json)} />;
 }
 
 export function BreadcrumbJsonLd({ trail }: { trail: Array<{ name: string; href: string }> }) {
@@ -46,5 +51,5 @@ export function BreadcrumbJsonLd({ trail }: { trail: Array<{ name: string; href:
       item: `${APP()}${t.href}`,
     })),
   };
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />;
+  return <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(json)} />;
 }

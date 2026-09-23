@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import { siteConfig } from "@/config/site";
+import type { Prisma } from "@prisma/client";
 
 export function tierFor(points: number) {
   if (points >= siteConfig.membership.vang.min) return "vang";
@@ -36,6 +37,23 @@ export async function spendPoints(userId: string, spend: number) {
     data: { points, memberTier: tierFor(points) },
   });
   return use;
+}
+
+/**
+ * Trừ điểm trong transaction — chặn đua (TOCTOU): chỉ trừ khi số dư còn đủ,
+ * rollbacks toàn bộ đơn nếu user không còn đủ điểm giữa chừng.
+ */
+export async function spendPointsTx(tx: Prisma.TransactionClient, userId: string, spend: number) {
+  if (spend <= 0) return 0;
+  const upd = await tx.user.updateMany({
+    where: { id: userId, points: { gte: spend } },
+    data: { points: { decrement: spend } },
+  });
+  if (upd.count !== 1) throw new Error("Không đủ điểm để dùng");
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { points: true } });
+  const points = user?.points ?? 0;
+  await tx.user.update({ where: { id: userId }, data: { memberTier: tierFor(points) } });
+  return spend;
 }
 
 export async function getMember(userId: string) {

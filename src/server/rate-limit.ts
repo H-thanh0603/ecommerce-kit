@@ -53,9 +53,10 @@ export async function rateLimit(key: string, limit: number, windowMs: number) {
 }
 
 export function clientKey(req: Request, kind: string) {
+  // Ưu tiên header do proxy tin cậy đặt (x-real-ip) — XFF client tự gửi được khi đứng thẳng.
   const ip =
+    req.headers.get("x-real-ip")?.trim() ||
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
     "local";
   return `${kind}:${ip}`;
 }

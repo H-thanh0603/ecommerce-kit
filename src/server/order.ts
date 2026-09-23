@@ -6,7 +6,7 @@ import { discountAmount } from "@/lib/format";
 import { quoteShipping } from "@/server/shipping";
 import { isFeatureOn } from "@/server/settings";
 import { defaultWarehouse } from "@/server/warehouse";
-import { discountFromPoints, grantOrderPoints, spendPoints } from "@/server/membership";
+import { discountFromPoints, grantOrderPoints, spendPointsTx } from "@/server/membership";
 import { productInclude } from "@/server/product-include";
 import { lineAmount, type CartItem, type OrderStatus } from "@/types";
 import type { Prisma } from "@prisma/client";
@@ -51,7 +51,7 @@ export async function getOrderByCode(code: string) {
   return row ? toOrder(row) : null;
 }
 
-export async function updateOrderStatus(id: string, status: OrderStatus) {
+export async function updateOrderStatus(id: string, status: OrderStatus, actorEmail = "") {
   const row = await prisma.order.update({
     where: { id },
     data: { status },
@@ -60,10 +60,20 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
   const order = toOrder(row);
   await onOrderStatusChanged(order, status);
   const { logOrderEvent } = await import("@/server/order-events");
-  await logOrderEvent(row.id, "status", `Chuyển trạng thái → ${status}`);
+  await logOrderEvent(row.id, "status", `Chuyển trạng thái → ${status}`, actorEmail);
   if (status === "completed" && (await isFeatureOn("membership")) && row.userId) {
     const g = await grantOrderPoints(row.userId, order.total);
     await prisma.order.update({ where: { id }, data: { pointsEarned: g.earned } });
+  }
+  if (actorEmail) {
+    const { logAudit } = await import("@/server/audit");
+    await logAudit({
+      actorEmail,
+      action: "order.status",
+      entity: "Order",
+      entityId: row.code,
+      after: status,
+    });
   }
   return order;
 }
@@ -85,6 +95,8 @@ export type CheckoutInput = {
   pointsToUse?: number;
   toDistrictId?: number;
   toWardCode?: string;
+  /** Idempotency key — unique trên Order, double-POST không tạo 2 đơn. */
+  clientRequestId?: string;
 };
 
 export async function nextOrderSeq(tx: Prisma.TransactionClient) {
@@ -163,8 +175,16 @@ export async function createOrder(input: CheckoutInput) {
       })
     : 0;
   let pointsDiscount = 0;
+  let pointsToUse = 0;
   if ((await isFeatureOn("membership")) && input.userId && input.pointsToUse) {
-    pointsDiscount = discountFromPoints(input.pointsToUse);
+    const raw = input.pointsToUse;
+    if (!Number.isInteger(raw) || raw < 0) throw new Error("Số điểm không hợp lệ");
+    if (raw > 0) {
+      const member = await prisma.user.findUnique({ where: { id: input.userId }, select: { points: true } });
+      if (!member || member.points < raw) throw new Error("Không đủ điểm để dùng");
+      pointsToUse = raw;
+      pointsDiscount = discountFromPoints(raw);
+    }
   }
   const { quoteGift } = await import("@/server/giftcard");
   const gift = input.giftCode ? await quoteGift(input.giftCode, subtotal + shipRaw - off - pointsDiscount) : null;
@@ -243,8 +263,9 @@ export async function createOrder(input: CheckoutInput) {
         status: "pending",
         couponCode: coupon?.code,
         bundleCode: bundle?.name || "",
-        pointsUsed: input.pointsToUse || 0,
+        pointsUsed: pointsToUse,
         warehouseId: warehouse?.id,
+        clientRequestId: input.clientRequestId || null,
         items: {
           create: lines.map((l) => ({
             productId: l.product.id,
@@ -262,6 +283,8 @@ export async function createOrder(input: CheckoutInput) {
     });
 
     if (coupon) {
+      const { assertCouponTx } = await import("@/server/coupon");
+      await assertCouponTx(tx, coupon.id, subtotal, input.email, input.userId);
       await tx.couponRedemption.create({
         data: {
           couponId: coupon.id,
@@ -270,6 +293,10 @@ export async function createOrder(input: CheckoutInput) {
           orderId: created.id,
         },
       });
+    }
+
+    if (pointsToUse > 0 && input.userId) {
+      await spendPointsTx(tx, input.userId, pointsToUse);
     }
 
     if (gift && giftAmount > 0) {
@@ -289,9 +316,6 @@ export async function createOrder(input: CheckoutInput) {
   const { logOrderEvent } = await import("@/server/order-events");
   await logOrderEvent(order.id, "created", `Ghi đơn ${mapped.code} · ${mapped.paymentMethod} · ${mapped.total}đ`);
   await alertLowStock(lines.map((l) => ({ productId: l.product.id, skuId: l.sku?.id })));
-  if ((await isFeatureOn("membership")) && input.userId && input.pointsToUse) {
-    await spendPoints(input.userId, input.pointsToUse);
-  }
   let payUrl: string | undefined;
   if (input.paymentMethod === "vnpay" || input.paymentMethod === "momo") {
     const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total, ip: input.ip });

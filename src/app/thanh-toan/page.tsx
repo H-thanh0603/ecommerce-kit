@@ -21,18 +21,27 @@ export default function CheckoutPage() {
   const [applied, setApplied] = useState<Coupon | null>(null);
   const [gift, setGift] = useState("");
   const [bundleId, setBundleId] = useState("");
-
-  useEffect(() => {
-    setBundleId(readBundleId());
-  }, []);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [innerCity, setInnerCity] = useState(false);
   const [usePoints, setUsePoints] = useState(false);
+  // Idempotency key — giữ nguyên khi retry (double-click/reload không tạo 2 đơn).
+  const [clientRequestId] = useState(
+    () =>
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `rid-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+  );
   const [buyer, setBuyer] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerAddress, setBuyerAddress] = useState("");
   const [savedAddr, setSavedAddr] = useState<Array<{ id: string; label: string; name: string; phone: string; address: string }>>([]);
+
+  useEffect(() => {
+    // localStorage — đọc deferred để không setState đồng bộ trong effect body.
+    const id = requestAnimationFrame(() => setBundleId(readBundleId()));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   useEffect(() => {
     fetch("/api/addresses")
@@ -79,49 +88,56 @@ export default function CheckoutPage() {
 
   const place = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (pending) return;
     setPending(true);
     setError("");
-    const form = new FormData(e.currentTarget);
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customer: String(form.get("name") || ""),
-        email: String(form.get("email") || ""),
-        phone: String(form.get("phone") || ""),
-        address: String(form.get("address") || ""),
-        note: String(form.get("note") || ""),
-        paymentMethod: method,
-        couponCode: applied?.code,
-        giftCode: gift.trim() || undefined,
-        bundleId: bundleId || undefined,
-        innerCity,
-        pointsToUse: usePoints ? 100 : undefined,
-        items,
-      }),
-    });
-    const data = await res.json();
-    setPending(false);
-    if (!res.ok) return setError(data.message || "Không đặt được hàng");
-    clear();
-    clearBundleId();
-    // Lưu địa chỉ vào sổ cho lần sau (khách đăng nhập, best-effort).
-    if (user) {
-      fetch("/api/addresses", {
+    try {
+      const form = new FormData(e.currentTarget);
+      const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: String(form.get("name") || ""),
+          customer: String(form.get("name") || ""),
+          email: String(form.get("email") || ""),
           phone: String(form.get("phone") || ""),
           address: String(form.get("address") || ""),
+          note: String(form.get("note") || ""),
+          paymentMethod: method,
+          couponCode: applied?.code,
+          giftCode: gift.trim() || undefined,
+          bundleId: bundleId || undefined,
+          innerCity,
+          pointsToUse: usePoints ? 100 : undefined,
+          clientRequestId,
+          items,
         }),
-      }).catch(() => {});
+      });
+      const data = await res.json();
+      if (!res.ok) return setError(data.message || "Không đặt được hàng");
+      clear();
+      clearBundleId();
+      // Lưu địa chỉ vào sổ cho lần sau (khách đăng nhập, best-effort).
+      if (user) {
+        fetch("/api/addresses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: String(form.get("name") || ""),
+            phone: String(form.get("phone") || ""),
+            address: String(form.get("address") || ""),
+          }),
+        }).catch(() => {});
+      }
+      if (data.payUrl) {
+        window.location.href = data.payUrl;
+        return;
+      }
+      router.push(`/dat-hang-thanh-cong?code=${data.order.code}`);
+    } catch {
+      setError("Lỗi mạng — thử lại");
+    } finally {
+      setPending(false);
     }
-    if (data.payUrl) {
-      window.location.href = data.payUrl;
-      return;
-    }
-    router.push(`/dat-hang-thanh-cong?code=${data.order.code}`);
   };
 
   return (
@@ -268,12 +284,16 @@ export default function CheckoutPage() {
               <span>{money(total)}</span>
             </div>
           </div>
-          {error && <p className="mt-3 text-xs text-accent">{error}</p>}
+          {error && (
+            <p role="alert" className="mt-3 text-xs text-accent">
+              {error}
+            </p>
+          )}
           <button disabled={pending} className="mt-5 w-full rounded-full bg-primary py-3 text-sm text-white disabled:opacity-60">
             {pending ? "Đang ghi đơn…" : "Đặt hàng"}
           </button>
           <p className="mt-3 text-xs text-muted">
-            Đơn lưu vào cơ sở dữ liệu. COD / chuyển khoản có sẵn; MoMo·VNPay gắn tại src/server/payments.ts.
+            COD và chuyển khoản có sẵn. MoMo·VNPay bật bằng khóa cổng trong .env.
           </p>
         </aside>
       </form>

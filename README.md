@@ -26,7 +26,7 @@ npm run dev
 
 Mở http://localhost:3000
 
-Admin: `ADMIN_EMAIL` / `ADMIN_PASSWORD` trong `.env` (mặc định `admin@atelier.vn` / `admin123`)
+Admin: đặt `ADMIN_EMAIL` / `ADMIN_PASSWORD` trong `.env` **trước khi seed**. Production bắt buộc password mạnh (không nhận `admin123`).
 
 ```bash
 npm test

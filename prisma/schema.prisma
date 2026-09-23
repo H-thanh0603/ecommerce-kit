@@ -13,6 +13,13 @@ model User {
   name         String
   passwordHash String
   role         String             @default("customer")
+  /// Bump khi đổi mật khẩu / reset — JWT cũ mang tv cũ bị từ chối (revoke).
+  tokenVersion Int                @default(0)
+  mfaEnabled   Boolean            @default(false)
+  /// TOTP secret base32 — chỉ admin đã bật MFA mới có giá trị.
+  mfaSecret    String             @default("")
+  /// JSON array recovery code đã bcrypt — backup khi mất thiết bị.
+  mfaRecovery  String             @default("[]")
   orders       Order[]
   reviews      Review[]
   cartLines    CartLine[]
@@ -199,6 +206,8 @@ model OrderEvent {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   kind      String
   message   String
+  /// Email/id người thao tác (admin) — truy vết ai đổi trạng thái / hoàn tiền.
+  actor     String   @default("")
   createdAt DateTime @default(now())
 
   @@index([orderId, createdAt])
@@ -249,6 +258,8 @@ model Order {
   ghnOrderCode  String      @default("")
   pointsUsed    Int         @default(0)
   pointsEarned  Int         @default(0)
+  /// Idempotency key phía client — double-POST tạo 1 đơn (unique).
+  clientRequestId String?
   items         OrderItem[]
   invoice       Invoice?
   returns       ReturnRequest[]
@@ -257,8 +268,10 @@ model Order {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
+  @@unique([clientRequestId])
   @@index([email])
   @@index([status, createdAt])
+  @@index([userId])
 }
 
 model OrderItem {
@@ -306,18 +319,20 @@ model Newsletter {
 }
 
 model CartLine {
-  id           String  @id @default(cuid())
+  id           String   @id @default(cuid())
   userId       String
-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId    String
-  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   skuId        String?
-  sku          Sku?    @relation(fields: [skuId], references: [id])
+  sku          Sku?     @relation(fields: [skuId], references: [id])
   quantity     Int
-  variantLabel String  @default("")
+  variantLabel String   @default("")
   updatedAt    DateTime @updatedAt
 
   @@unique([userId, productId, variantLabel])
+  @@index([updatedAt])
+  @@index([userId, updatedAt])
 }
 
 model WishlistItem {
@@ -367,6 +382,9 @@ model PasswordReset {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId, used, expiresAt])
+  @@index([createdAt])
 }
 
 model MailLog {
@@ -377,6 +395,9 @@ model MailLog {
   status    String   @default("logged")
   error     String   @default("")
   createdAt DateTime @default(now())
+
+  @@index([to, createdAt])
+  @@index([createdAt])
 }
 
 model OrderCounter {
@@ -443,6 +464,8 @@ model Booking {
   createdAt DateTime       @default(now())
 
   @@index([startsAt])
+  @@index([status, createdAt])
+  @@index([email])
 }
 
 /**
@@ -454,4 +477,25 @@ model SiteSetting {
   key       String   @id
   value     String   @default("{}")
   updatedAt DateTime @updatedAt
+}
+
+/**
+ * Nhật ký thao tác nhạy cảm của admin (Q148): đổi cài đặt, hoàn tiền,
+ * duyệt đơn, CRUD sản phẩm/khuyến mãi — ai, làm gì, trước/sau.
+ */
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String   @default("")
+  actorEmail String   @default("")
+  action     String
+  entity     String   @default("")
+  entityId   String   @default("")
+  before     String   @default("")
+  after      String   @default("")
+  ip         String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorEmail, createdAt])
+  @@index([action, createdAt])
 }
