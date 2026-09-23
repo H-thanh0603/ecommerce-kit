@@ -1,5 +1,6 @@
 import { siteConfig, type EffectiveSite, type FeatureKey } from "@/config/site";
 import { prisma } from "@/server/db";
+import { getTenantSchema, runWithTenant } from "@/server/tenant-context";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { z } from "zod";
 
@@ -111,26 +112,37 @@ function safeParse(raw: string): SiteOverrides[keyof SiteOverrides] | undefined 
   }
 }
 
-const loadOverrides = unstable_cache(
-  async (): Promise<SiteOverrides> => {
-    const rows = await prisma.siteSetting.findMany();
-    const out: SiteOverrides = {};
-    for (const r of rows) {
-      const v = safeParse(r.value);
-      if (v === undefined) continue;
-      if (["brand", "theme", "shipping", "features", "currency", "announcement", "consent"].includes(r.key)) {
-        (out as Record<string, unknown>)[r.key] = v;
-      }
-    }
-    return out;
-  },
-  ["site-setting-rows"],
-  { tags: [SETTINGS_TAG] },
-);
+const makeLoader = (schema: string) =>
+  unstable_cache(
+    async (): Promise<SiteOverrides> =>
+      // runWithTenant: unstable_cache re-invoke ngoài request context vẫn query đúng schema
+      runWithTenant(schema, async () => {
+        const rows = await prisma.siteSetting.findMany();
+        const out: SiteOverrides = {};
+        for (const r of rows) {
+          const v = safeParse(r.value);
+          if (v === undefined) continue;
+          if (["brand", "theme", "shipping", "features", "currency", "announcement", "consent"].includes(r.key)) {
+            (out as Record<string, unknown>)[r.key] = v;
+          }
+        }
+        return out;
+      }),
+    ["site-setting-rows", schema],
+    { tags: [`${SETTINGS_TAG}:${schema}`] },
+  );
+
+const loaders = new Map<string, ReturnType<typeof makeLoader>>();
 
 export async function getSiteOverrides(): Promise<SiteOverrides> {
+  const schema = getTenantSchema();
+  let l = loaders.get(schema);
+  if (!l) {
+    l = makeLoader(schema);
+    loaders.set(schema, l);
+  }
   try {
-    return await loadOverrides();
+    return await l();
   } catch {
     return {};
   }
@@ -159,6 +171,6 @@ export async function saveSiteSettings(input: unknown): Promise<EffectiveSite> {
       }),
     ),
   );
-  revalidateTag(SETTINGS_TAG, "max");
+  revalidateTag(`${SETTINGS_TAG}:${getTenantSchema()}`, "max");
   return getEffectiveSiteConfig();
 }
