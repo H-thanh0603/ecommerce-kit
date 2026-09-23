@@ -7,6 +7,19 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ek
+          POSTGRES_PASSWORD: ek
+          POSTGRES_DB: ek_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,10 +30,10 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma migrate deploy
         env:
-          DATABASE_URL: file:./dev.db
+          DATABASE_URL: postgresql://ek:ek@localhost:5432/ek_test?schema=public
       - run: npx tsx prisma/seed.ts
         env:
-          DATABASE_URL: file:./dev.db
+          DATABASE_URL: postgresql://ek:ek@localhost:5432/ek_test?schema=public
           NODE_ENV: ""
       - run: npx tsc --noEmit
       - run: npm run lint
@@ -43,7 +56,7 @@ jobs:
       - run: npx playwright install chromium --with-deps
       - run: npm start -- --port 3100 &
         env:
-          DATABASE_URL: file:./dev.db
+          DATABASE_URL: postgresql://ek:ek@localhost:5432/ek_test?schema=public
       # Secrets bắt buộc từ repo secrets — không fallback password mặc định ngoài test local
       - run: sleep 8 && curl -fsS http://localhost:3100/api/health && E2E_URL=http://localhost:3100 npm run test:e2e
         env:

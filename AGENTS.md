@@ -5,8 +5,8 @@
 ## Lệnh
 
 ```bash
-npm run dev                 # chạy local (SQLite dev.db)
-npm test                    # vitest (DB thật dev.db, test phải idempotent)
+npm run dev                 # chạy local (Postgres ek)
+npm test                    # vitest (DB thật Postgres (ek), test phải idempotent)
 npx tsc --noEmit            # kiểm tra kiểu
 npm run build               # build production (E2E chạy trên build này, KHÔNG chạy trên dev)
 E2E_URL=http://localhost:3100 npm run test:e2e
@@ -34,16 +34,16 @@ npx prisma migrate dev --name <ten>   # đổi schema
 ## Quy tắc test
 
 - Test DB phải tự dọn (email/code duy nhất theo timestamp, xóa sau test) và nạp lại tồn
-  (`restock()` trong `commerce-order.test.ts`) vì dev.db dùng chung.
+  (`restock()` trong `commerce-order.test.ts`) vì DB Postgres (ek) dùng chung.
   Vitest chạy các file song song → mỗi file test checkout dùng 1 SP riêng
   (p1: commerce-order, p2: giftcard) để không giành tồn nhau.
 - Logic tiền/tồn/webhook bắt buộc có test: coupon, guard hết hàng, IPN (dùng store giả),
   VAT, gift card, returns.
 - E2E (`e2e/`) chạy trên production build + Chrome hệ thống (`channel: "chrome"`),
   chặn ảnh remote, `workers: 1`.
-- KHÔNG ghi ngày giờ bằng raw SQL trên SQLite — Prisma tự serialize (epoch-ms);
-  raw SQL sai format làm hỏng so sánh ngày. Cần backdate trong test thì
-  `UPDATE ... SET col = ${date.getTime()}` (xem `abandoned.test.ts`).
+- KHÔNG ghi ngày giờ bằng raw SQL (định dạng thời gian mỗi DB khác nhau) —
+  Prisma tự serialize đúng. Cần backdate trong test thì set tay qua Prisma update
+  (`prisma.xxx.update({ data: { updatedAt: old } })` — xem `abandoned.test.ts`).
 
 ## Khi thêm module theo khách
 

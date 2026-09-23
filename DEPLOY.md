@@ -1,6 +1,6 @@
 # Triển khai (deploy)
 
-## 1. Chạy local (SQLite)
+## 1. Chạy local (Postgres ek)
 
 ```bash
 cp .env.example .env
@@ -28,15 +28,14 @@ git pull
 docker compose up -d --build   # migrate deploy tự chạy lúc start
 ```
 
-## 3. Chuyển Postgres (Vercel/Neon/Supabase hoặc compose profile `pg`)
+## 3. Postgres managed (Vercel/Neon/Supabase) hoặc compose profile `pg`
 
-Migration trong repo là SQL của SQLite nên **không** chạy thẳng lên Postgres được.
-Mỗi dự án khách làm 1 lần:
+Repo đã mặc định PostgreSQL — mỗi môi trường chỉ cần trỏ `DATABASE_URL`
+(`postgresql://…@host:5432/db?schema=public`) rồi migrate + seed:
 
 ```bash
-# 1. Trỏ DATABASE_URL Postgres
-# 2. Đổi provider trong prisma/schema.prisma: sqlite -> postgresql
-npx prisma migrate dev --name pg_baseline   # sinh migration Postgres mới
+# 1. Trỏ DATABASE_URL Postgres (env hoặc .env)
+npx prisma migrate deploy        # baseline + các migration sau
 npx tsx prisma/seed.ts
 ```
 
@@ -65,23 +64,25 @@ xóa `MailLog` >30 ngày.
 
 ## 5. Backup / restore (Q145 — RPO 24h, RTO ~1h)
 
+`scripts/backup.sh` tự branch theo `DATABASE_URL`: `postgresql://` → `pg_dump -Fc`
+(file `pg-*.dump`); `file:` → backup SQLite. Mặc định hiện nay là Postgres —
+cron nhớ truyền `DATABASE_URL` vào env của script.
+
 ```bash
-# Backup hàng ngày (cron 02:00 gợi ý)
+# Backup hàng ngày (cron 02:00 gợi ý — env có DATABASE_URL)
 0 2 * * * cd /path/app && BACKUP_DIR=/var/backups/ek ./scripts/backup.sh
 
 # Test restore (BẮT BUỘC ít nhất 1 lần trước launch):
-cp /var/backups/ek/sqlite-YYYYMMDDHHMMSS.db.gz /tmp/restore.db.gz
-gunzip /tmp/restore.db.gz
-# Dừng app, sao lưu DB hiện tại, copy restore → prisma/dev.db (hoặc path DATABASE_URL), start lại
-docker compose stop app
-cp prisma/dev.db prisma/dev.db.bak-$(date +%s)
-cp /tmp/restore.db prisma/dev.db
+docker compose stop app            # dừng ghi trước khi restore
+pg_restore --clean --if-exists -d "$DATABASE_URL" /var/backups/ek/pg-YYYYMMDDHHMMSS.dump
 docker compose up -d
 curl -s http://localhost:3000/api/health   # { ok: true, db: "up" }
 ```
 
 - **RPO = 24h** (1 backup/ngày — tăng tần suất nếu dữ liệu đổi nhanh).
-- **RTO ≈ 1h** (copy file + health check; Postgres dùng `pg_restore`).
+- **RTO ≈ 1h** (`pg_restore` + health check).
+- **Multi-schema:** khi bật schema-per-tenant cần `pg_dump` toàn bộ các schema
+  (không chỉ `public`) — Task 11 sẽ cập nhật chi tiết ở đây.
 - Offsite: symlink/rclone `BACKUP_DIR` sang S3/NAS + mã hóa archive (`gpg -c`).
 - Ghi log ngày test restore gần nhất vào mục checklist dưới.
 
@@ -95,7 +96,7 @@ docker compose up -d --build     # migrate deploy lại (up-only — xem lưu ý
 # 2. Nếu schema đã migrate ngược code cũ không chạy được → restore backup
 docker compose stop app
 ./scripts/backup.sh              # snapshot hiện tại phòng hờ
-# giải nén backup mới nhất → prisma/dev.db (đọc mục 5)
+# restore backup mới nhất bằng pg_restore (đọc mục 5)
 docker compose up -d
 curl -s http://localhost:3000/api/health   # { ok: true, db: "up" }
 ```
@@ -128,7 +129,7 @@ trong checklist team — **không commit key**.
 |---|---|---|
 | AUTH_SECRET | ✔ | ngẫu nhiên ≥32 byte |
 | APP_URL | ✔ | https://domain |
-| DATABASE_URL | ✔ | sqlite path hoặc postgres |
+| DATABASE_URL | ✔ | `postgresql://…@host:5432/db?schema=public` |
 | ADMIN_PASSWORD | khi seed | ≥12 ký tự, không `admin123` |
 | ALLOW_SEED | seed 1 lần | xóa sau seed |
 | CRON_SECRET | ✔ | gọi cron + smoke |

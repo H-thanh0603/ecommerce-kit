@@ -14,9 +14,8 @@ describe("abandoned cart", () => {
     const line = await prisma.cartLine.create({
       data: { userId: user.id, productId: "p5", quantity: 1, variantLabel: "" },
     });
-    // Giả lập giỏ từ 30 giờ trước: updatedAt @updatedAt nên set tay bằng raw SQL,
-    // đúng định dạng epoch-ms mà Prisma dùng trên SQLite.
-    await prisma.$executeRaw`UPDATE CartLine SET updatedAt = ${old.getTime()} WHERE id = ${line.id}`;
+    // Giả lập giỏ từ 30 giờ trước: updatedAt @updatedAt nên set tay bằng update.
+    await prisma.cartLine.update({ where: { id: line.id }, data: { updatedAt: old } });
 
     const fresh = await prisma.cartLine.create({
       data: { userId: user.id, productId: "p7", quantity: 1, variantLabel: "" },

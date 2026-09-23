@@ -1,4 +1,4 @@
-# Mặc định: app + SQLite (volume ek-data). Đủ chạy shop nhỏ.
+# Khuyến nghị: profile pg (Postgres). Mặc định: app + volume ek-data (đủ shop nhỏ).
 # Muốn Postgres: đọc DEPLOY.md rồi bật profile `pg`.
 services:
   app:
