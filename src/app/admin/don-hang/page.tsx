@@ -19,11 +19,23 @@ const statuses = [
 export default async function AdminOrders({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   enterTenant(await resolveRequestTenant());
   const sp = await searchParams;
   const orders = await listOrders({ status: sp.status || undefined, q: sp.q || undefined });
+  const pageSize = 20;
+  const page = Math.max(1, Number(sp.page || 1) || 1);
+  const pages = Math.max(1, Math.ceil(orders.length / pageSize));
+  const view = orders.slice((page - 1) * pageSize, page * pageSize);
+  const qs = (n: number) => {
+    const p = new URLSearchParams();
+    if (sp.status) p.set("status", sp.status);
+    if (sp.q) p.set("q", sp.q);
+    if (n > 1) p.set("page", String(n));
+    const s = p.toString();
+    return s ? `?${s}` : "";
+  };
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <h1 className="font-serif text-3xl text-primary">Đơn hàng</h1>
@@ -45,7 +57,7 @@ export default async function AdminOrders({
       </form>
       <p className="mt-2 text-sm text-muted">{orders.length} đơn</p>
       <div className="mt-6 space-y-4">
-        {orders.map((o) => (
+        {view.map((o) => (
           <article key={o.id} className="rounded-2xl border border-line bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-medium">{o.code}</p>
@@ -75,6 +87,19 @@ export default async function AdminOrders({
         ))}
         {orders.length === 0 && <p className="text-sm text-muted">Không có đơn khớp bộ lọc.</p>}
       </div>
+      {pages > 1 && (
+        <div className="mt-4 flex flex-wrap gap-2 text-sm">
+          {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
+            <Link
+              key={n}
+              href={`/admin/don-hang${qs(n)}`}
+              className={`rounded-full border px-3 py-1 ${n === page ? "border-primary bg-primary text-white" : "border-line"}`}
+            >
+              {n}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
