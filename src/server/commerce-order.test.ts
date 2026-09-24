@@ -5,11 +5,13 @@ import { defaultWarehouse, setWarehouseStock } from "./warehouse";
 
 async function restock(pickStock = 5, whStock = 5) {
   const before = await getProductById("p1");
-  const sku = before!.skus?.[0];
-  await prisma.sku.update({ where: { id: sku!.id }, data: { stock: pickStock } });
+  // Lấy SKU đầu theo id — getProductById không orderBy skus, dùng sort label để ổn định.
+  const sku = [...(before!.skus || [])].sort((a, b) => a.label.localeCompare(b.label))[0];
   const wh = await defaultWarehouse();
-  if (wh) await setWarehouseStock(wh.id, "p1", sku!.label, whStock);
-  return { before: before!, sku: sku!, wh };
+  if (wh) await setWarehouseStock(wh.id, "p1", sku.label, whStock);
+  // Đặt SKU pick sau setWarehouseStock — hàm đó updateMany sku.stock theo label (đồng bộ 2 chiều).
+  await prisma.sku.update({ where: { id: sku.id }, data: { stock: pickStock } });
+  return { before: before!, sku, wh };
 }
 
 describe("createOrder", () => {
