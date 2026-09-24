@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { btnDanger, btnGhost, btnPrimary } from "@/components/admin/buttons";
 
 type Wh = { id: string; url: string; events: string; active: boolean };
 
@@ -66,10 +67,10 @@ export default function AdminWebhooks() {
       <div className="mt-6 flex flex-wrap gap-2">
         <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className="flex-1 rounded-full border border-line px-4 py-2 text-sm" />
         <input value={events} onChange={(e) => setEvents(e.target.value)} placeholder="events" className="w-64 rounded-full border border-line px-4 py-2 text-sm" />
-        <button onClick={add} className="rounded-full bg-primary px-4 py-2 text-sm text-white">
+        <button type="button" onClick={add} className={btnPrimary}>
           Thêm
         </button>
-        <button onClick={ping} className="rounded-full border border-line px-4 py-2 text-sm">
+        <button type="button" onClick={ping} className={btnGhost}>
           Ping tất cả
         </button>
       </div>
@@ -80,7 +81,7 @@ export default function AdminWebhooks() {
             <span>
               <b>{w.url}</b> · {w.events} · {w.active ? "bật" : "tắt"}
             </span>
-            <button onClick={() => remove(w.id)} className="text-xs underline">
+            <button type="button" onClick={() => remove(w.id)} className={btnDanger}>
               Xóa
             </button>
           </li>

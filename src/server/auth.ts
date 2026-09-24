@@ -143,6 +143,42 @@ async function verifyRecoveryCode(userId: string, storedJson: string, code: stri
   return false;
 }
 
+export async function listStaff() {
+  return prisma.user.findMany({
+    where: { role: "admin" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, email: true, name: true, createdAt: true },
+  });
+}
+
+export async function createStaff(data: { name: string; email: string; password: string }) {
+  const email = data.email.trim().toLowerCase();
+  const name = data.name.trim();
+  if (!name || !email.includes("@")) throw new Error("Thiếu tên hoặc email");
+  if (data.password.length < 8) throw new Error("Mật khẩu ít nhất 8 ký tự");
+  const passwordHash = await hashPassword(data.password);
+  const exists = await prisma.user.findUnique({ where: { email } });
+  if (exists?.role === "admin") throw new Error("Email này đã là nhân viên");
+  if (exists) {
+    return prisma.user.update({
+      where: { id: exists.id },
+      data: { name, passwordHash, role: "admin", tokenVersion: { increment: 1 } },
+      select: { id: true, email: true, name: true },
+    });
+  }
+  return prisma.user.create({
+    data: { email, name, passwordHash, role: "admin" },
+    select: { id: true, email: true, name: true },
+  });
+}
+
+export async function revokeStaff(id: string, actorId: string) {
+  if (id === actorId) throw new Error("Không gỡ quyền của chính mình");
+  const admins = await prisma.user.count({ where: { role: "admin" } });
+  if (admins <= 1) throw new Error("Cần giữ ít nhất một admin");
+  await prisma.user.update({ where: { id }, data: { role: "customer", tokenVersion: { increment: 1 } } });
+}
+
 export async function requireAdmin() {
   const session = await getSession();
   if (!session || session.role !== "admin") return null;

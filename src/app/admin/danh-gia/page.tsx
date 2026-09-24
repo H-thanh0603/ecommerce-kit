@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { btnDanger, btnPrimary } from "@/components/admin/buttons";
 
 type Pending = {
   id: string;
@@ -51,11 +52,11 @@ export default function AdminReviews() {
               {r.product.name} · {r.rating}/5 · {r.author}
             </p>
             <p className="mt-1 text-muted">{r.content}</p>
-            <div className="mt-2 flex gap-3">
-              <button onClick={() => act(r.id, "approve")} className="text-primary underline">
+            <div className="mt-3 flex gap-2">
+              <button type="button" onClick={() => act(r.id, "approve")} className={btnPrimary}>
                 Duyệt
               </button>
-              <button onClick={() => act(r.id, "delete")} className="text-accent underline">
+              <button type="button" onClick={() => act(r.id, "delete")} className={btnDanger}>
                 Xóa
               </button>
             </div>

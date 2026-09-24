@@ -24,18 +24,22 @@ export default function AdminBooking() {
         {rows.map((b) => (
           <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white p-4 text-sm">
             <span>{b.service.name} · {b.name} · {new Date(b.startsAt).toLocaleString("vi-VN")} · {b.status}</span>
+            <label className="text-sm text-muted">
+              Trạng thái
             <select
+              aria-label="Trạng thái lịch"
               defaultValue={b.status}
-              className="rounded-full border border-line px-2 py-1"
+              className="ml-2 rounded-full border border-line bg-white px-3 py-1.5 text-ink"
               onChange={async (e) => {
                 await fetch("/api/bookings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.id, status: e.target.value }) });
                 load();
               }}
             >
-              <option value="pending">chờ</option>
-              <option value="confirmed">xác nhận</option>
-              <option value="cancelled">hủy</option>
+              <option value="pending">Chờ</option>
+              <option value="confirmed">Xác nhận</option>
+              <option value="cancelled">Hủy</option>
             </select>
+            </label>
           </li>
         ))}
       </ul>

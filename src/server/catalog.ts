@@ -121,6 +121,43 @@ export async function getArticle(slug: string) {
   return row ? { ...toArticle(row), body: row.body } : null;
 }
 
+export async function listArticlesAdmin() {
+  return prisma.article.findMany({ orderBy: { date: "desc" } });
+}
+
+export async function upsertArticle(data: {
+  id?: string;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  cover?: string;
+  body?: string;
+  date?: string;
+  minutes?: number;
+}) {
+  const slug = data.slug.trim().toLowerCase().replace(/\s+/g, "-");
+  if (!slug || !data.title.trim()) throw new Error("Thiếu tiêu đề hoặc đường dẫn");
+  const payload = {
+    slug: slug.slice(0, 80),
+    title: data.title.trim().slice(0, 160),
+    excerpt: (data.excerpt || "").slice(0, 300),
+    cover: (data.cover || "").slice(0, 500),
+    body: data.body || "",
+    date: data.date || new Date().toISOString().slice(0, 10),
+    minutes: Math.max(1, Math.round(data.minutes || 3)),
+  };
+  const row = data.id
+    ? await prisma.article.update({ where: { id: data.id }, data: payload })
+    : await prisma.article.create({ data: payload });
+  revalidateTag("catalog", "max");
+  return row;
+}
+
+export async function deleteArticle(id: string) {
+  await prisma.article.delete({ where: { id } });
+  revalidateTag("catalog", "max");
+}
+
 export async function addReview(data: {
   productId: string;
   userId?: string;

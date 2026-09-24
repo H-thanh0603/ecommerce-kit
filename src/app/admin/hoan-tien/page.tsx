@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { money } from "@/lib/format";
+import { btnDanger, btnPrimary } from "@/components/admin/buttons";
 
 type Refund = {
   id: string;
@@ -89,11 +90,11 @@ export default function AdminRefunds() {
               <b>{r.order.code}</b> · {money(r.amount)} · {r.method} · {r.status}
             </span>
             {r.status === "pending" && (
-              <span className="flex gap-2 text-xs">
-                <button onClick={() => act(r.id, "complete")} className="text-primary underline">
+              <span className="flex gap-2">
+                <button type="button" onClick={() => act(r.id, "complete")} className={btnPrimary}>
                   Đã hoàn
                 </button>
-                <button onClick={() => act(r.id, "fail")} className="text-accent underline">
+                <button type="button" onClick={() => act(r.id, "fail")} className={btnDanger}>
                   Hủy
                 </button>
               </span>

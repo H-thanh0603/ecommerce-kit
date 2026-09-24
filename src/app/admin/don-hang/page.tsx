@@ -6,6 +6,7 @@ import { money, qtyLabel } from "@/lib/format";
 import { isEnabled } from "@/config/site";
 import { IssueInvoiceButton } from "@/components/admin/IssueInvoiceButton";
 import { GhnButton, OrderTimeline, PayBadge } from "@/components/admin/OrderActions";
+import { OrderCheck, OrderSelection } from "@/components/admin/OrderSelection";
 
 const statuses = [
   { value: "", label: "Tất cả" },
@@ -55,12 +56,13 @@ export default async function AdminOrders({
         </select>
         <button className="rounded-full bg-primary px-4 py-2 text-sm text-white">Lọc</button>
       </form>
-      <p className="mt-2 text-sm text-muted">{orders.length} đơn</p>
+      <p className="mt-2 text-sm text-muted">{orders.length} đơn. Chọn ô vuông để giao hoặc in nhiều đơn trên trang này.</p>
+      <OrderSelection>
       <div className="mt-6 space-y-4">
         {view.map((o) => (
           <article key={o.id} className="rounded-2xl border border-line bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-medium">{o.code}</p>
+              <p className="font-medium"><OrderCheck id={o.id} />{o.code}</p>
               <OrderStatusForm id={o.id} status={o.status} />
             </div>
             <p className="mt-1 text-sm text-muted">
@@ -87,6 +89,7 @@ export default async function AdminOrders({
         ))}
         {orders.length === 0 && <p className="text-sm text-muted">Không có đơn khớp bộ lọc.</p>}
       </div>
+      </OrderSelection>
       {pages > 1 && (
         <div className="mt-4 flex flex-wrap gap-2 text-sm">
           {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (

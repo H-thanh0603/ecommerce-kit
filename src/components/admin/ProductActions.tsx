@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { Product } from "@/types";
+import { btnDanger, btnGhost } from "@/components/admin/buttons";
 
 export function ProductActions({ product }: { product: Product }) {
   const router = useRouter();
@@ -19,14 +20,14 @@ export function ProductActions({ product }: { product: Product }) {
     router.refresh();
   };
   return (
-    <span className="flex gap-2 text-xs">
-      <a href={`/admin/san-pham?edit=${product.id}`} className="underline">
+    <span className="flex flex-wrap justify-end gap-2">
+      <a href={`/admin/san-pham?edit=${product.id}`} className={btnGhost}>
         Sửa
       </a>
-      <button onClick={hide} className="underline">
+      <button type="button" onClick={hide} className={btnGhost}>
         {product.published === false ? "Hiện" : "Ẩn"}
       </button>
-      <button onClick={remove} className="underline text-accent">
+      <button type="button" onClick={remove} className={btnDanger}>
         Xóa
       </button>
     </span>

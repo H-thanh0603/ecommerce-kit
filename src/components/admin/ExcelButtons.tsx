@@ -1,12 +1,14 @@
 "use client";
 
+import { btnGhost } from "@/components/admin/buttons";
+
 export function ExcelButtons() {
   return (
     <>
-      <a href="/api/excel" className="underline">
+      <a href="/api/excel" className={btnGhost}>
         Xuất Excel
       </a>
-      <label className="cursor-pointer underline">
+      <label className={`${btnGhost} cursor-pointer`}>
         Nhập Excel
         <input
           type="file"

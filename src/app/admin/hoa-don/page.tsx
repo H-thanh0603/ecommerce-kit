@@ -1,6 +1,7 @@
 import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listInvoices } from "@/server/invoice";
+import { btnGhost } from "@/components/admin/buttons";
 
 export default async function AdminInvoices() {
   enterTenant(await resolveRequestTenant());
@@ -12,7 +13,7 @@ export default async function AdminInvoices() {
         {invoices.map((i) => (
           <li key={i.id} className="flex justify-between rounded-xl border border-line bg-white px-4 py-3 text-sm">
             <span>{i.number} · {i.buyerName} · {i.order.code}</span>
-            <Link href={`/hoa-don/${i.number}`} className="underline">In</Link>
+            <Link href={`/hoa-don/${i.number}`} className={btnGhost}>In</Link>
           </li>
         ))}
       </ul>

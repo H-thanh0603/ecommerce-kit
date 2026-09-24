@@ -142,11 +142,42 @@ export type EffectiveShipping = {
   estimatedDays: string;
 };
 export type EffectiveFeatures = Record<FeatureKey, boolean>;
+export type PayFlag = { enabled: boolean; label: string };
+export type BankPay = PayFlag & {
+  bank: string;
+  shortCode: string;
+  accountName: string;
+  accountNumber: string;
+};
+export type EffectivePayments = {
+  cod: PayFlag;
+  bankTransfer: BankPay;
+  momo: PayFlag;
+  vnpay: PayFlag;
+  zalopay: PayFlag;
+};
+export type HomeBlock = "categories" | "flash" | "featured" | "journal";
+export type EffectiveHome = {
+  eyebrow: string;
+  image: string;
+  imageAlt: string;
+  blocks: HomeBlock[];
+};
+
+export const defaultHome: EffectiveHome = {
+  eyebrow: "Cửa hàng chọn lọc",
+  image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&q=80",
+  imageAlt: "Cửa hàng",
+  blocks: ["categories", "flash", "featured", "journal"],
+};
+
 export type EffectiveSite = {
   brand: EffectiveBrand;
   theme: EffectiveTheme;
   shipping: EffectiveShipping;
   features: EffectiveFeatures;
+  payments: EffectivePayments;
+  home: EffectiveHome;
   currency: { code: string; locale: string };
   announcement: { enabled: boolean; text: string };
   consent: { enabled: boolean; text: string };

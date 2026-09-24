@@ -1,5 +1,7 @@
 "use client";
 
+import { btnGhost } from "@/components/admin/buttons";
+
 import { useState } from "react";
 const payLabel: Record<string, string> = {
   unpaid: "Chưa trả",
@@ -45,7 +47,7 @@ export function GhnButton({ orderCode, hasLabel }: { orderCode: string; hasLabel
   }
   return (
     <div className="mt-2 flex items-center gap-2">
-      <button onClick={create} disabled={busy} className="text-xs underline disabled:opacity-50">
+      <button type="button" onClick={create} disabled={busy} className={`mt-2 ${btnGhost}`}>
         {busy ? "Đang tạo…" : msg.startsWith("Lỗi") ? "Thử lại GHN" : "Tạo vận đơn GHN"}
       </button>
       {msg && <span className="text-xs text-muted">{msg}</span>}
@@ -67,7 +69,7 @@ export function OrderTimeline({ orderId }: { orderId: string }) {
   }
   return (
     <div className="mt-2">
-      <button onClick={toggle} className="text-xs underline">
+      <button type="button" onClick={toggle} className={`mt-2 ${btnGhost}`}>
         {open ? "Ẩn nhật ký" : "Nhật ký đơn"}
       </button>
       {open && (

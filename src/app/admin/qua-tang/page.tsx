@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { money } from "@/lib/format";
+import { btnGhost, btnPrimary } from "@/components/admin/buttons";
 
 type Gift = { id: string; code: string; balance: number; active: boolean; note: string; expiresAt: string | null };
 
@@ -54,7 +55,7 @@ export default function AdminGifts() {
       <div className="mt-6 flex flex-wrap gap-2">
         <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Mã thẻ (VD: QUATET5TRAM)" className="rounded-full border border-line px-4 py-2 text-sm" />
         <input value={balance} onChange={(e) => setBalance(e.target.value)} type="number" min={0} placeholder="Số dư" className="w-36 rounded-full border border-line px-4 py-2 text-sm" />
-        <button onClick={create} className="rounded-full bg-primary px-4 py-2 text-sm text-white">
+        <button type="button" onClick={create} className={btnPrimary}>
           Phát hành
         </button>
       </div>
@@ -65,7 +66,7 @@ export default function AdminGifts() {
             <span>
               <b>{g.code}</b> · {money(g.balance)} · {g.active ? "đang dùng" : "đã tắt"}
             </span>
-            <button onClick={() => toggle(g)} className="text-xs underline">
+            <button type="button" onClick={() => toggle(g)} className={btnGhost}>
               {g.active ? "Tắt" : "Bật"}
             </button>
           </li>

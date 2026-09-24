@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { btnDanger, btnPrimary } from "@/components/admin/buttons";
 
 type Coupon = {
   id: string;
@@ -41,6 +42,7 @@ export default function AdminCoupons() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="flex justify-between"><h1 className="font-serif text-3xl text-primary">Mã giảm giá</h1><Link href="/admin" className="text-sm text-muted">← Tổng quan</Link></div>
+      <p className="mt-1 text-sm text-muted">Điền mã, kiểu giảm và giá trị, rồi bấm Thêm mã. Xóa nằm cuối mỗi dòng.</p>
       <form onSubmit={onSubmit} className="mt-6 grid gap-2 rounded-2xl border border-line bg-white p-4 sm:grid-cols-2">
         <input required name="code" placeholder="CODE" className="rounded-xl border border-line px-3 py-2 text-sm" />
         <select name="type" className="rounded-xl border border-line px-3 py-2 text-sm">
@@ -53,13 +55,13 @@ export default function AdminCoupons() {
         <input name="maxUses" type="number" placeholder="Tổng lượt (trống = ∞)" className="rounded-xl border border-line px-3 py-2 text-sm" />
         <input name="maxUsesPerUser" type="number" placeholder="Lượt / người" className="rounded-xl border border-line px-3 py-2 text-sm" />
         <input name="endsAt" type="datetime-local" className="rounded-xl border border-line px-3 py-2 text-sm sm:col-span-2" />
-        <button className="rounded-full bg-primary py-2 text-sm text-white">Thêm mã</button>
+        <button className={btnPrimary}>Thêm mã</button>
       </form>
       <ul className="mt-6 space-y-2">
         {rows.map((c) => (
           <li key={c.id} className="flex items-center justify-between rounded-xl border border-line bg-white px-4 py-3 text-sm">
             <span>{c.code} · {c.type} {c.value} · min {c.minOrder} · {c.active ? "bật" : "tắt"}</span>
-            <button className="underline text-accent" onClick={async () => { await fetch(`/api/coupons/admin?id=${c.id}`, { method: "DELETE" }); load(); }}>Xóa</button>
+            <button type="button" className={btnDanger} onClick={async () => { if (!confirm(`Xóa mã ${c.code}?`)) return; await fetch(`/api/coupons/admin?id=${c.id}`, { method: "DELETE" }); load(); }}>Xóa</button>
           </li>
         ))}
       </ul>

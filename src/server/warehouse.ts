@@ -2,7 +2,10 @@ import { prisma } from "@/server/db";
 import type { Prisma } from "@prisma/client";
 
 export async function listWarehouses() {
-  return prisma.warehouse.findMany({ orderBy: { name: "asc" }, include: { stocks: true } });
+  return prisma.warehouse.findMany({
+    orderBy: { name: "asc" },
+    include: { stocks: { include: { product: { select: { id: true, name: true } } } } },
+  });
 }
 
 export async function defaultWarehouse() {
@@ -20,11 +23,18 @@ export async function upsertWarehouse(data: { id?: string; code: string; name: s
 }
 
 export async function setWarehouseStock(warehouseId: string, productId: string, skuKey: string, stock: number) {
-  return prisma.warehouseStock.upsert({
+  const next = Math.max(0, Math.round(stock));
+  const row = await prisma.warehouseStock.upsert({
     where: { warehouseId_productId_skuKey: { warehouseId, productId, skuKey } },
-    create: { warehouseId, productId, skuKey, stock },
-    update: { stock },
+    create: { warehouseId, productId, skuKey, stock: next },
+    update: { stock: next },
   });
+  if (!skuKey) {
+    await prisma.product.update({ where: { id: productId }, data: { stock: next } });
+  } else {
+    await prisma.sku.updateMany({ where: { productId, label: skuKey }, data: { stock: next } });
+  }
+  return row;
 }
 
 export async function decrementWarehouse(warehouseId: string, productId: string, skuKey: string, qty: number) {

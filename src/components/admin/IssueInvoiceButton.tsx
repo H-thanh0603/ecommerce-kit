@@ -1,9 +1,12 @@
 "use client";
 
+import { btnGhost } from "@/components/admin/buttons";
+
 export function IssueInvoiceButton({ orderId }: { orderId: string }) {
   return (
     <button
-      className="mt-2 text-xs underline"
+      type="button"
+      className={`mt-2 ${btnGhost}`}
       onClick={async () => {
         const res = await fetch("/api/invoices", {
           method: "POST",

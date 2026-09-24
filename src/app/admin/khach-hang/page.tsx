@@ -2,6 +2,7 @@ import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
 import { listCustomers } from "@/server/commerce";
 import { siteConfig } from "@/config/site";
+import { btnGhost } from "@/components/admin/buttons";
 
 function tierLabel(tier: string) {
   const row = siteConfig.membership[tier as keyof typeof siteConfig.membership];
@@ -63,8 +64,8 @@ export default async function AdminCustomers({
                 <td className="px-4 py-3">{tierLabel(u.memberTier)}</td>
                 <td className="px-4 py-3">{u.points}</td>
                 <td className="px-4 py-3">
-                  <Link href={`/admin/don-hang?q=${encodeURIComponent(u.email)}`} className="underline">
-                    {u.orderCount}
+                  <Link href={`/admin/don-hang?q=${encodeURIComponent(u.email)}`} className={btnGhost}>
+                    {u.orderCount} đơn
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-muted">{viDate(u.createdAt)}</td>

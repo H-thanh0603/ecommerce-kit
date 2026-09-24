@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OrderStatus } from "@/types";
+import { btnPrimary } from "@/components/admin/buttons";
 
 const options: { value: OrderStatus; label: string }[] = [
   { value: "pending", label: "Chờ xác nhận" },
@@ -57,7 +58,7 @@ export function OrderStatusForm({ id, status }: { id: string; status: OrderStatu
           type="button"
           disabled={busy}
           onClick={() => save(advance.next)}
-          className="rounded-full bg-primary px-3 py-1.5 text-sm text-white disabled:opacity-50"
+          className={btnPrimary}
         >
           {advance.label}
         </button>

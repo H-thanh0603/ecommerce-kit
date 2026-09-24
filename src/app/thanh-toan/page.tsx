@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { enabledPayments, isEnabled, siteConfig } from "@/config/site";
+import { enabledPayments, isEnabled, siteConfig, type PayFlag } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { discountAmount, money, shippingFee, vietQrUrl } from "@/lib/format";
@@ -15,7 +15,8 @@ export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const { user } = useAuth();
   const router = useRouter();
-  const methods = enabledPayments();
+  const [methods, setMethods] = useState<{ key: string; label: string }[]>(enabledPayments());
+  const [bank, setBank] = useState(siteConfig.payments.bankTransfer);
   const [method, setMethod] = useState(methods[0]?.key || "cod");
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<Coupon | null>(null);
@@ -41,6 +42,23 @@ export default function CheckoutPage() {
     // localStorage — đọc deferred để không setState đồng bộ trong effect body.
     const id = requestAnimationFrame(() => setBundleId(readBundleId()));
     return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/shop")
+      .then((r) => r.json())
+      .then((j) => {
+        if (!j.payments) return;
+        const list = Object.entries(j.payments as Record<string, PayFlag>)
+          .filter(([, v]) => v?.enabled)
+          .map(([key, v]) => ({ key, ...v }));
+        if (list.length) {
+          setMethods(list);
+          setMethod((cur) => (list.some((m) => m.key === cur) ? cur : list[0].key));
+        }
+        if (j.payments.bankTransfer) setBank(j.payments.bankTransfer);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -205,9 +223,9 @@ export default function CheckoutPage() {
               <div className="mt-3 rounded-xl bg-canvas p-3 text-sm text-muted">
                 <Image
                   src={vietQrUrl({
-                    shortCode: siteConfig.payments.bankTransfer.shortCode,
-                    accountNumber: siteConfig.payments.bankTransfer.accountNumber,
-                    accountName: siteConfig.payments.bankTransfer.accountName,
+                    shortCode: bank.shortCode,
+                    accountNumber: bank.accountNumber,
+                    accountName: bank.accountName,
                     amount: total,
                     addInfo: `DH ${buyer} ${buyerPhone}`.trim().slice(0, 25) || "Thanh toan don hang",
                   })}
@@ -218,9 +236,9 @@ export default function CheckoutPage() {
                   loading="lazy"
                 />
                 <p className="mt-2 text-center font-medium text-ink">{money(total)}</p>
-                <p>{siteConfig.payments.bankTransfer.bank}</p>
-                <p>{siteConfig.payments.bankTransfer.accountName}</p>
-                <p>{siteConfig.payments.bankTransfer.accountNumber}</p>
+                <p>{bank.bank}</p>
+                <p>{bank.accountName}</p>
+                <p>{bank.accountNumber}</p>
                 <p className="mt-1">Nội dung: Tên + SĐT</p>
               </div>
             )}

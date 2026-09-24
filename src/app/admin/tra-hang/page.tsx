@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { btnDanger, btnPrimary } from "@/components/admin/buttons";
 
 type Ret = {
   id: string;
@@ -62,8 +63,8 @@ export default function AdminReturns() {
             <p className="mt-1 text-muted">Lý do: {r.reason}</p>
             {r.status === "pending" && (
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                <button onClick={() => act(r.id, true)} className="text-primary underline">
-                  Duyệt + hoàn tồn
+                <button type="button" onClick={() => act(r.id, true)} className={btnPrimary}>
+                  Duyệt và hoàn tồn
                 </button>
                 <label className="flex items-center gap-1 text-xs text-muted">
                   Hoàn tiền
@@ -76,7 +77,7 @@ export default function AdminReturns() {
                     className="w-24 rounded-lg border border-line px-2 py-1"
                   />
                 </label>
-                <button onClick={() => act(r.id, false)} className="text-accent underline">
+                <button type="button" onClick={() => act(r.id, false)} className={btnDanger}>
                   Từ chối
                 </button>
               </div>

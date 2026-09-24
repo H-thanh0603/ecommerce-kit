@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { btnGhost, btnPrimary } from "@/components/admin/buttons";
+import { defaultHome, siteConfig, type EffectiveHome, type EffectivePayments, type HomeBlock } from "@/config/site";
 
 type Payload = {
   brand: Record<string, string>;
@@ -11,6 +13,8 @@ type Payload = {
   currency: { code: string; locale: string };
   announcement: { enabled: boolean; text: string };
   consent: { enabled: boolean; text: string };
+  payments: EffectivePayments;
+  home: EffectiveHome;
 };
 
 const FEATURE_LABELS: Record<string, string> = {
@@ -258,11 +262,148 @@ export default function AdminSettings() {
         </div>
       </section>
 
+      <section className="mt-4 rounded-2xl border border-line bg-white p-5">
+        <h2 className="font-medium">Thanh toán</h2>
+        <p className="mt-1 text-xs text-muted">Áp dụng ngay lúc khách thanh toán. MoMo và VNPay vẫn cần khóa trong máy chủ.</p>
+        <div className="mt-3 grid gap-3">
+          {(["cod", "momo", "vnpay", "zalopay"] as const).map((k) => (
+            <label key={k} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-sm">
+              <span>{(data.payments || siteConfig.payments)[k].label}</span>
+              <input
+                type="checkbox"
+                checked={Boolean((data.payments || siteConfig.payments)[k].enabled)}
+                onChange={(e) =>
+                  setData({
+                    ...data,
+                    payments: {
+                      ...(data.payments || siteConfig.payments),
+                      [k]: { ...(data.payments || siteConfig.payments)[k], enabled: e.target.checked },
+                    },
+                  })
+                }
+              />
+            </label>
+          ))}
+          <div className="grid gap-2 rounded-lg border border-line p-3 sm:grid-cols-2">
+            <label className="flex items-center justify-between text-sm sm:col-span-2">
+              <span>Chuyển khoản</span>
+              <input
+                type="checkbox"
+                checked={Boolean((data.payments || siteConfig.payments).bankTransfer.enabled)}
+                onChange={(e) =>
+                  setData({
+                    ...data,
+                    payments: {
+                      ...(data.payments || siteConfig.payments),
+                      bankTransfer: { ...(data.payments || siteConfig.payments).bankTransfer, enabled: e.target.checked },
+                    },
+                  })
+                }
+              />
+            </label>
+            {(
+              [
+                ["bank", "Ngân hàng"],
+                ["shortCode", "Mã VietQR (VD VCB)"],
+                ["accountName", "Chủ tài khoản"],
+                ["accountNumber", "Số tài khoản"],
+              ] as const
+            ).map(([k, label]) => (
+              <label key={k} className="grid gap-1 text-sm">
+                {label}
+                <input
+                  value={(data.payments || siteConfig.payments).bankTransfer[k]}
+                  onChange={(e) =>
+                    setData({
+                      ...data,
+                      payments: {
+                        ...(data.payments || siteConfig.payments),
+                        bankTransfer: { ...(data.payments || siteConfig.payments).bankTransfer, [k]: e.target.value },
+                      },
+                    })
+                  }
+                  className="rounded-lg border border-line px-3 py-2"
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-line bg-white p-5">
+        <h2 className="font-medium">Trang chủ</h2>
+        <div className="mt-3 grid gap-2">
+          <label className="grid gap-1 text-sm">
+            Dòng nhỏ trên banner
+            <input
+              value={(data.home || defaultHome).eyebrow}
+              onChange={(e) => setData({ ...data, home: { ...(data.home || defaultHome), eyebrow: e.target.value } })}
+              className="rounded-lg border border-line px-3 py-2"
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Ảnh banner (URL)
+            <input
+              value={(data.home || defaultHome).image}
+              onChange={(e) => setData({ ...data, home: { ...(data.home || defaultHome), image: e.target.value } })}
+              className="rounded-lg border border-line px-3 py-2"
+            />
+          </label>
+          <label className="grid gap-1 text-sm">
+            Mô tả ảnh
+            <input
+              value={(data.home || defaultHome).imageAlt}
+              onChange={(e) => setData({ ...data, home: { ...(data.home || defaultHome), imageAlt: e.target.value } })}
+              className="rounded-lg border border-line px-3 py-2"
+            />
+          </label>
+          <p className="text-sm">Thứ tự khối</p>
+          {(
+            [
+              ["categories", "Danh mục"],
+              ["flash", "Flash sale"],
+              ["featured", "Sản phẩm nổi bật"],
+              ["journal", "Bài viết"],
+            ] as const
+          ).map(([id, label]) => {
+            const blocks = (data.home || defaultHome).blocks;
+            const on = blocks.includes(id);
+            const move = (dir: number) => {
+              const next = [...blocks];
+              const i = next.indexOf(id);
+              const j = i + dir;
+              if (i < 0 || j < 0 || j >= next.length) return;
+              [next[i], next[j]] = [next[j], next[i]];
+              setData({ ...data, home: { ...(data.home || defaultHome), blocks: next } });
+            };
+            return (
+              <div key={id} className="flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm">
+                <span>{label}{on ? "" : " (đang ẩn)"}</span>
+                <span className="flex gap-2">
+                  <button type="button" className={btnGhost} onClick={() => move(-1)} disabled={!on}>Lên</button>
+                  <button type="button" className={btnGhost} onClick={() => move(1)} disabled={!on}>Xuống</button>
+                  <button
+                    type="button"
+                    className={btnGhost}
+                    onClick={() => {
+                      const next = on ? blocks.filter((b) => b !== id) : [...blocks, id as HomeBlock];
+                      setData({ ...data, home: { ...(data.home || defaultHome), blocks: next } });
+                    }}
+                  >
+                    {on ? "Ẩn" : "Hiện"}
+                  </button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <div className="mt-6 flex items-center gap-3">
         <button
           onClick={save}
           disabled={saving}
-          className="rounded-full bg-primary px-6 py-2.5 text-sm text-white disabled:opacity-50"
+          className={btnPrimary}
         >
           {saving ? "Đang lưu…" : "Lưu cài đặt"}
         </button>

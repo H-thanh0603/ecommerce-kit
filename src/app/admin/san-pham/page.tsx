@@ -31,7 +31,10 @@ export default async function AdminProducts({
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-serif text-3xl text-primary">Sản phẩm</h1>
+        <div>
+          <h1 className="font-serif text-3xl text-primary">Sản phẩm</h1>
+          <p className="mt-1 text-sm text-muted">Nút xanh thêm sản phẩm mới. Trên mỗi dòng: Sửa, Ẩn hoặc Hiện, Xóa.</p>
+        </div>
         <div className="flex gap-3 text-sm">{isEnabled("excel") && <ExcelButtons />}</div>
       </div>
       <form className="mt-4">
@@ -53,7 +56,7 @@ export default async function AdminProducts({
               <th className="px-4 py-3">Tồn</th>
               <th className="px-4 py-3">Đã bán</th>
               <th className="px-4 py-3">Hiện</th>
-              <th className="px-4 py-3"> </th>
+              <th className="sticky right-0 bg-canvas px-4 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.15)]">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -76,7 +79,7 @@ export default async function AdminProducts({
                 <td className="px-4 py-3">{p.stock}</td>
                 <td className="px-4 py-3">{p.sold}</td>
                 <td className="px-4 py-3">{p.published === false ? "Ẩn" : "Có"}</td>
-                <td className="px-4 py-3">
+                <td className="sticky right-0 bg-white px-4 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.12)]">
                   <ProductActions product={p} />
                 </td>
               </tr>

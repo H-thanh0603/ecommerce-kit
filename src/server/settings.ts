@@ -1,4 +1,4 @@
-import { siteConfig, type EffectiveSite, type FeatureKey } from "@/config/site";
+import { defaultHome, siteConfig, type EffectiveSite, type FeatureKey, type HomeBlock } from "@/config/site";
 import { prisma } from "@/server/db";
 import { getTenantSchema, runWithTenant } from "@/server/tenant-context";
 import { unstable_cache, revalidateTag } from "next/cache";
@@ -57,6 +57,31 @@ export const bannerSchema = z.object({
   text: z.string().max(200),
 });
 
+const payFlag = z.object({
+  enabled: z.boolean(),
+  label: z.string().max(80),
+});
+
+export const paymentsSchema = z.object({
+  cod: payFlag,
+  bankTransfer: payFlag.extend({
+    bank: z.string().max(80),
+    shortCode: z.string().max(20),
+    accountName: z.string().max(80),
+    accountNumber: z.string().max(30),
+  }),
+  momo: payFlag,
+  vnpay: payFlag,
+  zalopay: payFlag,
+});
+
+export const homeSchema = z.object({
+  eyebrow: z.string().max(80),
+  image: z.string().max(500),
+  imageAlt: z.string().max(120),
+  blocks: z.array(z.enum(["categories", "flash", "featured", "journal"])).max(4),
+});
+
 export const siteSettingsInput = z.object({
   brand: brandSchema.partial().optional(),
   theme: themeSchema.partial().optional(),
@@ -65,6 +90,8 @@ export const siteSettingsInput = z.object({
   currency: localeSchema.partial().optional(),
   announcement: bannerSchema.partial().optional(),
   consent: bannerSchema.partial().optional(),
+  payments: paymentsSchema.partial().optional(),
+  home: homeSchema.partial().optional(),
 });
 
 export type { EffectiveSite };
@@ -76,6 +103,8 @@ export type SiteOverrides = {
   currency?: Partial<z.infer<typeof localeSchema>>;
   announcement?: Partial<z.infer<typeof bannerSchema>>;
   consent?: Partial<z.infer<typeof bannerSchema>>;
+  payments?: Partial<z.infer<typeof paymentsSchema>>;
+  home?: Partial<z.infer<typeof homeSchema>>;
 };
 
 /** Pure — test được không cần DB. */
@@ -99,6 +128,18 @@ export function mergeSiteConfig(overrides: SiteOverrides): EffectiveSite {
       enabled: true,
       text: "Cửa hàng dùng cookie để ghi nhớ giỏ hàng và cải thiện trải nghiệm (NĐ 13/2023).",
       ...overrides.consent,
+    },
+    payments: {
+      cod: { ...siteConfig.payments.cod, ...overrides.payments?.cod },
+      bankTransfer: { ...siteConfig.payments.bankTransfer, ...overrides.payments?.bankTransfer },
+      momo: { ...siteConfig.payments.momo, ...overrides.payments?.momo },
+      vnpay: { ...siteConfig.payments.vnpay, ...overrides.payments?.vnpay },
+      zalopay: { ...siteConfig.payments.zalopay, ...overrides.payments?.zalopay },
+    },
+    home: {
+      ...defaultHome,
+      ...overrides.home,
+      blocks: (overrides.home?.blocks?.length ? overrides.home.blocks : defaultHome.blocks) as HomeBlock[],
     },
   };
 }

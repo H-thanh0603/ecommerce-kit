@@ -24,6 +24,20 @@ describe("mergeSiteConfig", () => {
     expect(eff.features.coupons).toBe(siteConfig.features.coupons);
   });
 
+  it("ghi đè số tài khoản, giữ ngân hàng mặc định", () => {
+    const eff = mergeSiteConfig({
+      payments: {
+        bankTransfer: {
+          ...siteConfig.payments.bankTransfer,
+          accountNumber: "999",
+        },
+      },
+    });
+    expect(eff.payments.bankTransfer.accountNumber).toBe("999");
+    expect(eff.payments.bankTransfer.bank).toBe(siteConfig.payments.bankTransfer.bank);
+    expect(eff.payments.cod.enabled).toBe(siteConfig.payments.cod.enabled);
+  });
+
   it("bỏ qua key features lạ, không crash", () => {
     const eff = mergeSiteConfig({ features: { khong_ton_tai: true } as never });
     expect(eff.features.coupons).toBe(siteConfig.features.coupons);

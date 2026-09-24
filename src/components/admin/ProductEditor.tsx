@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Category, Product } from "@/types";
+import { btnPrimary } from "@/components/admin/buttons";
 
 /** "Tên: giá trị" mỗi dòng → object thuộc tính. */
 export function parseAttrs(raw: string): Record<string, string> {
@@ -82,7 +83,7 @@ export function ProductEditor({
   return (
     <div className="mt-6">
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => { setOpen((v) => !v); setEditId(""); }} className="rounded-full bg-primary px-4 py-2 text-sm text-white">
+        <button type="button" onClick={() => { setOpen((v) => !v); setEditId(""); }} className={btnPrimary}>
           {open && !editId ? "Đóng" : "Thêm sản phẩm"}
         </button>
         <select
@@ -161,7 +162,7 @@ export function ProductEditor({
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="featured" defaultChecked={editing?.featured} /> Nổi bật</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="flashSale" defaultChecked={editing?.flashSale} /> Flash sale</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="published" defaultChecked={editing ? editing.published !== false : true} /> Đang hiện trên cửa hàng</label>
-          <button className="rounded-full bg-primary py-2 text-sm text-white sm:col-span-2">Lưu</button>
+          <button className={`${btnPrimary} sm:col-span-2`}>Lưu sản phẩm</button>
           {msg && <p role="status" className="text-sm text-muted sm:col-span-2">{msg}</p>}
         </form>
       )}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { siteConfig, isEnabled } from "@/config/site";
+import { defaultHome, isEnabled, siteConfig, type EffectiveBrand, type EffectiveHome, type EffectiveShipping } from "@/config/site";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { RecentSection } from "@/components/home/RecentSection";
 import { SmartImage } from "@/components/ui/SmartImage";
@@ -11,10 +11,16 @@ export function HomeView({
   products,
   categories,
   articles,
+  brand = siteConfig.brand,
+  shipping = siteConfig.shipping,
+  home = defaultHome,
 }: {
   products: Product[];
   categories: Category[];
   articles: Article[];
+  brand?: EffectiveBrand;
+  shipping?: EffectiveShipping;
+  home?: EffectiveHome;
 }) {
   const featured = products.filter((p) => p.featured).slice(0, 8);
   const flash = products.filter((p) => p.flashSale);
@@ -24,11 +30,11 @@ export function HomeView({
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-accent">Cửa hàng chọn lọc</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-accent">{home.eyebrow || "Cửa hàng chọn lọc"}</p>
             <h1 className="mt-3 font-serif text-4xl leading-tight text-primary md:text-6xl">
-              {siteConfig.brand.tagline}
+              {brand.tagline}
             </h1>
-            <p className="mt-4 max-w-md text-muted">{siteConfig.brand.description}</p>
+            <p className="mt-4 max-w-md text-muted">{brand.description}</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/san-pham" className="rounded-full bg-primary px-6 py-3 text-sm text-white">
                 Xem sản phẩm
@@ -40,8 +46,8 @@ export function HomeView({
           </div>
           <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] md:aspect-[5/4]">
             <SmartImage
-              src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&q=80"
-              alt="Atelier"
+              src={home.image || defaultHome.image}
+              alt={home.imageAlt || brand.name}
               className="h-full w-full"
               sizes="(max-width: 768px) 100vw, 50vw"
               eager
@@ -53,7 +59,7 @@ export function HomeView({
       <section className="border-y border-line bg-white">
         <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:grid-cols-3">
           {[
-            { icon: IconTruck, title: "Giao toàn quốc", desc: `Freeship từ ${money(siteConfig.shipping.freeFrom)}` },
+            { icon: IconTruck, title: "Giao toàn quốc", desc: `Freeship từ ${money(shipping.freeFrom)}` },
             { icon: IconRefresh, title: "Đổi trả 7 ngày", desc: "Giữ tem mác, chưa qua sử dụng" },
             { icon: IconShield, title: "Thanh toán linh hoạt", desc: "COD hoặc chuyển khoản" },
           ].map((item) => (
@@ -68,7 +74,9 @@ export function HomeView({
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-14">
+      <div className="flex flex-col">
+      {home.blocks.includes("categories") && (
+      <section className="mx-auto max-w-6xl px-4 py-14" style={{ order: home.blocks.indexOf("categories") }}>
         <div className="mb-6 flex items-end justify-between">
           <h2 className="font-serif text-3xl text-primary">Danh mục</h2>
           <Link href="/san-pham" className="text-sm text-muted hover:text-primary">
@@ -94,9 +102,10 @@ export function HomeView({
           ))}
         </div>
       </section>
+      )}
 
-      {isEnabled("flashSale") && flash.length > 0 && (
-        <section className="bg-primary py-14 text-white">
+      {isEnabled("flashSale") && flash.length > 0 && home.blocks.includes("flash") && (
+        <section className="bg-primary py-14 text-white" style={{ order: home.blocks.indexOf("flash") }}>
           <div className="mx-auto max-w-6xl px-4">
             <div className="mb-6 flex items-end justify-between">
               <div>
@@ -127,7 +136,8 @@ export function HomeView({
         </section>
       )}
 
-      <section className="mx-auto max-w-6xl px-4 py-14">
+      {home.blocks.includes("featured") && (
+      <section className="mx-auto max-w-6xl px-4 py-14" style={{ order: home.blocks.indexOf("featured") }}>
         <div className="mb-6 flex items-end justify-between">
           <h2 className="font-serif text-3xl text-primary">Đáng nhìn tuần này</h2>
           <Link href="/san-pham" className="text-sm text-muted">
@@ -136,11 +146,14 @@ export function HomeView({
         </div>
         <ProductGrid products={featured} />
       </section>
+      )}
 
-      <RecentSection />
+      <div style={{ order: 50 }}>
+        <RecentSection />
+      </div>
 
-      {isEnabled("blog") && (
-        <section className="border-t border-line bg-white py-14">
+      {isEnabled("blog") && home.blocks.includes("journal") && (
+        <section className="border-t border-line bg-white py-14" style={{ order: home.blocks.indexOf("journal") }}>
           <div className="mx-auto max-w-6xl px-4">
             <div className="mb-6 flex items-end justify-between">
               <h2 className="font-serif text-3xl text-primary">Journal</h2>
@@ -171,6 +184,7 @@ export function HomeView({
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }

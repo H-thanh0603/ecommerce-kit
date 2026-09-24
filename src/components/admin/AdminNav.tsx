@@ -19,6 +19,7 @@ const groups: { title: string; items: Item[] }[] = [
       { href: "/admin/ma-giam", label: "Mã giảm" },
       { href: "/admin/combo", label: "Combo", flag: "bundles" },
       { href: "/admin/lien-he", label: "Hộp thư" },
+      { href: "/admin/tin-tuc", label: "Bài viết", flag: "blog" },
     ],
   },
   {
@@ -44,6 +45,7 @@ const groups: { title: string; items: Item[] }[] = [
       { href: "/admin/ai", label: "AI Agent", flag: "aiAgent" },
       { href: "/admin/mfa", label: "MFA", flag: "mfa" },
       { href: "/admin/webhooks", label: "Webhook" },
+      { href: "/admin/nhan-vien", label: "Nhân viên" },
       { href: "/admin/cai-dat", label: "Cài đặt" },
     ],
   },
@@ -67,7 +69,7 @@ export function AdminNav() {
   };
 
   return (
-    <aside className="flex w-full shrink-0 flex-col border-b border-line bg-white md:w-56 md:border-r md:border-b-0">
+    <aside className="flex w-full shrink-0 flex-col border-b border-line bg-white print:hidden md:w-56 md:border-r md:border-b-0">
       <div className="flex items-center justify-between border-b border-line px-4 py-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.2em] text-accent">Admin</p>
