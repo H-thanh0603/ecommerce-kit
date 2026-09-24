@@ -13,6 +13,32 @@ type Payload = {
   consent: { enabled: boolean; text: string };
 };
 
+const FEATURE_LABELS: Record<string, string> = {
+  search: "Ô tìm kiếm",
+  wishlist: "Yêu thích",
+  reviews: "Đánh giá",
+  coupons: "Mã giảm giá",
+  bundles: "Combo",
+  flashSale: "Flash sale",
+  blog: "Tin tức",
+  newsletter: "Đăng ký nhận tin",
+  productVariants: "Biến thể sản phẩm",
+  relatedProducts: "Sản phẩm liên quan",
+  stockBadge: "Huy hiệu tồn kho",
+  guestCheckout: "Mua không cần tài khoản",
+  aiChatbot: "Chatbot",
+  aiAgent: "AI Agent",
+  compare: "So sánh",
+  membership: "Hạng thành viên",
+  invoices: "Hóa đơn",
+  excel: "Xuất / nhập Excel",
+  booking: "Đặt lịch",
+  sellByWeight: "Bán theo kg",
+  multiWarehouse: "Nhiều kho",
+  ghn: "Giao hàng GHN",
+  mfa: "Mã xác thực admin",
+};
+
 const BRAND_FIELDS = [
   ["name", "Tên cửa hàng"],
   ["logoText", "Chữ logo"],
@@ -84,9 +110,9 @@ export default function AdminSettings() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-3xl text-primary">Cài đặt khung</h1>
+        <h1 className="font-serif text-3xl text-primary">Cài đặt</h1>
         <Link href="/admin" className="text-sm text-muted">
-          ← Dashboard
+          ← Tổng quan
         </Link>
       </div>
       <p className="mt-2 text-sm text-muted">
@@ -220,7 +246,7 @@ export default function AdminSettings() {
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {Object.entries(data.features).map(([k, v]) => (
             <label key={k} className="flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm">
-              <span>{k}</span>
+              <span>{FEATURE_LABELS[k] ?? k}</span>
               <input
                 type="checkbox"
                 checked={Boolean(v)}

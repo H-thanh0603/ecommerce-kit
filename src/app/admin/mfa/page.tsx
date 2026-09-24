@@ -120,7 +120,7 @@ export default function AdminMfaPage() {
       <div className="flex justify-between">
         <h1 className="font-serif text-3xl text-primary">MFA admin (TOTP)</h1>
         <Link href="/admin" className="text-sm text-muted">
-          ← Dashboard
+          ← Tổng quan
         </Link>
       </div>
 

@@ -48,7 +48,7 @@ export default function AdminGifts() {
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-3xl text-primary">Thẻ quà tặng</h1>
         <Link href="/admin" className="text-sm text-muted">
-          ← Dashboard
+          ← Tổng quan
         </Link>
       </div>
       <div className="mt-6 flex flex-wrap gap-2">

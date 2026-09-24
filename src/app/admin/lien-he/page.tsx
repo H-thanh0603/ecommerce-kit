@@ -8,7 +8,7 @@ export default async function AdminInbox() {
   const [leads, news, mail] = await Promise.all([listLeads(), listNewsletter(), listMailLog(20)]);
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <div className="flex justify-between"><h1 className="font-serif text-3xl text-primary">Hộp thư</h1><Link href="/admin" className="text-sm text-muted">← Dashboard</Link></div>
+      <div className="flex justify-between"><h1 className="font-serif text-3xl text-primary">Hộp thư</h1><Link href="/admin" className="text-sm text-muted">← Tổng quan</Link></div>
       <h2 className="mt-8 font-medium">Liên hệ</h2>
       <ul className="mt-3 space-y-2">
         {leads.map((l) => (

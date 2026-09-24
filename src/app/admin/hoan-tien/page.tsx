@@ -57,7 +57,7 @@ export default function AdminRefunds() {
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-3xl text-primary">Hoàn tiền</h1>
         <Link href="/admin" className="text-sm text-muted">
-          ← Dashboard
+          ← Tổng quan
         </Link>
       </div>
       <p className="mt-2 text-sm text-muted">

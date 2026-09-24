@@ -57,7 +57,7 @@ export default function AdminBundles() {
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-3xl text-primary">Combo</h1>
         <Link href="/admin" className="text-sm text-muted">
-          ← Dashboard
+          ← Tổng quan
         </Link>
       </div>
       <div className="mt-6 grid gap-2 rounded-2xl border border-line bg-white p-4">

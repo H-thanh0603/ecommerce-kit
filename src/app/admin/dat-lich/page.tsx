@@ -19,7 +19,7 @@ export default function AdminBooking() {
   useEffect(() => { load(); }, []);
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      <div className="flex justify-between"><h1 className="font-serif text-3xl text-primary">Đặt lịch</h1><Link href="/admin" className="text-sm text-muted">← Dashboard</Link></div>
+      <div className="flex justify-between"><h1 className="font-serif text-3xl text-primary">Đặt lịch</h1><Link href="/admin" className="text-sm text-muted">← Tổng quan</Link></div>
       <ul className="mt-6 space-y-2">
         {rows.map((b) => (
           <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white p-4 text-sm">

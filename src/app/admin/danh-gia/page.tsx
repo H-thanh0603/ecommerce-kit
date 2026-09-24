@@ -40,7 +40,7 @@ export default function AdminReviews() {
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-3xl text-primary">Duyệt đánh giá {rows.length > 0 && `(${rows.length})`}</h1>
         <Link href="/admin" className="text-sm text-muted">
-          ← Dashboard
+          ← Tổng quan
         </Link>
       </div>
       {msg && <p className="mt-2 text-sm text-primary">{msg}</p>}
