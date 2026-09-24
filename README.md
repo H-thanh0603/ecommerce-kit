@@ -10,7 +10,7 @@ Triển khai production: xem `DEPLOY.md` (Docker 1 lệnh, chuyển Postgres, ch
 
 - Storefront: catalog, giỏ, checkout, tài khoản, journal, chatbot AI
 - Admin: sản phẩm, đơn, cài đặt, AI Agent
-- Dữ liệu: Prisma + SQLite (đổi Postgres được)
+- Dữ liệu: Prisma + PostgreSQL
 - Thanh toán: COD + chuyển khoản; MoMo/VNPay cắm tại `src/server/payments.ts`
 
 ## Chạy local
@@ -34,6 +34,16 @@ npx prisma migrate deploy
 ```
 
 Mã giảm giá: `WELCOME10`, `FREESHIP`, `GIAM50K`
+
+## Multi-tenant (nhiều shop / 1 DB Postgres)
+
+```bash
+npm run migrate:all                                    # migrate mọi schema (public + platform + tenant)
+npm run tenant:create shopa "Shop A" shopa.localhost   # shop mới: row + schema + migrate + seed
+npm run platform:admin admin@platform.vn <mat-khau≥8>  # super-admin đăng nhập /platform
+```
+
+Local truy cập `http://shopa.localhost:3000` (Host → schema Postgres riêng). Runbook: `DEPLOY.md` §10.
 
 Chatbot / AI Agent cần `XAI_API_KEY` (SpaceXAI / [console.x.ai](https://console.x.ai)). Không có key thì UI vẫn hiện, API hướng dẫn cấu hình.
 

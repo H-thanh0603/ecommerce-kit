@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Backup SQLite (hoặc Postgres nếu DATABASE_URL là postgres://) → BACKUP_DIR.
+# Backup Postgres (mặc định) → pg_dump -Fc; branch file: chỉ còn fallback SQLite.
+# pg_dump KHÔNG truyền -n → dump TOÀN database: public + platform + mọi schema tenant
+# (đủ để restore 1 file — xem DEPLOY.md §5/§10). Muốn dump riêng schema: thêm -n <schema>.
 # RPO = tần suất cron (khuyến nghị daily 02:00). Test restore xem DEPLOY.md.
 set -euo pipefail
 
@@ -35,8 +37,10 @@ case "$DB_URL" in
     ;;
   postgres://*|postgresql://*)
     OUT="$BACKUP_DIR/pg-$STAMP.dump"
+    # Prisma thêm `?schema=…` — libpq/pg_dump từ chối query param lạ → bỏ query string
+    URL="${DB_URL%%\?*}"
     if command -v pg_dump >/dev/null 2>&1; then
-      pg_dump "$DB_URL" -Fc -f "$OUT"
+      pg_dump "$URL" -Fc -f "$OUT"
       echo "OK postgres → $OUT"
     else
       echo "pg_dump không có trên máy" >&2

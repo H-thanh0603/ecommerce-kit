@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke test sau deploy/rollback — exit ≠ 0 nếu fail.
-# Usage: BASE_URL=http://localhost:3000 CRON_SECRET=... ./scripts/smoke.sh
+# Usage: BASE_URL=http://localhost:3000 CRON_SECRET=... TENANT_HOST=shopa.localhost ./scripts/smoke.sh
 set -euo pipefail
 
 BASE="${BASE_URL:-http://localhost:3000}"
@@ -28,6 +28,18 @@ check "home"          "$BASE/"           200
 check "san-pham"      "$BASE/san-pham"   200
 check "chinh-sach"    "$BASE/chinh-sach" 200
 check "sitemap"       "$BASE/sitemap.xml" 200
+
+# Optional: health qua Host tenant (multi-tenant) — TENANT_HOST=shopa.localhost
+if [[ -n "${TENANT_HOST:-}" ]]; then
+  code=$(curl -sS -o /tmp/smoke-body -w "%{http_code}" --max-time 10 \
+    -H "Host: $TENANT_HOST" "$BASE/api/health" || echo 000)
+  body=$(cat /tmp/smoke-body 2>/dev/null || true)
+  if [[ "$code" == "200" && "$body" == *'"ok"'* ]]; then
+    echo "OK   tenant health ($TENANT_HOST) → 200"
+  else
+    echo "FAIL tenant health ($TENANT_HOST) → HTTP $code body=$body"; FAIL=1
+  fi
+fi
 
 # Cron phải 401 khi thiếu secret, 200 khi đúng (nếu CRON_SECRET set)
 if [[ -n "${CRON_SECRET:-}" ]]; then

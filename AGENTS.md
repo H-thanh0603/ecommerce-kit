@@ -10,7 +10,10 @@ npm test                    # vitest (DB thật Postgres (ek), test phải idemp
 npx tsc --noEmit            # kiểm tra kiểu
 npm run build               # build production (E2E chạy trên build này, KHÔNG chạy trên dev)
 E2E_URL=http://localhost:3100 npm run test:e2e
-npx prisma migrate dev --name <ten>   # đổi schema
+npx prisma migrate dev --name <ten>   # đổi schema (public) — chạy migrate:all để phủ tenant
+npm run migrate:all         # migrate mọi schema: public + platform + mọi tenant active
+npm run tenant:create <slug> <ten> <host1,host2>   # shop mới: row + CREATE SCHEMA + migrate + seed
+npm run platform:admin <email> <password≥8>        # super-admin cho /platform
 ```
 
 ## Kiến trúc
@@ -30,6 +33,10 @@ npx prisma migrate dev --name <ten>   # đổi schema
   `buildXxxPayUrl` + `verifyXxx` + `handleXxxIpn` pure + route `ipn`/`return` + test).
 - Type dùng chung client-an-toàn đặt ở `src/config/site.ts` (`EffectiveSite`) và `src/types/`.
   KHÔNG import module chứa Prisma vào component client (build sẽ vỡ).
+- Multi-tenant (schema-per-tenant Postgres): Host → schema qua ALS (`src/server/tenant-context.ts`,
+  `tenant.ts`); bảng platform (`Tenant`, `TenantDomain`, `PlatformAdmin`) nằm schema `platform`,
+  truy cập qua `src/server/platform-db.ts`. Module `platform` KHÔNG nằm trong 4 file lõi —
+  không viết logic commerce ở đó, cũng không đưa tenant/platform vào `commerce.ts`.
 
 ## Quy tắc test
 

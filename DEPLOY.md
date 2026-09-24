@@ -10,40 +10,46 @@ npx tsx prisma/seed.ts
 npm run dev
 ```
 
-## 2. Docker — VPS 1 lệnh (SQLite, volume persist)
+## 2. Docker — VPS 1 lệnh (Postgres trong compose, volume `ek-pg` persist)
+
+Mặc định `docker compose up` đã gồm **app + Postgres 16** (`db` không còn sau
+profile `pg` — provider `postgresql` là bắt buộc sau multi-tenant):
 
 ```bash
-cp .env.example .env   # sửa AUTH_SECRET, ADMIN_PASSWORD, APP_URL=https://domain
+cp .env.example .env   # sửa AUTH_SECRET, ADMIN_PASSWORD, APP_URL=https://domain; BẮT BUỘC điền POSTGRES_PASSWORD
 docker compose up -d --build
-docker compose exec app env NODE_ENV=production ALLOW_SEED=1 npx tsx prisma/seed.ts   # lần đầu, DB trống
+docker compose exec app env NODE_ENV=production ALLOW_SEED=1 npx tsx prisma/seed.ts   # lần đầu, DB trống (schema public)
 ```
 
 > Production **từ chối seed** nếu thiếu `ALLOW_SEED=1` hoặc `ADMIN_PASSWORD`
 > còn là `admin123` — seed xóa toàn bộ dữ liệu nên chỉ chạy 1 lần lúc lập DB trống.
 
-DB nằm trong volume `ek-data`. Update bản mới:
+DB nằm trong volume `ek-pg`. Update bản mới (mọi schema, gồm cả tenant — xem §10):
 
 ```bash
 git pull
-docker compose up -d --build   # migrate deploy tự chạy lúc start
+docker compose up -d --build            # app tự `prisma migrate deploy` lúc start (chỉ schema public)
+docker compose exec app npm run migrate:all   # phủ platform + mọi schema tenant
 ```
 
-## 3. Postgres managed (Vercel/Neon/Supabase) hoặc compose profile `pg`
+`app` ghi đè `DATABASE_URL` trỏ service `db` trong network compose — `.env` trên
+host không cần đổi. Muốn app Docker bắt DB ngoài (Neon/…) thì sửa
+`DATABASE_URL` trong `docker-compose.yml` hoặc chạy app khác đường (§3).
+
+## 3. Postgres managed (Vercel/Neon/Supabase)
 
 Repo đã mặc định PostgreSQL — mỗi môi trường chỉ cần trỏ `DATABASE_URL`
 (`postgresql://…@host:5432/db?schema=public`) rồi migrate + seed:
 
 ```bash
 # 1. Trỏ DATABASE_URL Postgres (env hoặc .env)
-npx prisma migrate deploy        # baseline + các migration sau
+npx prisma migrate deploy        # baseline + các migration sau (schema public)
+npm run migrate:all              # phủ platform + mọi schema tenant (xem §10)
 npx tsx prisma/seed.ts
 ```
 
-Chạy kèm Postgres local:
-
-```bash
-docker compose --profile pg up -d
-```
+Postgres local nằm trong compose mặc định (§2) — không cần `--profile pg` nữa.
+App Docker + DB managed: sửa `DATABASE_URL` trong `docker-compose.yml` (xem §2).
 
 Vercel: thêm env `DATABASE_URL` (pooling, thêm `?pgbouncer=true` nếu dùng transaction
 pooler — lưu ý `migrate deploy` cần direct connection), Build Command giữ mặc định
@@ -74,15 +80,17 @@ cron nhớ truyền `DATABASE_URL` vào env của script.
 
 # Test restore (BẮT BUỘC ít nhất 1 lần trước launch):
 docker compose stop app            # dừng ghi trước khi restore
-pg_restore --clean --if-exists -d "$DATABASE_URL" /var/backups/ek/pg-YYYYMMDDHHMMSS.dump
+# bỏ `?schema=…` (Prisma) — libpq/pg_restore từ chối query param lạ, như backup.sh
+pg_restore --clean --if-exists -d "${DATABASE_URL%%\?*}" /var/backups/ek/pg-YYYYMMDDHHMMSS.dump
 docker compose up -d
 curl -s http://localhost:3000/api/health   # { ok: true, db: "up" }
 ```
 
 - **RPO = 24h** (1 backup/ngày — tăng tần suất nếu dữ liệu đổi nhanh).
 - **RTO ≈ 1h** (`pg_restore` + health check).
-- **Multi-schema:** khi bật schema-per-tenant cần `pg_dump` toàn bộ các schema
-  (không chỉ `public`) — Task 11 sẽ cập nhật chi tiết ở đây.
+- **Multi-schema:** `pg_dump -Fc` **mặc định dump toàn database** — đủ mọi
+  schema (`public`, `platform`, mọi schema tenant), không cần loop `--schema=`.
+  Muốn dump riêng 1 schema thì thêm `-n <schema>` (restore tương ứng `pg_restore`).
 - Offsite: symlink/rclone `BACKUP_DIR` sang S3/NAS + mã hóa archive (`gpg -c`).
 - Ghi log ngày test restore gần nhất vào mục checklist dưới.
 
@@ -149,7 +157,8 @@ trong checklist team — **không commit key**.
       — Multi-tenant: mail link đã tự theo Host, nhưng **mỗi tenant bật
       payment cần `APP_URL` riêng → phase sau resolve Host lúc tạo payment**
       (vnpay/momo/sitemap/robots vẫn giữ `APP_URL` — YAGNI Task 7)
-- [ ] `npx prisma migrate deploy` đã chạy (Docker tự chạy)
+- [ ] `npx prisma migrate deploy` đã chạy (Docker tự chạy) + `npm run migrate:all`
+      sau mỗi `git pull` khi có schema tenant (§10)
 - [ ] VNPay: `VNPAY_TMN_CODE/HASH_SECRET`, khai báo IPN
   `https://domain/api/payments/vnpay/ipn` + ReturnUrl trên cổng
 - [ ] GHN: `GHN_TOKEN/SHOP_ID`, bật `features.ghn` trên `/admin/cai-dat`
@@ -157,3 +166,35 @@ trong checklist team — **không commit key**.
 - [ ] Đã chạy `./scripts/backup.sh` + **test restore 1 lần** (ghi ngày: ______)
 - [ ] `CRON_SECRET` + cron retention + abandoned đã bật
 - [ ] Không còn credential mặc định trong repo (`ADMIN_PASSWORD` strong)
+
+## 10. Multi-tenant (schema-per-tenant Postgres)
+
+Mỗi shop = 1 schema Postgres, nhận diện theo **Host** (custom domain). App +
+DB vẫn 1 instance.
+
+- **DNS:** trỏ CNAME từng shop (`shopa.vn`, `www.shopa.vn` → server/app) —
+  thêm Host trên reverse proxy trước app (compose bind `127.0.0.1:3000`).
+- **Sau `git pull`:** migrate **mọi** schema (app lúc start chỉ tự chạy
+  `prisma migrate deploy` cho `public`):
+
+  ```bash
+  npm run migrate:all        # hoặc: docker compose exec app npm run migrate:all
+  ```
+
+- **Thêm shop mới:**
+
+  ```bash
+  npm run tenant:create <slug> <ten> <host1,host2>
+  # VD: npm run tenant:create shopc "Shop C" shopc.vn,www.shopc.vn
+  ```
+
+  Tự làm: row `Tenant`/`TenantDomain` (schema `platform`) → `CREATE SCHEMA`
+  → migrate schema đó → seed + set brand. Idempotent fail sạch nếu slug/domain trùng.
+
+- **Super-admin `/platform`:** `npm run platform:admin <email> <password≥8>`
+  rồi đăng nhập `/platform` (tách session với admin từng shop).
+- **Backup:** `scripts/backup.sh` → `pg_dump -Fc` **toàn database** — đã đủ mọi
+  schema (public + platform + tenant); restore 1 file bằng `pg_restore` (§5).
+- **Payment callback (VNPay/MoMo) vẫn dùng env `APP_URL`** — mỗi tenant bật
+  payment cần `APP_URL` riêng; resolve Host lúc tạo payment = phase sau
+  (YAGNI — mail link đã tự theo Host).
