@@ -1,4 +1,4 @@
-# Build + chạy production. SQLite mặc định, persist qua volume /app/prisma.
+# Build + chạy production. Postgres (DATABASE_URL) là bắt buộc; uploads persist qua volume ek-uploads.
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -24,7 +24,7 @@ COPY --from=builder /app/package.json next.config.ts ./
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
 USER app
 EXPOSE 3000
-# migrate deploy để SQLite/Postgres đều lên schema mới nhất rồi mới chạy app
+# migrate deploy (schema public) rồi mới chạy app; schema tenant cần `npm run migrate:all` (DEPLOY.md §10)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD sh -c 'wget -qO- "http://127.0.0.1:${PORT:-3000}/api/health" || exit 1'
 CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
