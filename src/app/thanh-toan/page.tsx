@@ -20,12 +20,14 @@ export default function CheckoutPage() {
   const [method, setMethod] = useState(methods[0]?.key || "cod");
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<Coupon | null>(null);
+  const [couponMsg, setCouponMsg] = useState("");
   const [gift, setGift] = useState("");
   const [bundleId, setBundleId] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [innerCity, setInnerCity] = useState(false);
   const [usePoints, setUsePoints] = useState(false);
+  const [pointsBalance, setPointsBalance] = useState<number | null>(null);
   // Idempotency key — giữ nguyên khi retry (double-click/reload không tạo 2 đơn).
   const [clientRequestId] = useState(
     () =>
@@ -62,6 +64,17 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
+    if (user && isEnabled("membership")) {
+      fetch("/api/member")
+        .then((r) => r.json())
+        .then((j) => setPointsBalance(typeof j.member?.points === "number" ? j.member.points : 0))
+        .catch(() => setPointsBalance(null));
+    } else {
+      setPointsBalance(null);
+    }
+  }, [user]);
+
+  useEffect(() => {
     fetch("/api/addresses")
       .then((r) => r.json())
       .then((j) => {
@@ -96,12 +109,12 @@ export default function CheckoutPage() {
       body: JSON.stringify({ code, subtotal, email: user?.email }),
     });
     const data = await res.json();
-    if (!res.ok) return setError(data.message || "Mã không tồn tại");
+    if (!res.ok) return setCouponMsg(data.message || "Mã không tồn tại");
     if (subtotal < data.coupon.minOrder) {
-      return setError(`Đơn tối thiểu ${money(data.coupon.minOrder)}`);
+      return setCouponMsg(`Đơn tối thiểu ${money(data.coupon.minOrder)}`);
     }
     setApplied(data.coupon);
-    setError("");
+    setCouponMsg("");
   };
 
   const place = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -125,7 +138,7 @@ export default function CheckoutPage() {
           giftCode: gift.trim() || undefined,
           bundleId: bundleId || undefined,
           innerCity,
-          pointsToUse: usePoints ? 100 : undefined,
+          pointsToUse: usePoints && pointsBalance ? Math.min(pointsBalance, 100) : undefined,
           clientRequestId,
           items,
         }),
@@ -193,12 +206,12 @@ export default function CheckoutPage() {
               <textarea name="note" placeholder="Ghi chú đơn hàng" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" rows={3} />
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input type="checkbox" checked={innerCity} onChange={(e) => setInnerCity(e.target.checked)} />
-                Nội thành (phí {money(siteConfig.shipping.innerCityFee)} nếu chưa đạt freeship)
+                Tôi ở nội thành (phí {money(siteConfig.shipping.innerCityFee)} thay vì {money(siteConfig.shipping.defaultFee)} nếu chưa đạt freeship {money(siteConfig.shipping.freeFrom)})
               </label>
-              {isEnabled("membership") && user && (
+              {isEnabled("membership") && user && pointsBalance !== null && pointsBalance > 0 && (
                 <label className="flex items-center gap-2 text-sm sm:col-span-2">
                   <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} />
-                  Dùng 100 điểm thành viên (−{money(1000)})
+                  Dùng {Math.min(pointsBalance, 100)} điểm (−{money(Math.min(pointsBalance, 100) * 10)} · số dư {pointsBalance})
                 </label>
               )}
             </div>
@@ -270,7 +283,7 @@ export default function CheckoutPage() {
               </button>
             </div>
           )}
-          {error && <p className="mt-2 text-xs text-accent">{error}</p>}
+          {couponMsg && <p role="status" className="mt-2 text-xs text-accent">{couponMsg}</p>}
           {applied && <p className="mt-2 text-xs text-primary">Đã áp dụng {applied.code}</p>}
           <div className="mt-4 flex gap-2">
             <input
