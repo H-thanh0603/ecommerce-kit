@@ -112,7 +112,7 @@ export function HomeView({
                 <p className="text-xs uppercase tracking-[0.2em] text-white/60">Ưu đãi có hạn</p>
                 <h2 className="font-serif text-3xl">Flash sale</h2>
               </div>
-              <Link href="/san-pham" className="text-sm text-white/80">
+              <Link href="/san-pham?flash=1" className="text-sm text-white/80">
                 Xem thêm →
               </Link>
             </div>

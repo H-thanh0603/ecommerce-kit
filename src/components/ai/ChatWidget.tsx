@@ -64,7 +64,7 @@ export function ChatWidget() {
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-3 text-sm">
             {messages.length === 0 && (
-              <p className="text-muted">Hỏi size, giá, còn hàng… Cần XAI_API_KEY để trả lời.</p>
+              <p className="text-muted">Hỏi size, giá, còn hàng… Tôi trả lời dựa trên sản phẩm của shop.</p>
             )}
             {messages.map((m, i) => (
               <p key={i} className={m.role === "user" ? "text-right font-medium" : "text-muted"}>
