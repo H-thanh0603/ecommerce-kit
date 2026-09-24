@@ -82,6 +82,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               shippingEta={shippingEta}
               announcement={site?.announcement}
               consent={site?.consent}
+              payments={site?.payments}
             >
               {children}
             </AppChrome>

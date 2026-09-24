@@ -1,10 +1,22 @@
 import Link from "next/link";
-import { siteConfig, isEnabled, type EffectiveSite } from "@/config/site";
+import { siteConfig, isEnabled, type EffectiveSite, type EffectivePayments } from "@/config/site";
 import type { Category } from "@/types";
 import { NewsletterForm } from "@/components/layout/NewsletterForm";
 
-export function Footer({ categories, brand }: { categories: Category[]; brand?: EffectiveSite["brand"] }) {
+export function Footer({
+  categories,
+  brand,
+  payments,
+}: {
+  categories: Category[];
+  brand?: EffectiveSite["brand"];
+  payments?: EffectiveSite["payments"];
+}) {
   const b = brand ?? siteConfig.brand;
+  const pay = (payments ?? siteConfig.payments) as EffectivePayments;
+  const payLabels = [pay.cod, pay.bankTransfer, pay.momo, pay.vnpay, pay.zalopay]
+    .filter((p) => p?.enabled)
+    .map((p) => p.label.split("(")[0].trim());
   return (
     <footer className="mt-auto border-t border-line bg-white">
       {isEnabled("newsletter") && (
@@ -42,16 +54,16 @@ export function Footer({ categories, brand }: { categories: Category[]; brand?: 
           <p className="text-sm font-medium">Hỗ trợ</p>
           <ul className="mt-3 space-y-2 text-sm text-muted">
             <li>
-              <Link href="/chinh-sach">Đổi trả & bảo hành</Link>
+              <Link href="/chinh-sach#doi-tra">Đổi trả & bảo hành</Link>
             </li>
             <li>
-              <Link href="/chinh-sach">Vận chuyển</Link>
+              <Link href="/chinh-sach#van-chuyen">Vận chuyển</Link>
             </li>
             <li>
               <Link href="/chinh-sach#privacy">Quyền riêng tư</Link>
             </li>
             <li>
-              <Link href="/chinh-sach">Điều khoản</Link>
+              <Link href="/chinh-sach#dieu-khoan">Điều khoản</Link>
             </li>
             <li>
               <Link href="/lien-he">Liên hệ</Link>
@@ -75,8 +87,8 @@ export function Footer({ categories, brand }: { categories: Category[]; brand?: 
       </div>
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col justify-between gap-2 px-4 py-4 text-xs text-muted sm:flex-row">
-          <p>© {new Date().getFullYear()} {b.name}. Khung TMĐT tái sử dụng.</p>
-          <p>COD · Chuyển khoản{siteConfig.payments.momo.enabled ? " · MoMo" : ""}{siteConfig.payments.vnpay.enabled ? " · VNPay" : ""}</p>
+          <p>© {new Date().getFullYear()} {b.name}.</p>
+          <p>{payLabels.length ? payLabels.join(" · ") : "COD · Chuyển khoản"}</p>
         </div>
       </div>
     </footer>

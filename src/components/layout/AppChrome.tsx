@@ -19,6 +19,7 @@ export function AppChrome({
   shippingEta,
   announcement,
   consent,
+  payments,
   children,
 }: {
   categories: Category[];
@@ -26,6 +27,7 @@ export function AppChrome({
   shippingEta?: string;
   announcement?: EffectiveSite["announcement"];
   consent?: EffectiveSite["consent"];
+  payments?: EffectiveSite["payments"];
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -43,7 +45,7 @@ export function AppChrome({
       <main id="main" className="flex-1" tabIndex={-1}>
         {children}
       </main>
-      <Footer categories={categories} brand={brand} />
+      <Footer categories={categories} brand={brand} payments={payments} />
       <ChatWidget />
       <ConsentBanner enabled={consent?.enabled} text={consent?.text} />
     </>

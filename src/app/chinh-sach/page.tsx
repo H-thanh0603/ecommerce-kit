@@ -13,12 +13,12 @@ export default async function PolicyPage() {
     <div className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="font-serif text-4xl text-primary">Chính sách cửa hàng</h1>
       <section className="mt-8 space-y-3 text-sm leading-relaxed text-muted">
-        <h2 className="font-medium text-ink">Vận chuyển</h2>
+        <h2 id="van-chuyen" className="font-medium text-ink">Vận chuyển</h2>
         <p>
           Giao hàng toàn quốc trong {siteConfig.shipping.estimatedDays}. Phí mặc định{" "}
           {money(siteConfig.shipping.defaultFee)}. Miễn phí từ {money(siteConfig.shipping.freeFrom)}.
         </p>
-        <h2 className="pt-4 font-medium text-ink">Đổi trả</h2>
+        <h2 id="doi-tra" className="pt-4 font-medium text-ink">Đổi trả</h2>
         <p>
           Đổi trả trong 7 ngày nếu sản phẩm còn tem mác, chưa qua sử dụng. Không áp dụng với hàng sale cuối cùng
           hoặc hàng đặt riêng — có thể bật rule này trong module khi làm cho khách.
@@ -39,7 +39,7 @@ export default async function PolicyPage() {
           Giữ dữ liệu tối đa 24 tháng sau đơn cuối (hoặc theo nghĩa vụ kế toán hiện hành); token đặt lại mật
           khẩu hết hạn trong 30 phút; mail chứa token bị che sau 24h.
         </p>
-        <h2 id="terms" className="pt-4 font-medium text-ink">Điều khoản sử dụng</h2>
+        <h2 id="dieu-khoan" className="pt-4 font-medium text-ink">Điều khoản sử dụng</h2>
         <p>
           Dùng trang đồng ý không mua bán hàng cấm, không can thiệp hệ thống. Giá hiển thị đã gồm VAT nếu có;
           đơn chỉ xác nhận khi cửa hàng xác nhận (hoặc IPN thanh toán thành công). Tranh chấp liên hệ{" "}
