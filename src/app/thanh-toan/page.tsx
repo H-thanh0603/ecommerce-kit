@@ -64,17 +64,6 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    if (user && isEnabled("membership")) {
-      fetch("/api/member")
-        .then((r) => r.json())
-        .then((j) => setPointsBalance(typeof j.member?.points === "number" ? j.member.points : 0))
-        .catch(() => setPointsBalance(null));
-    } else {
-      setPointsBalance(null);
-    }
-  }, [user]);
-
-  useEffect(() => {
     fetch("/api/addresses")
       .then((r) => r.json())
       .then((j) => {
@@ -87,7 +76,14 @@ export default function CheckoutPage() {
         }
       })
       .catch(() => {});
-  }, []);
+    // Điểm thành viên — đọc kèm effect này (cùng lifecycle user) tránh thêm hook lỗi lint.
+    if (user && isEnabled("membership")) {
+      fetch("/api/member")
+        .then((r) => r.json())
+        .then((j) => setPointsBalance(typeof j.member?.points === "number" ? j.member.points : 0))
+        .catch(() => setPointsBalance(null));
+    }
+  }, [user]);
 
   const shipRaw = shippingFee(subtotal, { innerCity });
   const ship = applied?.type === "shipping" ? 0 : shipRaw;
