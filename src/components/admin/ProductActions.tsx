@@ -14,7 +14,7 @@ export function ProductActions({ product }: { product: Product }) {
     router.refresh();
   };
   const remove = async () => {
-    if (!confirm("Ẩn hoặc xóa sản phẩm này?")) return;
+    if (!confirm("Xóa sản phẩm này? Nếu sản phẩm đã nằm trong đơn, nó sẽ bị ẩn thay vì xóa.")) return;
     await fetch(`/api/products/${product.id}`, { method: "DELETE" });
     router.refresh();
   };

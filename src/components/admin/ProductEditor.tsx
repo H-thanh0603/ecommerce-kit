@@ -53,8 +53,12 @@ export function ProductEditor({
       attrs: parseAttrs(String(form.get("attrsText") || "")),
       featured: form.get("featured") === "on",
       flashSale: form.get("flashSale") === "on",
-      published: form.get("published") !== "off",
+      published: form.get("published") === "on",
     };
+    if (editId && !editing) {
+      setMsg("Không thấy sản phẩm này trên trang. Không lưu form trống.");
+      return;
+    }
     const url = editId ? `/api/products/${editId}` : "/api/products";
     const res = await fetch(url, {
       method: editId ? "PATCH" : "POST",
@@ -62,7 +66,8 @@ export function ProductEditor({
       body: JSON.stringify(payload),
     });
     const data = await res.json();
-    setMsg(res.ok ? "Đã lưu" : data.message || "Lỗi");
+    const shown = payload.published ? "đang hiện" : "đang ẩn";
+    setMsg(res.ok ? `Đã lưu «${payload.name}», ${shown}` : data.message || "Lỗi");
     if (res.ok) router.refresh();
   };
 
@@ -96,31 +101,41 @@ export function ProductEditor({
           ))}
         </select>
       </div>
-      {open && (
+      {open && editId && !editing && (
+        <p className="mt-4 text-sm text-accent">Không thấy sản phẩm này. Chọn lại trong danh sách.</p>
+      )}
+      {open && (!editId || editing) && (
         <form key={editId || "new"} onSubmit={onSubmit} className="mt-4 grid gap-3 rounded-2xl border border-line bg-white p-5 sm:grid-cols-2">
-          <input required name="name" defaultValue={editing?.name} placeholder="Tên" className="rounded-xl border border-line px-3 py-2 text-sm" />
-          <input required name="slug" defaultValue={editing?.slug} placeholder="slug-khong-dau" className="rounded-xl border border-line px-3 py-2 text-sm" />
-          <input name="subtitle" defaultValue={editing?.subtitle} placeholder="Phụ đề" className="rounded-xl border border-line px-3 py-2 text-sm sm:col-span-2" />
-          <input required name="price" type="number" defaultValue={editing?.price} placeholder="Giá" className="rounded-xl border border-line px-3 py-2 text-sm" />
-          <input required name="stock" type="number" defaultValue={editing?.stock} placeholder="Tồn" className="rounded-xl border border-line px-3 py-2 text-sm" />
-          <select name="categorySlug" defaultValue={editing?.category} className="rounded-xl border border-line px-3 py-2 text-sm">
-            {categories.map((c) => (
-              <option key={c.id} value={c.slug}>{c.name}</option>
-            ))}
-          </select>
-          <input name="tags" defaultValue={editing?.tags.join(", ")} placeholder="tag1, tag2" className="rounded-xl border border-line px-3 py-2 text-sm" />
-          <textarea
-            name="images"
-            rows={2}
-            defaultValue={editing?.images.join("\n")}
-            placeholder="URL ảnh, mỗi dòng một ảnh — hoặc upload"
-            className="rounded-xl border border-line px-3 py-2 text-sm sm:col-span-2"
-            id="images-field"
-          />
+          <label className="grid gap-1 text-sm">Tên<input required name="name" defaultValue={editing?.name} className="rounded-xl border border-line px-3 py-2" /></label>
+          <label className="grid gap-1 text-sm">Đường dẫn<input required name="slug" defaultValue={editing?.slug} placeholder="ao-linen-xanh" className="rounded-xl border border-line px-3 py-2" /></label>
+          <label className="grid gap-1 text-sm sm:col-span-2">Phụ đề<input name="subtitle" defaultValue={editing?.subtitle} className="rounded-xl border border-line px-3 py-2" /></label>
+          <label className="grid gap-1 text-sm">Giá (đ)<input required name="price" type="number" defaultValue={editing?.price} className="rounded-xl border border-line px-3 py-2" /></label>
+          <label className="grid gap-1 text-sm">Tồn<input required name="stock" type="number" defaultValue={editing?.stock} className="rounded-xl border border-line px-3 py-2" /></label>
+          <label className="grid gap-1 text-sm">
+            Danh mục
+            <select name="categorySlug" defaultValue={editing?.category} className="rounded-xl border border-line px-3 py-2">
+              {categories.map((c) => (
+                <option key={c.id} value={c.slug}>{c.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm">Thẻ, cách nhau bởi dấu phẩy<input name="tags" defaultValue={editing?.tags.join(", ")} className="rounded-xl border border-line px-3 py-2" /></label>
+          <label className="grid gap-1 text-sm sm:col-span-2">
+            Ảnh, mỗi dòng một URL
+            <textarea
+              name="images"
+              rows={2}
+              defaultValue={editing?.images.join("\n")}
+              className="rounded-xl border border-line px-3 py-2"
+              id="images-field"
+            />
+          </label>
+          <label className="grid gap-1 text-sm sm:col-span-2">
+            Tải ảnh lên
           <input
             type="file"
             accept="image/*"
-            className="text-sm sm:col-span-2"
+            className="text-sm"
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
@@ -131,18 +146,23 @@ export function ProductEditor({
               setMsg("Đã thêm ảnh " + url);
             }}
           />
-          <textarea required name="description" rows={3} defaultValue={editing?.description} placeholder="Mô tả" className="rounded-xl border border-line px-3 py-2 text-sm sm:col-span-2" />
-          <textarea
-            name="attrsText"
-            rows={2}
-            defaultValue={editing?.attrs ? Object.entries(editing.attrs).map(([k, v]) => `${k}: ${v}`).join("\n") : ""}
-            placeholder="Thuộc tính mỗi dòng một cái — VD: Chất liệu: cotton 100%"
-            className="rounded-xl border border-line px-3 py-2 text-sm sm:col-span-2"
-          />
+          </label>
+          <label className="grid gap-1 text-sm sm:col-span-2">Mô tả<textarea required name="description" rows={3} defaultValue={editing?.description} className="rounded-xl border border-line px-3 py-2" /></label>
+          <label className="grid gap-1 text-sm sm:col-span-2">
+            Thuộc tính, mỗi dòng «Tên: giá trị»
+            <textarea
+              name="attrsText"
+              rows={2}
+              defaultValue={editing?.attrs ? Object.entries(editing.attrs).map(([k, v]) => `${k}: ${v}`).join("\n") : ""}
+              placeholder="Chất liệu: cotton 100%"
+              className="rounded-xl border border-line px-3 py-2"
+            />
+          </label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="featured" defaultChecked={editing?.featured} /> Nổi bật</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="flashSale" defaultChecked={editing?.flashSale} /> Flash sale</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="published" defaultChecked={editing ? editing.published !== false : true} /> Đang hiện trên cửa hàng</label>
           <button className="rounded-full bg-primary py-2 text-sm text-white sm:col-span-2">Lưu</button>
-          {msg && <p className="text-sm text-muted sm:col-span-2">{msg}</p>}
+          {msg && <p role="status" className="text-sm text-muted sm:col-span-2">{msg}</p>}
         </form>
       )}
     </div>

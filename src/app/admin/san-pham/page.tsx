@@ -1,6 +1,6 @@
 import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
-import { listCategories, listProducts } from "@/server/commerce";
+import { getProductById, listCategories, listProducts } from "@/server/commerce";
 import { money } from "@/lib/format";
 import { ProductEditor } from "@/components/admin/ProductEditor";
 import { ProductActions } from "@/components/admin/ProductActions";
@@ -23,7 +23,11 @@ export default async function AdminProducts({
     }),
     listCategories(),
   ]);
-  const products = result.items;
+  let products = result.items;
+  if (sp.edit && !products.some((p) => p.id === sp.edit)) {
+    const extra = await getProductById(sp.edit);
+    if (extra) products = [extra, ...products];
+  }
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -53,6 +57,13 @@ export default async function AdminProducts({
             </tr>
           </thead>
           <tbody>
+            {products.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-muted">
+                  Không có sản phẩm khớp.
+                </td>
+              </tr>
+            )}
             {products.map((p) => (
               <tr key={p.id} className="border-t border-line">
                 <td className="px-4 py-3">
