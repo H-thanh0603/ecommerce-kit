@@ -81,12 +81,15 @@ export function Header({
 
         <div className="ml-auto flex items-center gap-3">
           {isEnabled("search") && (
-            <form onSubmit={submitSearch} className="hidden items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 lg:flex">
+            <form onSubmit={submitSearch} className="hidden items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 lg:flex" role="search">
               <IconSearch className="h-4 w-4 text-muted" />
+              <label htmlFor="d-search" className="sr-only">Tìm sản phẩm</label>
               <input
+                id="d-search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Tìm sản phẩm…"
+                autoComplete="off"
                 className="w-44 bg-transparent text-sm outline-none"
               />
             </form>
@@ -122,15 +125,20 @@ export function Header({
 
       {open && (
         <div className="border-t border-line bg-canvas px-4 py-4 md:hidden">
-          <form onSubmit={submitSearch} className="mb-3 flex items-center gap-2 rounded-full border border-line bg-white px-3 py-2">
-            <IconSearch className="h-4 w-4 text-muted" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Tìm sản phẩm…"
-              className="w-full bg-transparent text-sm outline-none"
-            />
-          </form>
+          {isEnabled("search") && (
+            <form onSubmit={submitSearch} className="mb-3 flex items-center gap-2 rounded-full border border-line bg-white px-3 py-2" role="search">
+              <IconSearch className="h-4 w-4 text-muted" />
+              <label htmlFor="m-search" className="sr-only">Tìm sản phẩm</label>
+              <input
+                id="m-search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Tìm sản phẩm…"
+                autoComplete="off"
+                className="w-full bg-transparent text-sm outline-none"
+              />
+            </form>
+          )}
           <div className="grid gap-2 text-sm">
             {siteConfig.nav.map((item) =>
               "feature" in item && item.feature && !isEnabled(item.feature) ? null : (

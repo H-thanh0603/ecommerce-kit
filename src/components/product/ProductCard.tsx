@@ -54,8 +54,9 @@ export function ProductCard({ product }: { product: Product }) {
           </button>
         )}
         <button
+          type="button"
           onClick={() => add(product, product.unit === "kg" ? 100 : 1)}
-          className="absolute inset-x-3 bottom-3 translate-y-3 rounded-full bg-primary py-2 text-xs font-medium text-white opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100"
+          className="absolute inset-x-3 bottom-3 rounded-full bg-primary py-2 text-xs font-medium text-white transition sm:translate-y-3 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100"
         >
           Thêm vào giỏ
         </button>
