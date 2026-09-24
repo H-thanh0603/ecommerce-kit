@@ -77,15 +77,17 @@ export default async function AdminHome() {
 
       <section className="mt-10 rounded-2xl border border-line bg-white p-5">
         <h2 className="font-medium">7 ngày gần đây</h2>
-        <div className="mt-4 flex h-40 items-end gap-2">
+        <div className="mt-4 flex items-end gap-2">
           {stats.days.map((d) => (
-            <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
-              <div
-                className="w-full rounded-t bg-primary"
-                style={{ height: `${Math.max(6, (d.total / maxDay) * 100)}%` }}
-                title={money(d.total)}
-              />
-              <span className="text-[10px] text-muted">{money(d.total)}</span>
+            <div key={d.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+              <div className="flex h-28 w-full items-end">
+                <div
+                  className="w-full rounded-t bg-primary"
+                  style={{ height: `${Math.max(4, (d.total / maxDay) * 100)}%` }}
+                  title={money(d.total)}
+                />
+              </div>
+              <span className="max-w-full truncate text-[10px] text-muted">{money(d.total)}</span>
               <span className="text-[10px] text-muted">{d.date}</span>
             </div>
           ))}
