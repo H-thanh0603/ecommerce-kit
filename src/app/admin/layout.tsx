@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const admin = await requireAdmin();
   if (!admin) redirect("/dang-nhap?next=/admin");
   return (
-    <div className="flex min-h-screen bg-canvas">
+    <div className="flex min-h-screen flex-col bg-canvas md:flex-row">
       <AdminNav />
       <div className="min-w-0 flex-1 overflow-x-auto">{children}</div>
     </div>
