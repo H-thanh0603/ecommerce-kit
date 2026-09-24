@@ -26,6 +26,10 @@ export function unmarkSchemaProvisioned(schema: string): void {
   globalForPrisma.schemasProvisioned?.delete(schema);
 }
 
+export function isSchemaProvisioned(schema: string): boolean {
+  return Boolean(globalForPrisma.schemasProvisioned?.has(schema));
+}
+
 // Gỡ client khỏi cache + ngắt pool — dùng khi drop schema để không giữ pool trỏ schema đã xóa.
 export function forgetClient(schema: string): void {
   const c = globalForPrisma.prismaClients?.get(schema);

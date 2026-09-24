@@ -36,20 +36,30 @@ export function setTenantLookup(fn: Lookup) {
   cache.clear();
 }
 
-function isLocal(h: string): boolean {
-  return h === "localhost" || h === "127.0.0.1" || h.endsWith(".localhost");
+function isBareLocal(h: string): boolean {
+  return h === "localhost" || h === "127.0.0.1";
 }
 
 export async function resolveTenant(host: string): Promise<TenantInfo | null> {
   const h = parseHost(host);
-  if (isLocal(h)) {
+  // Bare localhost → default không lookup (cron/health/dev không đăng ký domain).
+  // `*.localhost` (shopa.localhost) đi lookup như host thật — multi-tenant local
+  // theo spec §4.3; miss → fallback default (browser tự resolve subdomain local).
+  if (isBareLocal(h)) {
     return { slug: process.env.DEFAULT_TENANT || "public", name: "Default" };
   }
   const hit = cache.get(h);
   if (hit && hit.exp > Date.now()) return hit.value;
   const value = await lookup(h);
+  if (value) {
+    cache.set(h, { value, exp: Date.now() + TTL });
+    return value;
+  }
+  if (h.endsWith(".localhost")) {
+    return { slug: process.env.DEFAULT_TENANT || "public", name: "Default" };
+  }
   cache.set(h, { value, exp: Date.now() + TTL });
-  return value;
+  return null;
 }
 
 import { findTenantByHost } from "./platform-db";

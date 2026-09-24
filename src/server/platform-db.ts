@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { isSchemaProvisioned, markSchemaProvisioned } from "./db";
 import { parseHost, slugSchema, type TenantInfo } from "./tenant";
 
 function platformUrl(): string {
@@ -37,11 +38,28 @@ export async function createTenant(input: { slug: string; name: string; hosts: s
   });
 }
 
+/**
+ * Warm-up (đóng T4 watch): migrate:all chạy process khác → Set schemasProvisioned
+ * của process web trống. Check information_schema 1 lần rồi mark — fail-closed chỉ
+ * khi schema vắng thật (query lỗi → không mark, getClientForSchema vẫn throw).
+ */
+async function warmSchemaIfProvisioned(slug: string): Promise<void> {
+  if (slug === "public" || isSchemaProvisioned(slug)) return;
+  try {
+    const rows = await platformDb.$queryRaw<{ n: number }[]>`
+      SELECT 1 AS n FROM information_schema.schemata WHERE schema_name = ${slug} LIMIT 1`;
+    if (rows.length) markSchemaProvisioned(slug);
+  } catch {
+    // không mark khi không kiểm tra được — giữ fail-closed
+  }
+}
+
 export async function findTenantByHost(host: string): Promise<TenantInfo | null> {
   const row = await platformDb.tenantDomain.findUnique({
     where: { host: parseHost(host) },
     include: { tenant: true },
   });
   if (!row || !row.tenant.active) return null;
+  await warmSchemaIfProvisioned(row.tenant.slug);
   return { slug: row.tenant.slug, name: row.tenant.name };
 }

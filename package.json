@@ -14,7 +14,10 @@
     "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
     "new:project": "node scripts/new-project.mjs",
     "postinstall": "prisma generate",
-    "smoke": "bash scripts/smoke.sh"
+    "smoke": "bash scripts/smoke.sh",
+    "tenant:create": "tsx scripts/create-tenant.ts",
+    "migrate:all": "tsx scripts/migrate-all-schemas.ts",
+    "platform:admin": "tsx scripts/create-platform-admin.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
