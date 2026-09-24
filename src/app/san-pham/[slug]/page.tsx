@@ -8,7 +8,7 @@ import { AddToCart } from "@/components/product/AddToCart";
 import { Reviews } from "@/components/product/Reviews";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { BreadcrumbJsonLd, ProductJsonLd } from "@/components/seo/JsonLd";
-import { SmartImage } from "@/components/ui/SmartImage";
+import { ProductGallery } from "@/components/product/ProductGallery";
 import { RecentTracker } from "@/lib/recent";
 import { IconStar } from "@/components/icons";
 
@@ -44,13 +44,7 @@ export default async function ProductPage({ params }: Props) {
       </p>
 
       <div className="mt-6 grid gap-10 md:grid-cols-2">
-        <div className="space-y-3">
-          {product.images.map((src, i) => (
-            <div key={src} className="overflow-hidden rounded-3xl bg-white">
-              <SmartImage src={src} alt={product.name} className="aspect-[4/5] w-full" eager={i === 0} />
-            </div>
-          ))}
-        </div>
+        <ProductGallery images={product.images} name={product.name} />
         <div className="md:sticky md:top-28 md:self-start">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">{product.category}</p>
           <h1 className="mt-2 font-serif text-4xl text-primary">{product.name}</h1>

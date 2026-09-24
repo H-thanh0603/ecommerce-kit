@@ -117,6 +117,11 @@ export default function AccountPage() {
 
       <h2 className="mt-10 font-medium">Đơn gần đây</h2>
       <ul className="mt-4 space-y-3">
+        {mine.length === 0 && (
+          <li className="rounded-2xl border border-dashed border-line bg-white p-6 text-center text-sm text-muted">
+            Chưa có đơn nào. <Link href="/san-pham" className="underline text-primary">Mua sắm ngay</Link>
+          </li>
+        )}
         {mine.map((o) => (
           <li key={o.id} className="rounded-2xl border border-line bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -126,6 +131,10 @@ export default function AccountPage() {
             <p className="mt-1 text-sm text-muted">
               {formatDate(o.createdAt)} · {o.items.length} món · {money(o.total)}
             </p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              {o.ghnOrderCode && <span className="text-muted">Vận đơn: <span className="font-medium text-ink">{o.ghnOrderCode}</span></span>}
+              <Link href={`/dat-hang-thanh-cong?code=${o.code}`} className="underline text-primary">Chi tiết</Link>
+            </div>
           </li>
         ))}
       </ul>
