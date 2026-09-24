@@ -4,8 +4,8 @@ import { addReview, approveReview, deleteReview, getProductBySlug, listPendingRe
 
 describe("review moderation", () => {
   it("mới tạo ở pending, ẩn khỏi trang SP, duyệt xong mới hiện", async () => {
-    const slug = "ao-linen-co-v";
-    const r = await addReview({ productId: "p1", author: "Kiểm duyệt", rating: 5, content: `Hay ${Date.now()}` });
+    const slug = "dau-duong-toc-cam-gao";
+    const r = await addReview({ productId: "p8", author: "Kiểm duyệt", rating: 5, content: `Hay ${Date.now()}` });
     expect(r.id).toBeTruthy();
     const row = await prisma.review.findUnique({ where: { id: r.id } });
     expect(row?.status).toBe("pending");

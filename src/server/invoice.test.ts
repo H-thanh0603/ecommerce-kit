@@ -20,7 +20,7 @@ async function seedOrder() {
       paymentMethod: "bankTransfer",
       items: {
         create: [
-          { productId: "p1", slug: "s", name: "SP", image: "", price: 1_100_000, quantity: 1 },
+          { productId: "p8", slug: "s", name: "SP", image: "", price: 1_100_000, quantity: 1 },
         ],
       },
     },

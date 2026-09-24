@@ -137,9 +137,9 @@ export async function createOrder(input: CheckoutInput) {
         : p.skus[0];
     if (p.skus.length) {
       if (!sku) throw new Error(`Chọn biến thể cho ${p.name}`);
-      if (sku.stock < item.quantity) throw new Error(`Không đủ tồn: ${p.name} (${sku.label})`);
+      if (sku.stock < item.quantity) throw new Error(`Không đủ tồn kho: ${p.name} (${sku.label})`);
     } else if (p.stock < item.quantity) {
-      throw new Error(`Không đủ tồn: ${p.name}`);
+      throw new Error(`Không đủ tồn kho: ${p.name}`);
     }
     return {
       product: p,
@@ -215,13 +215,13 @@ export async function createOrder(input: CheckoutInput) {
           where: { id: line.sku.id, stock: { gte: line.quantity } },
           data: { stock: { decrement: line.quantity } },
         });
-        if (updated.count !== 1) throw new Error(`Không đủ tồn: ${line.product.name}`);
+        if (updated.count !== 1) throw new Error(`Không đủ tồn kho: ${line.product.name}`);
       } else {
         const updated = await tx.product.updateMany({
           where: { id: line.product.id, stock: { gte: line.quantity } },
           data: { stock: { decrement: line.quantity }, updatedAt: new Date() },
         });
-        if (updated.count !== 1) throw new Error(`Không đủ tồn: ${line.product.name}`);
+        if (updated.count !== 1) throw new Error(`Không đủ tồn kho: ${line.product.name}`);
       }
       await tx.product.update({
         where: { id: line.product.id },
