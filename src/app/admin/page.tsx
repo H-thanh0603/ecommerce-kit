@@ -15,33 +15,69 @@ export default async function AdminHome() {
   enterTenant(await resolveRequestTenant());
   const [stats, orders] = await Promise.all([shopStats(), listOrders()]);
   const maxDay = Math.max(1, ...stats.days.map((d) => d.total));
-  const cards = [
-    { label: "Thực thu (hoàn tất)", value: money(stats.revenueCollected) },
-    { label: "Ghi nhận (chưa hủy)", value: money(stats.revenue) },
+  const pending = stats.byStatus.find((s) => s.status === "pending")?.count ?? 0;
+  const tasks = [
+    {
+      label: "Chờ xác nhận",
+      value: String(pending),
+      hint: "Đơn mới, chưa xác nhận",
+      href: "/admin/don-hang?status=pending",
+    },
+    {
+      label: "Đang xử lý",
+      value: String(stats.ordersOpen),
+      hint: "Chờ xác nhận, đã xác nhận, đang giao",
+      href: "/admin/don-hang",
+    },
+    {
+      label: "Tồn thấp",
+      value: String(stats.lowStock),
+      hint: "Sản phẩm đang bán còn dưới 15",
+      href: "#can-nhap",
+    },
+    {
+      label: "Hộp thư",
+      value: String(stats.leadCount),
+      hint: "Liên hệ từ khách",
+      href: "/admin/lien-he",
+    },
+  ];
+  const revenue = [
+    { label: "Thực thu", value: money(stats.revenueCollected), sub: "Đơn đã hoàn tất" },
+    { label: "Ghi nhận", value: money(stats.revenue), sub: "Mọi đơn trừ đơn đã huỷ" },
     { label: "Hôm nay", value: money(stats.revenueToday), sub: `${stats.ordersToday} đơn` },
-    { label: "Tháng này", value: money(stats.revenueMonth) },
-    { label: "Đơn chờ xử lý", value: String(stats.ordersOpen) },
-    { label: "Tồn thấp", value: String(stats.lowStock) },
+    { label: "Tháng này", value: money(stats.revenueMonth), sub: "Đơn chưa huỷ trong tháng" },
   ];
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <p className="text-xs uppercase tracking-[0.2em] text-accent">Tổng quan</p>
-      <h1 className="mt-1 font-serif text-4xl text-primary">Doanh thu & vận hành</h1>
+      <h1 className="mt-1 font-serif text-4xl text-primary">Việc cần làm</h1>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((c) => (
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {tasks.map((c) => (
+          <Link key={c.label} href={c.href} className="rounded-2xl border border-line bg-white p-5 hover:border-primary">
+            <p className="text-xs text-muted">{c.label}</p>
+            <p className="mt-2 font-serif text-3xl text-primary">{c.value}</p>
+            <p className="mt-1 text-xs text-muted">{c.hint}</p>
+          </Link>
+        ))}
+      </div>
+
+      <h2 className="mt-10 font-medium">Doanh thu</h2>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {revenue.map((c) => (
           <div key={c.label} className="rounded-2xl border border-line bg-white p-5">
             <p className="text-xs text-muted">{c.label}</p>
             <p className="mt-2 font-serif text-3xl text-primary">{c.value}</p>
-            {"sub" in c && c.sub && <p className="mt-1 text-xs text-muted">{c.sub}</p>}
+            <p className="mt-1 text-xs text-muted">{c.sub}</p>
           </div>
         ))}
       </div>
 
       <section className="mt-10 rounded-2xl border border-line bg-white p-5">
         <h2 className="font-medium">7 ngày gần đây</h2>
-        <div className="mt-4 flex h-32 items-end gap-2">
+        <div className="mt-4 flex h-40 items-end gap-2">
           {stats.days.map((d) => (
             <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
               <div
@@ -49,6 +85,7 @@ export default async function AdminHome() {
                 style={{ height: `${Math.max(6, (d.total / maxDay) * 100)}%` }}
                 title={money(d.total)}
               />
+              <span className="text-[10px] text-muted">{money(d.total)}</span>
               <span className="text-[10px] text-muted">{d.date}</span>
             </div>
           ))}
@@ -84,9 +121,11 @@ export default async function AdminHome() {
         </section>
       </div>
 
-      {stats.lowProducts.length > 0 && (
-        <section className="mt-6 rounded-2xl border border-line bg-white p-5">
-          <h2 className="font-medium">Cần nhập hàng</h2>
+      <section id="can-nhap" className="mt-6 rounded-2xl border border-line bg-white p-5">
+        <h2 className="font-medium">Cần nhập hàng</h2>
+        {stats.lowProducts.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">Không có sản phẩm nào dưới ngưỡng.</p>
+        ) : (
           <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
             {stats.lowProducts.map((p) => (
               <li key={p.id} className="flex justify-between rounded-xl bg-canvas px-3 py-2">
@@ -95,10 +134,15 @@ export default async function AdminHome() {
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        )}
+      </section>
 
-      <h2 className="mt-10 font-medium">Đơn mới</h2>
+      <div className="mt-10 flex items-baseline justify-between gap-3">
+        <h2 className="font-medium">Đơn mới</h2>
+        <Link href="/admin/don-hang" className="text-sm text-primary underline">
+          Xem tất cả
+        </Link>
+      </div>
       <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-white">
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-muted">
@@ -110,6 +154,13 @@ export default async function AdminHome() {
             </tr>
           </thead>
           <tbody>
+            {orders.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-muted">
+                  Chưa có đơn.
+                </td>
+              </tr>
+            )}
             {orders.slice(0, 8).map((o) => (
               <tr key={o.id} className="border-t border-line">
                 <td className="px-4 py-3">
@@ -125,7 +176,6 @@ export default async function AdminHome() {
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-muted">Hộp thư: {stats.leadCount} liên hệ</p>
     </div>
   );
 }
