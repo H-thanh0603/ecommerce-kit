@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 // Whitelist host ảnh cho next/image (chống image-optimizer thành SSRF open-proxy).
 // Admin dán URL host khác → thêm pattern tại đây.
@@ -21,4 +22,24 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const sentryEnabled = Boolean(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN);
+
+export default sentryEnabled
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: !process.env.CI,
+      // Bundle size — chỉ tree-shake logger phía client
+      bundleSizeOptimizations: {
+        excludeDebugStatements: true,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+        excludeReplayWorker: true,
+      },
+      // Source maps upload chỉ khi có token — không block build nếu thiếu
+      sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+      widenClientFileUpload: false,
+      tunnelRoute: "/api/monitoring",
+    })
+  : nextConfig;

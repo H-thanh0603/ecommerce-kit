@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error("[app-error]", error);
+    Sentry.captureException(error);
   }, [error]);
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center">

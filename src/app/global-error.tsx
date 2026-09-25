@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
+
 export default function GlobalError({
   error,
   reset,
@@ -7,8 +10,10 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  // Log bắt buộc — digest lỗi render root.
-  console.error("[global-error]", error);
+  useEffect(() => {
+    console.error("[global-error]", error);
+    Sentry.captureException(error);
+  }, [error]);
   return (
     <html lang="vi">
       <body style={{ fontFamily: "system-ui, sans-serif", background: "#FAF7F2", color: "#1C1917" }}>
