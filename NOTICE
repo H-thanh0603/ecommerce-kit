@@ -13,7 +13,8 @@ and their licenses (full list: `npm ls --omit=dev` / package-lock.json).
 | jose | MIT | JWT session |
 | nodemailer | MIT | SMTP |
 | openai | Apache-2.0 | AI client (optional) |
-| xlsx (SheetJS) | Apache-2.0 | Excel import/export — known CVEs, admin-only route |
+| xlsx (SheetJS) | Apache-2.0 | (removed — dùng exceljs thay) |
+| exceljs | MIT | Excel import/export — admin-only route |
 | tailwindcss | MIT | Styling |
 | vitest / @playwright/test | MIT | Tests |
 

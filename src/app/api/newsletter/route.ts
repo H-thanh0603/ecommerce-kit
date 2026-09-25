@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { subscribeNewsletter } from "@/server/commerce";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { prisma } from "@/server/db";
 import { logAudit } from "@/server/audit";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function postHandler(req: Request) {
-  if (!isEnabled("newsletter")) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
+  if (!(await isFeatureOn("newsletter"))) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
   if (!(await rateLimit(clientKey(req, "news"), 8, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
@@ -20,7 +20,7 @@ async function postHandler(req: Request) {
 
 /** Huỷ đăng ký (Q156) — không cần login, rate limit theo IP. */
 async function deleteHandler(req: Request) {
-  if (!isEnabled("newsletter")) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
+  if (!(await isFeatureOn("newsletter"))) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
   if (!(await rateLimit(clientKey(req, "news-unsub"), 8, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }

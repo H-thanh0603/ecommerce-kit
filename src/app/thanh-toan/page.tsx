@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { enabledPayments, isEnabled, siteConfig, type PayFlag } from "@/config/site";
+import { enabledPayments, siteConfig, type PayFlag } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { useFeatures } from "@/lib/features";
 import { discountAmount, money, shippingFee, vietQrUrl } from "@/lib/format";
 import { AnalyticsEvents, trackEvent } from "@/lib/analytics";
 import { clearBundleId, readBundleId } from "@/components/bundle/AddBundleButton";
@@ -15,6 +16,7 @@ type Coupon = { code: string; type: "percent" | "fixed" | "shipping"; value: num
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCart();
   const { user } = useAuth();
+  const features = useFeatures();
   const router = useRouter();
   const [methods, setMethods] = useState<{ key: string; label: string }[]>(enabledPayments());
   const [bank, setBank] = useState(siteConfig.payments.bankTransfer);
@@ -78,7 +80,7 @@ export default function CheckoutPage() {
       })
       .catch(() => {});
     // Điểm thành viên — đọc kèm effect này (cùng lifecycle user) tránh thêm hook lỗi lint.
-    if (user && isEnabled("membership")) {
+    if (user && features.on("membership")) {
       fetch("/api/member")
         .then((r) => r.json())
         .then((j) => setPointsBalance(typeof j.member?.points === "number" ? j.member.points : 0))
@@ -216,7 +218,7 @@ export default function CheckoutPage() {
                 <input type="checkbox" checked={innerCity} onChange={(e) => setInnerCity(e.target.checked)} />
                 Tôi ở nội thành (phí {money(siteConfig.shipping.innerCityFee)} thay vì {money(siteConfig.shipping.defaultFee)} nếu chưa đạt freeship {money(siteConfig.shipping.freeFrom)})
               </label>
-              {isEnabled("membership") && user && pointsBalance !== null && pointsBalance > 0 && (
+              {features.on("membership") && user && pointsBalance !== null && pointsBalance > 0 && (
                 <label className="flex items-center gap-2 text-sm sm:col-span-2">
                   <input type="checkbox" checked={usePoints} onChange={(e) => setUsePoints(e.target.checked)} />
                   Dùng {Math.min(pointsBalance, 100)} điểm (−{money(Math.min(pointsBalance, 100) * 10)} · số dư {pointsBalance})
@@ -278,7 +280,7 @@ export default function CheckoutPage() {
               </li>
             ))}
           </ul>
-          {isEnabled("coupons") && (
+          {features.on("coupons") && (
             <div className="mt-4 flex gap-2">
               <input
                 value={code}

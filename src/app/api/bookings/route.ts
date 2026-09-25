@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createBooking, listBookings, listServices } from "@/server/booking";
 import { getSession, requireAdmin } from "@/server/auth";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function getHandler() {
-  if (!isEnabled("booking")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
+  if (!(await isFeatureOn("booking"))) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const session = await getSession();
   if (session?.role === "admin") {
     return NextResponse.json({ bookings: await listBookings(), services: await listServices() });
@@ -15,7 +15,7 @@ async function getHandler() {
 }
 
 async function postHandler(req: Request) {
-  if (!isEnabled("booking")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
+  if (!(await isFeatureOn("booking"))) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   if (!(await rateLimit(clientKey(req, "book"), 8, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }

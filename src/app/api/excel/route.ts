@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { exportProductsXlsx, importProductsXlsx } from "@/server/excel";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function getHandler() {
-  if (!isEnabled("excel")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
+  if (!(await isFeatureOn("excel"))) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
   const buf = await exportProductsXlsx();
@@ -18,7 +18,7 @@ async function getHandler() {
 }
 
 async function postHandler(req: Request) {
-  if (!isEnabled("excel")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
+  if (!(await isFeatureOn("excel"))) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
   const form = await req.formData();

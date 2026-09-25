@@ -244,8 +244,7 @@ export default function AdminSettings() {
       <section className="mt-4 rounded-2xl border border-line bg-white p-5">
         <h2 className="font-medium">Cờ tính năng</h2>
         <p className="mt-1 text-xs text-muted">
-          Áp dụng ngay cho tính tiền/tồn kho/vận chuyển phía server. Ẩn/hiện giao diện vẫn đọc file lúc build —
-          đổi flag giao diện xong cần deploy lại.
+          Áp dụng ngay cho API/tính tiền/tồn kho/vận chuyển (server đọc DB). Một số điểm chạm UI nhỏ vẫn đọc file lúc build.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {Object.entries(data.features).map(([k, v]) => (

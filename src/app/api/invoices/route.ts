@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { issueInvoice, listInvoices } from "@/server/invoice";
 import { requireAdmin } from "@/server/auth";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function getHandler() {
@@ -11,7 +11,7 @@ async function getHandler() {
 }
 
 async function postHandler(req: Request) {
-  if (!isEnabled("invoices")) return NextResponse.json({ message: "Tắt" }, { status: 404 });
+  if (!(await isFeatureOn("invoices"))) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
   const body = await req.json().catch(() => ({}));

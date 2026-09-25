@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { listBundles } from "@/server/bundle";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function getHandler() {
-  if (!isEnabled("bundles")) return NextResponse.json({ bundles: [] });
+  if (!(await isFeatureOn("bundles"))) return NextResponse.json({ bundles: [] });
   return NextResponse.json({ bundles: await listBundles(true) });
 }
 

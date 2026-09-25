@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { requireAdmin } from "@/server/auth";
 import { aiConfigured, runStoreAgent } from "@/server/ai";
 import { clientKey, rateLimit } from "@/server/rate-limit";
@@ -9,7 +9,7 @@ async function postHandler(req: Request) {
   if (!(await rateLimit(clientKey(req, "ai-agent"), 20, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
-  if (!isEnabled("aiAgent")) {
+  if (!(await isFeatureOn("aiAgent"))) {
     return NextResponse.json({ message: "AI Agent đang tắt" }, { status: 404 });
   }
   const admin = await requireAdmin();

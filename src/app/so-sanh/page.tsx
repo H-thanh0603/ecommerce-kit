@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { isEnabled } from "@/config/site";
+import { useFeatures } from "@/lib/features";
 import { useCompare } from "@/lib/compare";
 import { money } from "@/lib/format";
 import type { Product } from "@/types";
 
 export default function ComparePage() {
   const { ids, toggle, clear } = useCompare();
+  const features = useFeatures();
   const [products, setProducts] = useState<Product[]>([]);
   useEffect(() => {
     if (!ids.length) return setProducts([]);
@@ -16,7 +17,7 @@ export default function ComparePage() {
       .then((r) => r.json())
       .then((d) => setProducts(d.products || []));
   }, [ids]);
-  if (!isEnabled("compare")) return <p className="px-4 py-20 text-center">Module so sánh đang tắt.</p>;
+  if (features.ready && !features.on("compare")) return <p className="px-4 py-20 text-center">Module so sánh đang tắt.</p>;
   const rows = [
     { label: "Giá", render: (p: Product) => money(p.price) },
     { label: "Tồn", render: (p: Product) => String(p.stock) },

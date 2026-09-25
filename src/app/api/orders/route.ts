@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createOrder, listOrders } from "@/server/commerce";
 import { getSession } from "@/server/auth";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { withTenantHandler } from "@/server/request-tenant";
 
@@ -49,7 +49,7 @@ async function postHandler(req: Request) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }
   const session = await getSession();
-  if (!session && !isEnabled("guestCheckout")) {
+  if (!session && !(await isFeatureOn("guestCheckout"))) {
     return NextResponse.json({ message: "Cần đăng nhập để đặt hàng" }, { status: 401 });
   }
   const parsed = checkoutSchema.safeParse(await req.json().catch(() => null));

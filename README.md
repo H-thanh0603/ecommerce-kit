@@ -73,3 +73,17 @@ Sản phẩm mẫu nằm ở `src/data/catalog.ts` (dùng khi seed). Sau seed, C
 | Module mới | flag trong `site.ts` + đăng ký `src/lib/modules.ts` |
 
 Xem `HUONG-DAN.md`.
+
+## License
+
+MIT — xem `LICENSE` + `NOTICE`. Fork, đổi tên, bán white-label cho khách đều được; giữ copyright notice khi redistribute. Brand/ảnh stock trong `public/` là placeholder — thay trước khi commercial launch.
+
+## Bus model (gợi ý)
+
+Repo MIT → tự host miễn phí. 3 mô hình kiếm tiền phổ biến cho agency/dev bán sản phẩm này:
+
+1. **Setup + customization fee** — charge per-project (clone → đổi brand → bật flag theo hợp đồng).
+2. **Managed hosting / per-tenant subscription** — dùng multi-tenant (`npm run tenant:create`), charge theo tháng cho từng shop (thu phí platform, không phải code license).
+3. **Module add-on** — các flag `features.*` (booking, multiWarehouse, aiAgent...) bán riêng theo gói.
+
+Codebase không kèm billing — tự tích hợp Stripe/polar.sh hoặc thu tay.

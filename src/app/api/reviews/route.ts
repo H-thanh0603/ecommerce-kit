@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { addReview } from "@/server/commerce";
 import { getSession } from "@/server/auth";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function postHandler(req: Request) {
-  if (!isEnabled("reviews")) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
+  if (!(await isFeatureOn("reviews"))) return NextResponse.json({ message: "Đang tắt" }, { status: 404 });
   if (!(await rateLimit(clientKey(req, "review"), 10, 60_000)).ok) {
     return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
   }

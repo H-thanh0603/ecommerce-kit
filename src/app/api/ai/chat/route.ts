@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { aiConfigured, shopChat } from "@/server/ai";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { withTenantHandler } from "@/server/request-tenant";
@@ -12,7 +12,7 @@ async function postHandler(req: Request) {
   if (!(await rateLimit(clientKey(req, "ai-chat-day"), 40, 24 * 60 * 60_000)).ok) {
     return NextResponse.json({ message: "Đã hết hạn mức chat hôm nay" }, { status: 429 });
   }
-  if (!isEnabled("aiChatbot")) {
+  if (!(await isFeatureOn("aiChatbot"))) {
     return NextResponse.json({ message: "Chatbot đang tắt" }, { status: 404 });
   }
   if (!aiConfigured()) {

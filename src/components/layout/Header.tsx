@@ -7,6 +7,7 @@ import { siteConfig, isEnabled, type EffectiveSite } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
+import { useFeatures } from "@/lib/features";
 import type { Category } from "@/types";
 import {
   IconBag,
@@ -29,6 +30,7 @@ export function Header({
   const { count } = useCart();
   const { user } = useAuth();
   const { ids } = useWishlist();
+  const features = useFeatures();
   const [open, setOpen] = useState(false);
   const b = brand ?? siteConfig.brand;
   const eta = shippingEta ?? siteConfig.shipping.estimatedDays;
@@ -66,7 +68,7 @@ export function Header({
 
         <nav className="ml-6 hidden items-center gap-6 text-sm md:flex">
           {siteConfig.nav.map((item) =>
-            "feature" in item && item.feature && !isEnabled(item.feature) ? null : (
+            "feature" in item && item.feature && !features.on(item.feature) ? null : (
               <Link key={item.href} href={item.href} className="hover:text-primary">
                 {item.label}
               </Link>
@@ -80,7 +82,7 @@ export function Header({
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          {isEnabled("search") && (
+          {features.on("search") && (
             <form onSubmit={submitSearch} className="hidden items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 lg:flex" role="search">
               <IconSearch className="h-4 w-4 text-muted" />
               <label htmlFor="d-search" className="sr-only">Tìm sản phẩm</label>
@@ -94,12 +96,12 @@ export function Header({
               />
             </form>
           )}
-          {isEnabled("compare") && (
+          {features.on("compare") && (
             <Link href="/so-sanh" className="hidden text-xs underline sm:inline">
               So sánh
             </Link>
           )}
-          {isEnabled("wishlist") && (
+          {features.on("wishlist") && (
             <Link href="/yeu-thich" className="relative" aria-label="Yêu thích">
               <IconHeart className="h-5 w-5" />
               {ids.length > 0 && (
@@ -125,7 +127,7 @@ export function Header({
 
       {open && (
         <div className="border-t border-line bg-canvas px-4 py-4 md:hidden">
-          {isEnabled("search") && (
+          {features.on("search") && (
             <form onSubmit={submitSearch} className="mb-3 flex items-center gap-2 rounded-full border border-line bg-white px-3 py-2" role="search">
               <IconSearch className="h-4 w-4 text-muted" />
               <label htmlFor="m-search" className="sr-only">Tìm sản phẩm</label>
@@ -141,7 +143,7 @@ export function Header({
           )}
           <div className="grid gap-2 text-sm">
             {siteConfig.nav.map((item) =>
-              "feature" in item && item.feature && !isEnabled(item.feature) ? null : (
+              "feature" in item && item.feature && !features.on(item.feature) ? null : (
                 <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
                   {item.label}
                 </Link>

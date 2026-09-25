@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { isEnabled } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { useFeatures } from "@/lib/features";
 import { AnalyticsEvents, trackEvent } from "@/lib/analytics";
 import type { Product } from "@/types";
 import { IconHeart, IconHeartFill } from "@/components/icons";
@@ -11,6 +11,7 @@ import { IconHeart, IconHeartFill } from "@/components/icons";
 export function AddToCart({ product }: { product: Product }) {
   const { add } = useCart();
   const wishlist = useWishlist();
+  const features = useFeatures();
   const step = product.unit === "kg" ? 100 : 1;
   const [qty, setQty] = useState(step);
   const [picked, setPicked] = useState<Record<string, string>>({});
@@ -46,7 +47,7 @@ export function AddToCart({ product }: { product: Product }) {
 
   return (
     <div className="space-y-5">
-      {isEnabled("productVariants") &&
+      {features.on("productVariants") &&
         product.variants?.map((v) => (
           <div key={v.id}>
             <p className="mb-2 text-sm font-medium">{v.name}</p>
@@ -87,7 +88,7 @@ export function AddToCart({ product }: { product: Product }) {
         >
           Thêm vào giỏ
         </button>
-        {isEnabled("wishlist") && (
+        {features.on("wishlist") && (
           <button
             onClick={() => wishlist.toggle(product.id)}
             className="grid h-12 w-12 place-items-center rounded-full border border-line bg-white"

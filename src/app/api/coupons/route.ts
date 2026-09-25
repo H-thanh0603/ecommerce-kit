@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { assertCoupon } from "@/server/commerce";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { getSession } from "@/server/auth";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function postHandler(req: Request) {
-  if (!isEnabled("coupons")) {
+  if (!(await isFeatureOn("coupons"))) {
     return NextResponse.json({ message: "Module mã giảm giá đang tắt" }, { status: 404 });
   }
   const body = await req.json().catch(() => ({}));

@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useWishlist } from "@/lib/wishlist";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { isEnabled } from "@/config/site";
+import { useFeatures } from "@/lib/features";
 import type { Product } from "@/types";
 import Link from "next/link";
 
 export default function WishlistPage() {
   const { ids } = useWishlist();
+  const features = useFeatures();
   const [products, setProducts] = useState<Product[]>([]);
   useEffect(() => {
     if (!ids.length) return setProducts([]);
@@ -17,7 +18,7 @@ export default function WishlistPage() {
       .then((d) => setProducts(d.products || []))
       .catch(() => setProducts([]));
   }, [ids]);
-  if (!isEnabled("wishlist")) {
+  if (features.ready && !features.on("wishlist")) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
         <p>Module yêu thích đang tắt trong cấu hình.</p>

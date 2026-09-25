@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import { getProductBySlug, relatedProducts } from "@/server/commerce";
 import { money } from "@/lib/format";
-import { isEnabled, siteConfig } from "@/config/site";
+import { siteConfig } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { AddToCart } from "@/components/product/AddToCart";
 import { Reviews } from "@/components/product/Reviews";
 import { ProductGrid } from "@/components/product/ProductGrid";
@@ -28,6 +29,11 @@ export default async function ProductPage({ params }: Props) {
   if (!data) notFound();
   const { product, reviews: productReviews } = data;
   const related = await relatedProducts(product);
+  const [reviewsOn, stockBadgeOn, relatedOn] = await Promise.all([
+    isFeatureOn("reviews"),
+    isFeatureOn("stockBadge"),
+    isFeatureOn("relatedProducts"),
+  ]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -49,7 +55,7 @@ export default async function ProductPage({ params }: Props) {
           <p className="text-xs uppercase tracking-[0.2em] text-accent">{product.category}</p>
           <h1 className="mt-2 font-serif text-4xl text-primary">{product.name}</h1>
           {product.subtitle && <p className="mt-2 text-muted">{product.subtitle}</p>}
-          {isEnabled("reviews") && (
+          {reviewsOn && (
             <p className="mt-3 flex items-center gap-1 text-sm">
               <IconStar className="h-4 w-4 text-accent" />
               {product.rating} · {product.reviewCount || productReviews.length} đánh giá
@@ -61,7 +67,7 @@ export default async function ProductPage({ params }: Props) {
               <p className="pb-1 text-muted line-through">{money(product.compareAtPrice)}</p>
             ) : null}
           </div>
-          {isEnabled("stockBadge") && (
+          {stockBadgeOn && (
             <p className="mt-2 text-sm text-muted">
               Còn {product.stock} sản phẩm · Đã bán {product.sold}
             </p>
@@ -90,7 +96,7 @@ export default async function ProductPage({ params }: Props) {
 
       <Reviews reviews={productReviews} productId={product.id} />
 
-      {isEnabled("relatedProducts") && related.length > 0 && (
+      {relatedOn && related.length > 0 && (
         <section className="mt-14">
           <h2 className="mb-6 font-serif text-2xl text-primary">Có thể bạn cũng thích</h2>
           <ProductGrid products={related} />

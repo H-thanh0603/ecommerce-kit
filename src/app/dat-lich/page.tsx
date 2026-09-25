@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { isEnabled } from "@/config/site";
+import { useFeatures } from "@/lib/features";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
 
@@ -9,12 +9,13 @@ type Svc = { id: string; name: string; durationMin: number; price: number };
 
 export default function BookingPage() {
   const { user } = useAuth();
+  const features = useFeatures();
   const [services, setServices] = useState<Svc[]>([]);
   const [msg, setMsg] = useState("");
   useEffect(() => {
     fetch("/api/bookings").then((r) => r.json()).then((d) => setServices(d.services || []));
   }, []);
-  if (!isEnabled("booking")) return <p className="px-4 py-20 text-center">Module đặt lịch đang tắt.</p>;
+  if (features.ready && !features.on("booking")) return <p className="px-4 py-20 text-center">Module đặt lịch đang tắt.</p>;
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { listWarehouses, setWarehouseStock, upsertWarehouse } from "@/server/warehouse";
 import { requireAdmin } from "@/server/auth";
-import { isEnabled } from "@/config/site";
+import { isFeatureOn } from "@/server/settings";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function getHandler() {
-  if (!isEnabled("multiWarehouse")) return NextResponse.json({ warehouses: [] });
+  if (!(await isFeatureOn("multiWarehouse"))) return NextResponse.json({ warehouses: [] });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
   return NextResponse.json({ warehouses: await listWarehouses() });
