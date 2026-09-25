@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { isEnabled } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { AnalyticsEvents, trackEvent } from "@/lib/analytics";
 import type { Product } from "@/types";
 import { IconHeart, IconHeartFill } from "@/components/icons";
 
@@ -32,6 +33,13 @@ export function AddToCart({ product }: { product: Product }) {
       return;
     }
     add(product, qty, variantLabel, sku?.id);
+    trackEvent(AnalyticsEvents.AddToCart, {
+      productId: product.id,
+      slug: product.slug,
+      qty,
+      price: product.price,
+      variant: variantLabel,
+    });
     setMsg("Đã thêm vào giỏ hàng");
     setTimeout(() => setMsg(""), 1800);
   };

@@ -30,21 +30,26 @@ export function HomeView({
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-accent">{home.eyebrow || "Cửa hàng chọn lọc"}</p>
-            <h1 className="mt-3 font-serif text-4xl leading-tight text-primary md:text-6xl">
+            <h1 className="font-serif text-5xl leading-[1.05] tracking-tight text-primary md:text-7xl">
               {brand.tagline}
             </h1>
-            <p className="mt-4 max-w-md text-muted">{brand.description}</p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/san-pham" className="rounded-full bg-primary px-6 py-3 text-sm text-white">
+            <p className="mt-5 max-w-md text-base leading-relaxed text-muted">{brand.description}</p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/san-pham"
+                className="rounded-full bg-primary px-7 py-3.5 text-sm font-medium text-white shadow-sm transition-shadow hover:shadow-md"
+              >
                 Xem sản phẩm
               </Link>
-              <Link href="/lien-he" className="rounded-full border border-line px-6 py-3 text-sm">
+              <Link
+                href="/lien-he"
+                className="rounded-full border border-line bg-white px-7 py-3.5 text-sm transition-colors hover:border-primary hover:text-primary"
+              >
                 Tư vấn mua sắm
               </Link>
             </div>
           </div>
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] md:aspect-[5/4]">
+          <div className="hero-media relative aspect-[4/5] overflow-hidden rounded-[2rem] shadow-lg md:aspect-[5/4]">
             <SmartImage
               src={home.image || defaultHome.image}
               alt={home.imageAlt || brand.name}
@@ -64,10 +69,10 @@ export function HomeView({
             { icon: IconShield, title: "Thanh toán linh hoạt", desc: "COD hoặc chuyển khoản" },
           ].map((item) => (
             <div key={item.title} className="flex items-start gap-3">
-              <item.icon className="mt-0.5 h-6 w-6 text-primary" />
+              <item.icon className="mt-0.5 h-6 w-6 shrink-0 text-primary" aria-hidden />
               <div>
-                <p className="font-medium">{item.title}</p>
-                <p className="text-sm text-muted">{item.desc}</p>
+                <p className="font-medium leading-snug">{item.title}</p>
+                <p className="mt-0.5 text-sm leading-snug text-muted">{item.desc}</p>
               </div>
             </div>
           ))}
@@ -76,27 +81,32 @@ export function HomeView({
 
       <div className="flex flex-col">
       {home.blocks.includes("categories") && (
-      <section className="mx-auto max-w-6xl px-4 py-14" style={{ order: home.blocks.indexOf("categories") }}>
-        <div className="mb-6 flex items-end justify-between">
-          <h2 className="font-serif text-3xl text-primary">Danh mục</h2>
-          <Link href="/san-pham" className="text-sm text-muted hover:text-primary">
+      <section className="mx-auto max-w-6xl px-4 py-16" style={{ order: home.blocks.indexOf("categories") }}>
+        <div className="mb-8 flex items-end justify-between">
+          <h2 className="font-serif text-3xl leading-tight text-primary md:text-4xl">Danh mục</h2>
+          <Link href="/san-pham" className="text-sm text-muted transition-colors hover:text-primary">
             Tất cả →
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {categories.map((c) => (
-            <Link key={c.id} href={`/san-pham?cat=${c.slug}`} className="group relative overflow-hidden rounded-2xl">
+          {categories.map((c, i) => (
+            <Link
+              key={c.id}
+              href={`/san-pham?cat=${c.slug}`}
+              className="rise-in group relative overflow-hidden rounded-2xl shadow-sm transition-shadow hover:shadow-md"
+              style={{ animationDelay: `${i * 60}ms` }}
+            >
               <SmartImage
                 src={c.image}
                 alt={c.name}
                 className="aspect-[3/4] w-full"
-                imgClassName="transition group-hover:scale-105"
+                imgClassName="transition duration-500 group-hover:scale-105"
                 sizes="(max-width: 768px) 50vw, 25vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 text-white">
-                <p className="font-serif text-xl">{c.name}</p>
-                <p className="text-xs text-white/80">{c.productCount} sản phẩm</p>
+                <p className="font-serif text-xl leading-tight">{c.name}</p>
+                <p className="mt-0.5 text-xs text-white/80">{c.productCount} sản phẩm</p>
               </div>
             </Link>
           ))}
@@ -105,24 +115,31 @@ export function HomeView({
       )}
 
       {isEnabled("flashSale") && flash.length > 0 && home.blocks.includes("flash") && (
-        <section className="bg-primary py-14 text-white" style={{ order: home.blocks.indexOf("flash") }}>
+        <section className="bg-primary py-16 text-white" style={{ order: home.blocks.indexOf("flash") }}>
           <div className="mx-auto max-w-6xl px-4">
-            <div className="mb-6 flex items-end justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/60">Ưu đãi có hạn</p>
-                <h2 className="font-serif text-3xl">Flash sale</h2>
-              </div>
-              <Link href="/san-pham?flash=1" className="text-sm text-white/80">
+            <div className="mb-8 flex items-end justify-between">
+              <h2 className="font-serif text-3xl leading-tight md:text-4xl">Flash sale</h2>
+              <Link href="/san-pham?flash=1" className="text-sm text-white/80 transition-colors hover:text-white">
                 Xem thêm →
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
               {flash.map((p) => (
-                <Link key={p.id} href={`/san-pham/${p.slug}`} className="overflow-hidden rounded-2xl bg-white text-ink">
-                  <SmartImage src={p.images[0]} alt={p.name} className="aspect-[4/3] w-full" sizes="(max-width: 768px) 50vw, 33vw" />
+                <Link
+                  key={p.id}
+                  href={`/san-pham/${p.slug}`}
+                  className="group overflow-hidden rounded-2xl bg-white text-ink shadow-sm transition-shadow hover:shadow-md"
+                >
+                  <SmartImage
+                    src={p.images[0]}
+                    alt={p.name}
+                    className="aspect-[4/3] w-full"
+                    imgClassName="transition duration-500 group-hover:scale-105"
+                    sizes="(max-width: 768px) 50vw, 33vw"
+                  />
                   <div className="p-3">
-                    <p className="font-medium">{p.name}</p>
-                    <p className="mt-1 text-sm">
+                    <p className="font-medium leading-snug">{p.name}</p>
+                    <p className="mt-1 text-sm tabular">
                       {money(p.price)}
                       {p.compareAtPrice ? (
                         <span className="ml-2 text-muted line-through">{money(p.compareAtPrice)}</span>
@@ -137,10 +154,10 @@ export function HomeView({
       )}
 
       {home.blocks.includes("featured") && (
-      <section className="mx-auto max-w-6xl px-4 py-14" style={{ order: home.blocks.indexOf("featured") }}>
-        <div className="mb-6 flex items-end justify-between">
-          <h2 className="font-serif text-3xl text-primary">Đáng nhìn tuần này</h2>
-          <Link href="/san-pham" className="text-sm text-muted">
+      <section className="mx-auto max-w-6xl px-4 py-16" style={{ order: home.blocks.indexOf("featured") }}>
+        <div className="mb-8 flex items-end justify-between">
+          <h2 className="font-serif text-3xl leading-tight text-primary md:text-4xl">Đáng nhìn tuần này</h2>
+          <Link href="/san-pham" className="text-sm text-muted transition-colors hover:text-primary">
             Xem tất cả →
           </Link>
         </div>
@@ -153,31 +170,33 @@ export function HomeView({
       </div>
 
       {isEnabled("blog") && home.blocks.includes("journal") && (
-        <section className="border-t border-line bg-white py-14" style={{ order: home.blocks.indexOf("journal") }}>
+        <section className="border-t border-line bg-white py-16" style={{ order: home.blocks.indexOf("journal") }}>
           <div className="mx-auto max-w-6xl px-4">
-            <div className="mb-6 flex items-end justify-between">
-              <h2 className="font-serif text-3xl text-primary">Journal</h2>
-              <Link href="/tin-tuc" className="text-sm text-muted">
+            <div className="mb-8 flex items-end justify-between">
+              <h2 className="font-serif text-3xl leading-tight text-primary md:text-4xl">Journal</h2>
+              <Link href="/tin-tuc" className="text-sm text-muted transition-colors hover:text-primary">
                 Tất cả bài →
               </Link>
             </div>
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-8 md:grid-cols-3">
               {articles.map((a) => (
                 <Link key={a.id} href={`/tin-tuc/${a.slug}`} className="group">
-                  <div className="overflow-hidden rounded-2xl">
+                  <div className="overflow-hidden rounded-2xl shadow-sm">
                     <SmartImage
                       src={a.cover}
                       alt={a.title}
                       className="aspect-[16/10] w-full"
-                      imgClassName="transition group-hover:scale-105"
+                      imgClassName="transition duration-500 group-hover:scale-105"
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
                   </div>
                   <p className="mt-3 text-xs text-muted">
                     {a.date} · {a.minutes} phút đọc
                   </p>
-                  <h3 className="mt-1 font-serif text-xl leading-snug">{a.title}</h3>
-                  <p className="mt-1 text-sm text-muted">{a.excerpt}</p>
+                  <h3 className="mt-1.5 font-serif text-xl leading-snug transition-colors group-hover:text-primary">
+                    {a.title}
+                  </h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted line-clamp-2">{a.excerpt}</p>
                 </Link>
               ))}
             </div>

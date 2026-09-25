@@ -7,6 +7,7 @@ import { enabledPayments, isEnabled, siteConfig, type PayFlag } from "@/config/s
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { discountAmount, money, shippingFee, vietQrUrl } from "@/lib/format";
+import { AnalyticsEvents, trackEvent } from "@/lib/analytics";
 import { clearBundleId, readBundleId } from "@/components/bundle/AddBundleButton";
 
 type Coupon = { code: string; type: "percent" | "fixed" | "shipping"; value: number; minOrder: number };
@@ -119,6 +120,12 @@ export default function CheckoutPage() {
     setPending(true);
     setError("");
     try {
+      trackEvent(AnalyticsEvents.BeginCheckout, {
+        method,
+        items: items.length,
+        subtotal,
+        coupon: applied?.code,
+      });
       const form = new FormData(e.currentTarget);
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -141,6 +148,11 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) return setError(data.message || "Không đặt được hàng");
+      trackEvent(AnalyticsEvents.Purchase, {
+        orderNumber: data.order?.number,
+        method,
+        total: data.order?.total,
+      });
       clear();
       clearBundleId();
       // Lưu địa chỉ vào sổ cho lần sau (khách đăng nhập, best-effort).

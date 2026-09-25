@@ -12,6 +12,8 @@ function securityHeaders(res: NextResponse) {
     res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
   }
   // Nới lỏng cho Next.js dev (inline/eval) — production vẫn chạy được.
+  // React dev cần eval() dựng lại callstack; production không dùng eval.
+  const devEval = process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : "";
   res.headers.set(
     "Content-Security-Policy",
     [
@@ -20,7 +22,7 @@ function securityHeaders(res: NextResponse) {
       "media-src 'self' https:",
       "font-src 'self' data: https://fonts.gstatic.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "script-src 'self' 'unsafe-inline'",
+      `script-src 'self' 'unsafe-inline'${devEval}`,
       "connect-src 'self' https:",
       "frame-ancestors 'none'",
     ].join("; "),

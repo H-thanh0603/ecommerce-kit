@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro, Noto_Serif } from "next/font/google";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { AppChrome } from "@/components/layout/AppChrome";
@@ -10,6 +11,7 @@ import { listCategories } from "@/server/commerce";
 import { getEffectiveSiteConfig } from "@/server/settings";
 import { wireTenantLookup } from "@/server/tenant";
 import { withTenantFromRequest } from "@/server/request-tenant";
+import { ANALYTICS_DOMAIN, ANALYTICS_SRC } from "@/lib/analytics";
 
 const sans = Be_Vietnam_Pro({
   variable: "--font-be-vietnam",
@@ -22,6 +24,16 @@ const serif = Noto_Serif({
   subsets: ["latin", "vietnamese"],
   weight: ["500", "600"],
 });
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0F3D2E" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F3D2E" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   wireTenantLookup(); // idempotent — metadata render song song layout, tự wire
@@ -43,7 +55,20 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       openGraph: { title: name, description, type: "website", locale: "vi_VN", url: app },
       twitter: { card: "summary", title: name, description },
-      icons: { icon: "/favicon.svg" },
+      icons: {
+        icon: [
+          { url: "/favicon.svg", type: "image/svg+xml" },
+          { url: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
+        ],
+        apple: [{ url: "/apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" }],
+      },
+      appleWebApp: {
+        capable: true,
+        statusBarStyle: "default",
+        title: name,
+      },
+      applicationName: name,
+      formatDetection: { telephone: false },
     };
   });
 }
@@ -74,6 +99,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {site && <OrganizationJsonLd name={site.brand.name} description={site.brand.description} />}
           {theme && (
             <style>{`:root{--brand-primary:${theme.primary};--brand-accent:${theme.accent};--brand-ink:${theme.ink};--brand-muted:${theme.muted};--brand-canvas:${theme.canvas};--brand-line:${theme.line};}`}</style>
+          )}
+          {ANALYTICS_SRC && ANALYTICS_DOMAIN && (
+            <Script
+              defer
+              data-domain={ANALYTICS_DOMAIN}
+              src={ANALYTICS_SRC}
+              strategy="afterInteractive"
+            />
           )}
           <Providers>
             <AppChrome
