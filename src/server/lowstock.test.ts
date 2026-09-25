@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { prisma } from "./db";
 import { alertLowStock } from "./order";
 
-const ADMIN = process.env.ADMIN_EMAIL || "admin@atelier.vn";
+const ADMIN = process.env.ADMIN_EMAIL || "admin@ekkit.vn";
 
 describe("low-stock alert", () => {
   it("tồn trên ngưỡng thì im lặng; chạm ngưỡng thì mail 1 lần/ngày", async () => {
+    // Xóa mail log cũ để test idempotent (DB chia sẻ)
+    await prisma.mailLog.deleteMany({ where: { body: { contains: "lowstock:p4" } } });
     await prisma.product.update({ where: { id: "p4" }, data: { stock: 100 } });
     await alertLowStock([{ productId: "p4" }]);
     const startDay = new Date();
