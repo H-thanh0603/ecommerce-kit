@@ -49,13 +49,13 @@ const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
 pkg.name = name.toLowerCase().replace(/[^a-z0-9-_]/g, "-");
 writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 
-// 2. brand trong site.ts (chỉ chạm khối brand đầu file, không đụng chữ Atelier ở chỗ khác)
+// 2. brand trong site.ts (chỉ chạm khối brand đầu file, không đụng chữ Ekkit ở chỗ khác)
 const sitePath = join(target, "src/config/site.ts");
 let site = readFileSync(sitePath, "utf8");
-site = site.replace('name: "Atelier",', `name: ${JSON.stringify(brand)},`);
-site = site.replace('logoText: "Atelier",', `logoText: ${JSON.stringify(brand)},`);
-site = site.replace("hello@atelier.vn", `hello@${pkg.name}.vn`);
-site = site.replace("admin@atelier.vn", `admin@${pkg.name}.vn`);
+site = site.replace('name: "Ekkit",', `name: ${JSON.stringify(brand)},`);
+site = site.replace('logoText: "Ekkit",', `logoText: ${JSON.stringify(brand)},`);
+site = site.replace("hello@ekkit.vn", `hello@${pkg.name}.vn`);
+site = site.replace("admin@ekkit.vn", `admin@${pkg.name}.vn`);
 writeFileSync(sitePath, site);
 
 // 3. .env mới với AUTH_SECRET ngẫu nhiên

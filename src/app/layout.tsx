@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
   // Brand/title đọc đúng schema tenant (review T7 fix)
   return withTenantFromRequest(host, async () => {
     const site = await getEffectiveSiteConfig().catch(() => null);
-    const name = site?.brand.name || "Atelier";
+    const name = site?.brand.name || "Ekkit";
     const description =
       site?.brand.description ||
       "Mua sắm thời trang, nhà cửa và lifestyle. Giao hàng toàn quốc, đổi trả 7 ngày.";

@@ -34,7 +34,7 @@ async function main() {
         "Nếu chắc chắn (lần đầu lập DB trống), đặt ALLOW_SEED=1 rồi chạy lại.",
     );
   }
-  const adminEmail = process.env.ADMIN_EMAIL || (isProd ? "" : "admin@atelier.vn");
+  const adminEmail = process.env.ADMIN_EMAIL || (isProd ? "" : "admin@ekkit.vn");
   const adminPass = process.env.ADMIN_PASSWORD || (isProd ? "" : "admin123");
   if (isProd) {
     if (!adminEmail || !adminPass || adminPass === "admin123") {

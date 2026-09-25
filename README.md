@@ -1,4 +1,4 @@
-# Atelier — khung website thương mại điện tử
+# Ekkit — khung website thương mại điện tử
 
 Starter shop Next.js: clone, đổi thương hiệu, bật/tắt module, thêm chức năng theo khách.
 

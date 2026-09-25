@@ -9,16 +9,16 @@
 
 export const siteConfig = {
   brand: {
-    name: "Atelier",
+    name: "Ekkit",
     tagline: "Chọn chậm. Dùng lâu.",
     description:
       "Cửa hàng trực tuyến bán sản phẩm chọn lọc — thời trang, nhà cửa và lifestyle.",
-    email: "hello@atelier.vn",
+    email: "hello@ekkit.vn",
     phone: "0901 234 567",
     hotline: "1900 1234",
     address: "12 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh",
     workingHours: "8:00 – 21:00 (T2–CN)",
-    logoText: "Atelier",
+    logoText: "Ekkit",
   },
 
   /** Màu thương hiệu — đổi hex là đổi toàn site */
@@ -96,7 +96,7 @@ export const siteConfig = {
       label: "Chuyển khoản ngân hàng",
       bank: "Vietcombank",
       shortCode: "VCB",
-      accountName: "CONG TY ATELIER",
+      accountName: "CONG TY EKKIT",
       accountNumber: "0123456789",
     },
     momo: { enabled: false, label: "Ví MoMo" },
@@ -112,15 +112,15 @@ export const siteConfig = {
   },
 
   seo: {
-    titleTemplate: "%s · Atelier",
-    defaultTitle: "Atelier — Cửa hàng trực tuyến",
+    titleTemplate: "%s · Ekkit",
+    defaultTitle: "Ekkit — Cửa hàng trực tuyến",
     defaultDescription:
       "Mua sắm thời trang, nhà cửa và lifestyle. Giao hàng toàn quốc, đổi trả 7 ngày.",
   },
 
   /** Email admin mặc định — đổi theo shop; mật khẩu do ADMIN_PASSWORD (.env) quyết định. */
   admin: {
-    email: "admin@atelier.vn",
+    email: "admin@ekkit.vn",
   },
 
   currency: {

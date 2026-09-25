@@ -333,7 +333,7 @@ export const LOW_STOCK_THRESHOLD = 5;
 /** Mail cho admin khi tồn chạm ngưỡng — mỗi SKU 1 mail/ngày (chống spam). */
 export async function alertLowStock(items: Array<{ productId: string; skuId?: string }>) {
   try {
-    const admin = process.env.ADMIN_EMAIL || "admin@atelier.vn";
+    const admin = process.env.ADMIN_EMAIL || "admin@ekkit.vn";
     const startDay = new Date();
     startDay.setHours(0, 0, 0, 0);
     for (const it of items) {
