@@ -21,6 +21,7 @@ npm run platform:admin <email> <password≥8>        # super-admin cho /platform
 - `src/config/site.ts` — default cấu hình (brand/theme/flags). DB `SiteSetting` ghi đè lúc chạy.
   Quy ước hiệu lực: **tiền + tồn + ship + mail đọc DB ngay** (`isFeatureOn`, `getEffectiveSiteConfig`);
   **ẩn/hiện giao diện đọc file lúc build** (`isEnabled`, `isModuleOn`).
+  Server KHÔNG gọi `isEnabled`/`isModuleOn` (client-only) — luôn dùng `isFeatureOn` (DB, hiệu lực ngay).
 - Lõi chia 4 module, KHÔNG thêm logic chéo:
   - `src/server/catalog.ts` — danh mục/SP/bài viết/review (đọc + CRUD)
   - `src/server/coupon.ts` — mã giảm giá

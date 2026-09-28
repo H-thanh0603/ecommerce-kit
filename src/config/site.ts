@@ -183,6 +183,11 @@ export type EffectiveSite = {
   consent: { enabled: boolean; text: string };
 };
 
+/**
+ * Build-time flag — chỉ dùng phía client/UI (ẩn/hiện giao diện).
+ * SERVER-BAN: code trong `src/server/**` KHÔNG gọi hàm này
+ * (bỏ qua tenant toggle trong DB) — luôn dùng `isFeatureOn()` từ `@/server/settings`.
+ */
 export function isEnabled(feature: FeatureKey): boolean {
   return Boolean(siteConfig.features[feature]);
 }

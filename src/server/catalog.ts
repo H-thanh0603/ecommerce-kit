@@ -3,6 +3,7 @@ import { toArticle, toCategory, toProduct, toReview } from "@/server/map";
 import { normVi } from "@/lib/format";
 import type { Prisma } from "@prisma/client";
 import { unstable_cache, revalidateTag } from "next/cache";
+import { getTenantSchema, runWithTenant } from "@/server/tenant-context";
 import type { Product, ProductVariant } from "@/types";
 
 const productInclude = { category: true, images: true, skus: true } as const;
@@ -18,20 +19,31 @@ function cartesianLabels(groups: ProductVariant[]) {
 }
 
 export async function listCategories() {
-  return cachedCategories();
+  const schema = getTenantSchema();
+  let l = loaders.get(schema);
+  if (!l) {
+    l = makeCategoriesLoader(schema);
+    loaders.set(schema, l);
+  }
+  return l();
 }
 
-const cachedCategories = unstable_cache(
-  async () => {
-    const rows = await prisma.category.findMany({
-      include: { _count: { select: { products: { where: { published: true } } } } },
-      orderBy: { name: "asc" },
-    });
-    return rows.map(toCategory);
-  },
-  ["categories"],
-  { tags: ["catalog"], revalidate: 60 },
-);
+const makeCategoriesLoader = (schema: string) =>
+  unstable_cache(
+    async () =>
+      // runWithTenant: unstable_cache re-invoke ngoài request context vẫn query đúng schema
+      runWithTenant(schema, async () => {
+        const rows = await prisma.category.findMany({
+          include: { _count: { select: { products: { where: { published: true } } } } },
+          orderBy: { name: "asc" },
+        });
+        return rows.map(toCategory);
+      }),
+    ["categories", schema],
+    { tags: [`catalog:${schema}`], revalidate: 60 },
+  );
+
+const loaders = new Map<string, ReturnType<typeof makeCategoriesLoader>>();
 
 export async function listProducts(opts?: {
   q?: string;
@@ -149,13 +161,13 @@ export async function upsertArticle(data: {
   const row = data.id
     ? await prisma.article.update({ where: { id: data.id }, data: payload })
     : await prisma.article.create({ data: payload });
-  revalidateTag("catalog", "max");
+  revalidateTag(`catalog:${getTenantSchema()}`, "max");
   return row;
 }
 
 export async function deleteArticle(id: string) {
   await prisma.article.delete({ where: { id } });
-  revalidateTag("catalog", "max");
+  revalidateTag(`catalog:${getTenantSchema()}`, "max");
 }
 
 export async function addReview(data: {
@@ -306,7 +318,7 @@ export async function upsertProduct(data: {
     return tx.product.findUniqueOrThrow({ where: { id: saved.id }, include: productInclude });
   });
 
-  revalidateTag("catalog", "max");
+  revalidateTag(`catalog:${getTenantSchema()}`, "max");
   // Đồng bộ dòng tồn kho còn thiếu cho kho mặc định (không chặn lưu SP nếu kho lỗi).
   try {
     const { ensureWarehouseStock } = await import("@/server/warehouse");
@@ -319,7 +331,7 @@ export async function upsertProduct(data: {
 
 export async function setProductPublished(id: string, published: boolean) {
   await prisma.product.update({ where: { id }, data: { published } });
-  revalidateTag("catalog", "max");
+  revalidateTag(`catalog:${getTenantSchema()}`, "max");
 }
 
 export async function deleteProduct(id: string) {
@@ -329,7 +341,7 @@ export async function deleteProduct(id: string) {
     return { hidden: true };
   }
   await prisma.product.delete({ where: { id } });
-  revalidateTag("catalog", "max");
+  revalidateTag(`catalog:${getTenantSchema()}`, "max");
   return { deleted: true };
 }
 
@@ -349,7 +361,7 @@ export async function upsertCategory(data: {
   const row = data.id
     ? await prisma.category.update({ where: { id: data.id }, data: payload })
     : await prisma.category.create({ data: payload });
-  revalidateTag("catalog", "max");
+  revalidateTag(`catalog:${getTenantSchema()}`, "max");
   return toCategory(row);
 }
 
@@ -357,5 +369,5 @@ export async function deleteCategory(id: string) {
   const n = await prisma.product.count({ where: { categoryId: id } });
   if (n) throw new Error("Danh mục còn sản phẩm");
   await prisma.category.delete({ where: { id } });
-  revalidateTag("catalog", "max");
+  revalidateTag(`catalog:${getTenantSchema()}`, "max");
 }

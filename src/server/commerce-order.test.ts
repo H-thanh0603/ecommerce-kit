@@ -1,7 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import { prisma } from "./db";
 import { createOrder, getProductById } from "./commerce";
 import { defaultWarehouse, setWarehouseStock } from "./warehouse";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  delete process.env.VNPAY_TMN_CODE;
+  delete process.env.VNPAY_HASH_SECRET;
+});
 
 async function restock(pickStock = 5, whStock = 5) {
   const before = await getProductById("p1");
@@ -116,5 +122,76 @@ describe("createOrder", () => {
       where: { warehouseId_productId_skuKey: { warehouseId: wh!.id, productId: "p1", skuKey: sku!.label } },
     });
     expect(left!.stock).toBe(0);
+  });
+
+  it("pay-url fail giữ đơn pending + needsRetry thay vì throw sau commit", async () => {
+    const { before, sku } = await restock(5, 5);
+    // Vượt kiểm tra cấu hình sớm để tới nhánh build URL sau commit.
+    process.env.VNPAY_TMN_CODE = "TESTCODE";
+    process.env.VNPAY_HASH_SECRET = "TESTSECRET";
+    // Mock buildVnpayUrl throw — mô phỏng cổng sập sau khi đơn đã commit.
+    const vnpay = await import("./vnpay");
+    vi.spyOn(vnpay, "buildVnpayUrl").mockImplementation(() => {
+      throw new Error("gateway down");
+    });
+    const order = await createOrder({
+      customer: "PayFail",
+      email: `pf-${Date.now()}@kit.vn`,
+      phone: "0900000000",
+      address: "1 Test, Q1",
+      paymentMethod: "vnpay",
+      items: [
+        {
+          productId: "p1",
+          slug: before!.slug,
+          name: before!.name,
+          image: before!.images[0] || "",
+          price: before!.price,
+          quantity: 1,
+          skuId: sku!.id,
+          variantLabel: sku!.label,
+        },
+      ],
+    });
+    expect(order).toMatchObject({ status: "pending", needsRetry: true });
+    expect(order.payUrl).toBeUndefined();
+    // Giữ đơn → tồn vẫn trừ, không hoàn.
+    const after = await getProductById("p1");
+    expect(after!.skus?.find((s) => s.id === sku!.id)!.stock).toBe(4);
+    await prisma.order.deleteMany({ where: { id: order.id } });
+  });
+
+  it("zalopay/unknown bị từ chối TRƯỚC transaction — không trừ tồn, không tạo đơn", async () => {
+    // Semantics đã chọn: whitelist method trước tx (chỉ cod/bankTransfer/vnpay/momo).
+    // Method lạ throw trước khi trừ tồn; nhánh else sau commit không bao giờ
+    // throw nữa (mọi pay-fail đều trả pending + needsRetry).
+    const { before, sku } = await restock(5, 5);
+    const item = {
+      productId: "p1",
+      slug: before!.slug,
+      name: before!.name,
+      image: before!.images[0] || "",
+      price: before!.price,
+      quantity: 1,
+      skuId: sku!.id,
+      variantLabel: sku!.label,
+    };
+    const base = {
+      customer: "Method La",
+      phone: "0900000000",
+      address: "1 Test, Q1",
+      items: [item],
+    };
+    const emailZ = `zx-${Date.now()}@kit.vn`;
+    await expect(
+      createOrder({ ...base, email: emailZ, paymentMethod: "zalopay" }),
+    ).rejects.toThrow(/không hỗ trợ/);
+    await expect(
+      createOrder({ ...base, email: `ux-${Date.now()}@kit.vn`, paymentMethod: "unknown-xyz" }),
+    ).rejects.toThrow(/không hỗ trợ/);
+    // Không trừ tồn, không tạo đơn nào.
+    const after = await getProductById("p1");
+    expect(after!.skus?.find((s) => s.id === sku!.id)!.stock).toBe(5);
+    expect(await prisma.order.count({ where: { email: emailZ } })).toBe(0);
   });
 });

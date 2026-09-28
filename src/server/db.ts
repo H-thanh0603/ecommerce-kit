@@ -39,6 +39,9 @@ export function forgetClient(schema: string): void {
   }
 }
 
+// Tenant <10 nên cache tối đa 10 client — vượt thì evict LRU (key cũ nhất).
+const MAX_CLIENTS = 10;
+
 export function getClientForSchema(schema: string): PrismaClient {
   // Fail-closed: slug chưa mark = schema chưa migrate (cửa sổ T4→T10) —
   // lỗi rõ ràng thay vì build pool chết rồi mọi query ném P2021 và cache vĩnh viễn.
@@ -49,12 +52,22 @@ export function getClientForSchema(schema: string): PrismaClient {
   const map = globalForPrisma.prismaClients ?? new Map();
   globalForPrisma.prismaClients = map;
   let c = map.get(schema);
-  if (!c) {
-    c = new PrismaClient({
-      datasources: { db: { url: `${baseUrl()}?schema=${encodeURIComponent(schema)}` } },
-      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    });
+  if (c) {
+    // LRU touch: xóa-insert lại để mark recent (Map giữ thứ tự insert).
+    map.delete(schema);
     map.set(schema, c);
+    return c;
+  }
+  c = new PrismaClient({
+    datasources: { db: { url: `${baseUrl()}?schema=${encodeURIComponent(schema)}` } },
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+  map.set(schema, c);
+  // Tenant <10 nên MAX 10 đủ — vượt thì evict key cũ nhất (đầu Map) + disconnect pool.
+  while (map.size > MAX_CLIENTS) {
+    const oldest = map.keys().next().value as string | undefined;
+    if (oldest === undefined || oldest === schema) break;
+    forgetClient(oldest);
   }
   return c;
 }
