@@ -1,5 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { getClientForSchema, prisma } from "./db";
+import {
+  forgetClient,
+  getClientForSchema,
+  markSchemaProvisioned,
+  prisma,
+  unmarkSchemaProvisioned,
+} from "./db";
 import { ensureSchema, dropSchema } from "./test-schema";
 import { runWithTenant } from "./tenant-context";
 
@@ -48,5 +54,24 @@ describe("isolation 2 schema (T3)", () => {
     expect(map?.has(missing)).toBe(false);
     // public giữ nguyên đường cũ — không qua guard
     expect(() => getClientForSchema("public")).not.toThrow();
+  });
+
+  it("pool tenant LRU max 10 — 12 schema chỉ giữ ≤10 client", () => {
+    const ts = Date.now();
+    const slugs = Array.from({ length: 12 }, (_, i) => `lru_${ts}_${i}`);
+    for (const s of slugs) markSchemaProvisioned(s);
+    try {
+      for (const s of slugs) getClientForSchema(s);
+      const map = (globalThis as { prismaClients?: Map<string, unknown> }).prismaClients!;
+      expect(map.size).toBeLessThanOrEqual(10);
+      // LRU: key cũ nhất bị evict, key mới nhất còn
+      expect(map.has(slugs[0])).toBe(false);
+      expect(map.has(slugs[slugs.length - 1])).toBe(true);
+    } finally {
+      for (const s of slugs) {
+        forgetClient(s);
+        unmarkSchemaProvisioned(s);
+      }
+    }
   });
 });
