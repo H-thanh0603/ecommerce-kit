@@ -2,13 +2,14 @@ import { prisma } from "@/server/db";
 import { toOrder, toProduct } from "@/server/map";
 import { processPayment } from "@/server/payments";
 import { onOrderCreated, onOrderStatusChanged } from "@/server/events";
-import { discountAmount } from "@/lib/format";
-import { quoteShipping } from "@/server/shipping";
+import { assertCouponTx } from "@/server/coupon";
+import { consumeGiftTx } from "@/server/giftcard";
+import { quoteOrder } from "@/server/pricing";
 import { isFeatureOn } from "@/server/settings";
 import { defaultWarehouse } from "@/server/warehouse";
-import { discountFromPoints, grantOrderPoints, spendPointsTx } from "@/server/membership";
+import { grantOrderPoints, spendPointsTx } from "@/server/membership";
 import { productInclude } from "@/server/product-include";
-import { lineAmount, type CartItem, type OrderStatus } from "@/types";
+import { type CartItem, type OrderStatus } from "@/types";
 import type { Prisma } from "@prisma/client";
 
 export async function listOrders(filter?: {
@@ -149,61 +150,26 @@ export async function createOrder(input: CheckoutInput) {
     };
   });
 
-  const { assertCoupon } = await import("@/server/coupon");
-  const subtotal = lines.reduce(
-    (s, l) => s + lineAmount(l.product.price, l.quantity, l.product.unit === "kg" ? "kg" : "cai"),
-    0,
-  );
-  const coupon = input.couponCode
-    ? await assertCoupon(input.couponCode, subtotal, input.email, input.userId)
-    : null;
-  const weightGrams = lines.reduce((s, l) => s + (l.product.weightGrams || 500) * (l.product.unit === "kg" ? 1 : l.quantity), 0);
-  const quote = await quoteShipping({
-    subtotal,
-    innerCity: input.innerCity,
-    weightGrams,
-    toDistrictId: input.toDistrictId,
-    toWardCode: input.toWardCode,
-  });
-  const shipRaw = quote.fee;
-  const ship = coupon?.type === "shipping" ? 0 : shipRaw;
-  const off = coupon
-    ? discountAmount(subtotal, {
-        type: coupon.type as "percent" | "fixed" | "shipping",
-        value: coupon.value,
-        minOrder: coupon.minOrder,
-      })
-    : 0;
-  let pointsDiscount = 0;
-  let pointsToUse = 0;
-  if ((await isFeatureOn("membership")) && input.userId && input.pointsToUse) {
-    const raw = input.pointsToUse;
-    if (!Number.isInteger(raw) || raw < 0) throw new Error("Số điểm không hợp lệ");
-    if (raw > 0) {
-      const member = await prisma.user.findUnique({ where: { id: input.userId }, select: { points: true } });
-      if (!member || member.points < raw) throw new Error("Không đủ điểm để dùng");
-      pointsToUse = raw;
-      pointsDiscount = discountFromPoints(raw);
-    }
-  }
-  const { quoteGift } = await import("@/server/giftcard");
-  const gift = input.giftCode ? await quoteGift(input.giftCode, subtotal + shipRaw - off - pointsDiscount) : null;
-  const giftAmount = gift?.amount || 0;
-  const { quoteBundle } = await import("@/server/bundle");
-  const bundle = input.bundleId
-    ? await quoteBundle(
-        input.bundleId,
-        lines.map((l) => ({
-          productId: l.product.id,
-          skuId: l.sku?.id,
-          price: l.product.price,
-          quantity: l.quantity,
-          unit: l.product.unit,
-        })),
-      )
-    : null;
-  const bundleDiscount = bundle?.discount || 0;
-  const total = Math.max(0, subtotal + ship - off - pointsDiscount - giftAmount - bundleDiscount);
+  const { subtotal, coupon, ship, off, pointsDiscount, pointsToUse, gift, giftAmount, bundle, bundleDiscount, total } =
+    await quoteOrder({
+      lines: lines.map((l) => ({
+        productId: l.product.id,
+        skuId: l.sku?.id,
+        price: l.product.price,
+        quantity: l.quantity,
+        unit: l.product.unit,
+        weightGrams: l.product.weightGrams,
+      })),
+      couponCode: input.couponCode,
+      email: input.email,
+      userId: input.userId,
+      innerCity: input.innerCity,
+      toDistrictId: input.toDistrictId,
+      toWardCode: input.toWardCode,
+      giftCode: input.giftCode,
+      bundleId: input.bundleId,
+      pointsToUse: input.pointsToUse,
+    });
 
   const order = await prisma.$transaction(async (tx) => {
     const seq = await nextOrderSeq(tx);
@@ -283,7 +249,6 @@ export async function createOrder(input: CheckoutInput) {
     });
 
     if (coupon) {
-      const { assertCouponTx } = await import("@/server/coupon");
       await assertCouponTx(tx, coupon.id, subtotal, input.email, input.userId);
       await tx.couponRedemption.create({
         data: {
@@ -300,7 +265,6 @@ export async function createOrder(input: CheckoutInput) {
     }
 
     if (gift && giftAmount > 0) {
-      const { consumeGiftTx } = await import("@/server/giftcard");
       await consumeGiftTx(tx, gift.gift.id, created.id, giftAmount);
     }
 
