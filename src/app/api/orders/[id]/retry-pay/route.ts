@@ -14,9 +14,32 @@ async function postHandler(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const row = await prisma.order.findUnique({ where: { id }, include: { items: true } });
   if (!row) return NextResponse.json({ message: "Không thấy đơn" }, { status: 404 });
-  // Chủ đơn hoặc admin mới được retry (guest checkout: khớp email session hoặc admin).
-  if (session?.role !== "admin" && session?.id && row.userId && row.userId !== session.id) {
-    return NextResponse.json({ message: "Không có quyền" }, { status: 403 });
+  // Chống IDOR: admin bypass; logged-in user chỉ đơn của mình; guest ẩn danh
+  // phải gửi email khớp row.email — sai email trả 404 như không tồn tại (không lộ id).
+  if (session?.role !== "admin") {
+    if (session?.id) {
+      if (row.userId != null) {
+        if (row.userId !== session.id) {
+          return NextResponse.json({ message: "Không có quyền" }, { status: 403 });
+        }
+      } else if (
+        session.email == null ||
+        row.email.toLowerCase() !== session.email.trim().toLowerCase()
+      ) {
+        return NextResponse.json({ message: "Không có quyền" }, { status: 403 });
+      }
+    } else {
+      let bodyEmail = "";
+      try {
+        const body = await req.json();
+        bodyEmail = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+      } catch {
+        bodyEmail = "";
+      }
+      if (!bodyEmail || row.email.toLowerCase() !== bodyEmail) {
+        return NextResponse.json({ message: "Không thấy đơn" }, { status: 404 });
+      }
+    }
   }
   if (row.paymentMethod !== "vnpay" && row.paymentMethod !== "momo") {
     return NextResponse.json({ message: "Đơn này không cần thanh toán lại" }, { status: 400 });

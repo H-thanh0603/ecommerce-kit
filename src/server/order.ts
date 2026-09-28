@@ -116,8 +116,16 @@ export async function nextOrderSeq(tx: Prisma.TransactionClient) {
   return row.value;
 }
 
+/** Method được phép checkout — còn lại (zalopay/unknown/...) reject TRƯỚC transaction. */
+const SUPPORTED_PAYMENT_METHODS = new Set(["cod", "bankTransfer", "vnpay", "momo"]);
+
 export async function createOrder(input: CheckoutInput) {
   if (!input.items.length) throw new Error("Giỏ hàng trống");
+  // Whitelist TRƯỚC transaction: method lạ (zalopay/unknown/...) bị từ chối
+  // trước khi trừ tồn — không bao giờ tạo đơn + trừ tồn cho method không hỗ trợ.
+  if (!SUPPORTED_PAYMENT_METHODS.has(input.paymentMethod)) {
+    throw new Error("Phương thức thanh toán không hỗ trợ");
+  }
   if (input.paymentMethod === "vnpay") {
     const { vnpayConfigured } = await import("@/server/vnpay");
     if (!vnpayConfigured()) throw new Error("Chưa cấu hình VNPay (.env VNPAY_*)");
@@ -288,19 +296,15 @@ export async function createOrder(input: CheckoutInput) {
   await logOrderEvent(order.id, "created", `Ghi đơn ${mapped.code} · ${mapped.paymentMethod} · ${mapped.total}đ`);
   await alertLowStock(lines.map((l) => ({ productId: l.product.id, skuId: l.sku?.id })));
   let payUrl: string | undefined;
-  if (input.paymentMethod === "vnpay" || input.paymentMethod === "momo") {
-    // P0: đơn đã commit (trừ tồn) — build URL fail thì giữ pending cho thử lại,
-    // KHÔNG throw (throw cũng không hoàn tồn, chỉ làm client tưởng mất đơn).
-    try {
-      const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total, ip: input.ip });
-      if (!pay.ok) return Object.assign(mapped, { payUrl: undefined, needsRetry: true });
-      payUrl = pay.payUrl;
-    } catch {
-      return Object.assign(mapped, { payUrl: undefined, needsRetry: true });
-    }
-  } else {
-    const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total });
-    if (!pay.ok) throw new Error(pay.message);
+  // Đơn đã commit (trừ tồn) — mọi lỗi/thất bại build payUrl đều giữ pending
+  // cho thử lại (needsRetry), KHÔNG throw sau commit (throw cũng không hoàn
+  // tồn, chỉ làm client tưởng mất đơn). Áp dụng mọi method, kể cả cod/bankTransfer.
+  try {
+    const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total, ip: input.ip });
+    if (!pay.ok) return Object.assign(mapped, { payUrl: undefined, needsRetry: true });
+    payUrl = pay.payUrl;
+  } catch {
+    return Object.assign(mapped, { payUrl: undefined, needsRetry: true });
   }
   return Object.assign(mapped, { payUrl });
 }
