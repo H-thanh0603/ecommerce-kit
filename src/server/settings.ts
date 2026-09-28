@@ -163,7 +163,7 @@ const makeLoader = (schema: string) =>
         for (const r of rows) {
           const v = safeParse(r.value);
           if (v === undefined) continue;
-          if (["brand", "theme", "shipping", "features", "currency", "announcement", "consent"].includes(r.key)) {
+          if (["brand", "theme", "shipping", "features", "currency", "announcement", "consent", "payments", "home"].includes(r.key)) {
             (out as Record<string, unknown>)[r.key] = v;
           }
         }
