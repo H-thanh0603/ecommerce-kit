@@ -318,9 +318,15 @@ export async function createOrder(input: CheckoutInput) {
   await alertLowStock(lines.map((l) => ({ productId: l.product.id, skuId: l.sku?.id })));
   let payUrl: string | undefined;
   if (input.paymentMethod === "vnpay" || input.paymentMethod === "momo") {
-    const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total, ip: input.ip });
-    if (!pay.ok) throw new Error(pay.message);
-    payUrl = pay.payUrl;
+    // P0: đơn đã commit (trừ tồn) — build URL fail thì giữ pending cho thử lại,
+    // KHÔNG throw (throw cũng không hoàn tồn, chỉ làm client tưởng mất đơn).
+    try {
+      const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total, ip: input.ip });
+      if (!pay.ok) return Object.assign(mapped, { payUrl: undefined, needsRetry: true });
+      payUrl = pay.payUrl;
+    } catch {
+      return Object.assign(mapped, { payUrl: undefined, needsRetry: true });
+    }
   } else {
     const pay = await processPayment(input.paymentMethod, { code: mapped.code, total: mapped.total });
     if (!pay.ok) throw new Error(pay.message);

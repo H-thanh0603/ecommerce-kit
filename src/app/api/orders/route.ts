@@ -70,7 +70,7 @@ async function postHandler(req: Request) {
       userId: session?.id,
       ip: req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1",
     });
-    return NextResponse.json({ order, payUrl: order.payUrl });
+    return NextResponse.json({ order, payUrl: order.payUrl, needsRetry: (order as { needsRetry?: boolean }).needsRetry });
   } catch (e) {
     // Race: unique clientRequestId vừa bị POST khác thắng → trả đơn đã tạo.
     if (rid && /unique|Unique/i.test(String(e))) {
