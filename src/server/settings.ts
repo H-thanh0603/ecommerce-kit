@@ -79,7 +79,9 @@ export const homeSchema = z.object({
   eyebrow: z.string().max(80),
   image: z.string().max(500),
   imageAlt: z.string().max(120),
-  blocks: z.array(z.enum(["categories", "flash", "featured", "journal"])).max(4),
+  blocks: z
+    .array(z.enum(["categories", "flash", "featured", "popular", "reviews", "combo", "journal"]))
+    .max(7),
 });
 
 export const siteSettingsInput = z.object({

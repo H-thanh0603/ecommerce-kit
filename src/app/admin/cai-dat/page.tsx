@@ -362,6 +362,9 @@ export default function AdminSettings() {
               ["categories", "Danh mục"],
               ["flash", "Flash sale"],
               ["featured", "Sản phẩm nổi bật"],
+              ["popular", "Bán chạy"],
+              ["reviews", "Đánh giá khách"],
+              ["combo", "Combo ưu đãi"],
               ["journal", "Bài viết"],
             ] as const
           ).map(([id, label]) => {
