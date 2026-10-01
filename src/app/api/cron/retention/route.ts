@@ -11,10 +11,13 @@ export async function GET(req: Request) {
   }
   try {
     const { runRetentionPurge } = await import("@/server/retention");
-    const { withDefaultTenant } = await import("@/server/tenant");
-    // Cron không có Host tenant — chạy cố định ở schema DEFAULT_TENANT (T5).
-    const result = await withDefaultTenant(() => runRetentionPurge());
-    return NextResponse.json({ ok: true, ...result });
+    const { withAllTenants } = await import("@/server/tenant");
+    // Cron không có Host tenant — chạy qua public + mọi tenant active.
+    const results = await withAllTenants(() => runRetentionPurge());
+    return NextResponse.json({
+      ok: results.every((r) => r.ok),
+      tenants: results.map((r) => ({ slug: r.slug, ok: r.ok, ...(r.ok ? { ...r.result } : { error: r.error }) })),
+    });
   } catch (e) {
     return NextResponse.json(
       { ok: false, message: e instanceof Error ? e.message : "Lỗi purge" },

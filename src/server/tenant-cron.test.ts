@@ -32,10 +32,25 @@ describe("cron under tenant context (T5)", () => {
     }
   }, 180_000);
 
-  it("cron retention route wrap withDefaultTenant (đọc source)", async () => {
+  it("cron retention route wrap withAllTenants (đọc source)", async () => {
     const fs = await import("node:fs");
     const src = fs.readFileSync("src/app/api/cron/retention/route.ts", "utf8");
-    expect(src).toContain("withDefaultTenant");
+    expect(src).toContain("withAllTenants");
+  });
+
+  it("withAllTenants chạy qua public + trả kết quả theo từng slug", async () => {
+    const { withAllTenants } = await import("./tenant");
+    const { getTenantSchema } = await import("./tenant-context");
+    const results = await withAllTenants(async (slug) => {
+      expect(getTenantSchema()).toBe(slug);
+      return slug.toUpperCase();
+    });
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    expect(results.map((r) => r.slug)).toContain("public");
+    for (const r of results) {
+      expect(r.ok).toBe(true);
+      expect(r.result).toBe(r.slug.toUpperCase());
+    }
   });
 
   it("withDefaultTenant chạy fn trong schema DEFAULT_TENANT/public", async () => {

@@ -3,8 +3,11 @@
 Starter shop Next.js: clone, đổi thương hiệu, bật/tắt module, thêm chức năng theo khách.
 
 ```bash
-npm run new:project -- ten-khach --brand "Tên Shop"   # tách dự án khách mới
+npm run new:project -- ten-khach --brand "Tên Shop"   # tách dự án khách mới (fork repo)
+npm run tenant:create shopa "Shop A" shopa.localhost  # hoặc: shop mới trong 1 app SaaS
 ```
+
+**Nhận dự án mới — runbook đầy đủ (chọn fork hay SaaS, checklist bàn giao): xem `docs/nhan-du-an-moi.md`.**
 
 Triển khai production: xem `DEPLOY.md` (Docker 1 lệnh, chuyển Postgres, checklist).
 

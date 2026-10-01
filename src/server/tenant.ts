@@ -6,6 +6,30 @@ export function withDefaultTenant<T>(fn: () => T): T {
   return runWithTenant(process.env.DEFAULT_TENANT || "public", fn);
 }
 
+export type PerTenantResult<T> = { slug: string; ok: boolean; result?: T; error?: string };
+
+/**
+ * Cron toàn hệ thống: chạy fn qua schema public (default) + mọi tenant active.
+ * Lỗi 1 tenant không chặn tenant khác — kết quả trả về theo từng slug.
+ * (platform-db import động để tránh vòng phụ thuộc — platform-db import tenant.ts)
+ */
+export async function withAllTenants<T>(
+  fn: (slug: string) => Promise<T>,
+): Promise<PerTenantResult<T>[]> {
+  const { platformDb } = await import("./platform-db");
+  const rows = await platformDb.tenant.findMany({ where: { active: true }, select: { slug: true } });
+  const slugs = [...new Set(["public", ...rows.map((r) => r.slug).filter((s) => slugSchema.safeParse(s).success)])];
+  const out: PerTenantResult<T>[] = [];
+  for (const slug of slugs) {
+    try {
+      out.push({ slug, ok: true, result: await runWithTenant(slug, () => fn(slug)) });
+    } catch (e) {
+      out.push({ slug, ok: false, error: e instanceof Error ? e.message : "Lỗi không xác định" });
+    }
+  }
+  return out;
+}
+
 export const slugSchema = z
   .string()
   .regex(/^[a-z][a-z0-9_]{1,30}$/, "slug tenant sai định dạng")
