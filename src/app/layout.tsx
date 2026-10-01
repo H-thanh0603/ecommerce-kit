@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import "./globals.css";
+import { siteConfig } from "@/config/site";
 import { Providers } from "@/components/providers";
 import { AppChrome } from "@/components/layout/AppChrome";
 import { OrganizationJsonLd } from "@/components/seo/JsonLd";
@@ -27,8 +28,8 @@ const serif = Noto_Serif({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#0F3D2E" },
-    { media: "(prefers-color-scheme: dark)", color: "#0F3D2E" },
+    { media: "(prefers-color-scheme: light)", color: siteConfig.theme.primary },
+    { media: "(prefers-color-scheme: dark)", color: siteConfig.theme.primary },
   ],
   width: "device-width",
   initialScale: 1,
@@ -41,10 +42,8 @@ export async function generateMetadata(): Promise<Metadata> {
   // Brand/title đọc đúng schema tenant (review T7 fix)
   return withTenantFromRequest(host, async () => {
     const site = await getEffectiveSiteConfig().catch(() => null);
-    const name = site?.brand.name || "Ekkit";
-    const description =
-      site?.brand.description ||
-      "Mua sắm thời trang, nhà cửa và lifestyle. Giao hàng toàn quốc, đổi trả 7 ngày.";
+    const name = site?.brand.name || siteConfig.brand.name;
+    const description = site?.brand.description || siteConfig.brand.description;
     const app = process.env.APP_URL || "http://localhost:3000";
     return {
       metadataBase: new URL(app),

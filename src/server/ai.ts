@@ -74,7 +74,7 @@ const agentTools: OpenAI.Chat.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "get_order",
-      description: "Xem đơn theo mã (ATL-xxxxx)",
+      description: `Xem đơn theo mã (${siteConfig.orders.codePrefix}-xxxxx)`,
       parameters: { type: "object", properties: { code: { type: "string" } }, required: ["code"] },
     },
   },

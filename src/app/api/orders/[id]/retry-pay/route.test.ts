@@ -117,7 +117,7 @@ describe("retry-pay chống IDOR", () => {
     const email = `rt-ad-${Date.now()}@kit.vn`;
     const order = await makeGuestOrder(email);
     createdIds.push(order.id);
-    mockState.session = { id: "admin1", name: "Admin", email: "admin@ekkit.vn", role: "admin" };
+    mockState.session = { id: "admin1", name: "Admin", email: "admin@kit.vn", role: "admin" };
     const res = await POST(retryReq(order.id, { email: "sai@hoàn.toàn" }), {
       params: Promise.resolve({ id: order.id }),
     });

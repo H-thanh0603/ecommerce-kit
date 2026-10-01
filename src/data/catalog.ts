@@ -115,7 +115,7 @@ export const products: Product[] = [
       "Đèn bàn đế gốm men mát, chao vải linen. Bóng LED 4W ánh sáng ấm 2700K. Phù hợp bàn làm việc và góc đọc sách.",
     price: 780_000,
     images: [
-      "https://images.unsplash.com/photo-1507473883501-cd55bddb7079?w=1400&q=80",
+      "https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=1400&q=80",
     ],
     category: "nha-cua",
     tags: ["nội thất", "ánh sáng"],
@@ -153,7 +153,7 @@ export const products: Product[] = [
       "Nến sáp đậu nành, tim cotton, hương gỗ đàn hương và vetiver. Cháy khoảng 45 giờ. Hũ thuỷ tinh tái sử dụng được.",
     price: 240_000,
     images: [
-      "https://images.unsplash.com/photo-1602607383111-5d0c0c41b8c7?w=1400&q=80",
+      "https://images.unsplash.com/photo-1603006905003-be475563bc59?w=1400&q=80",
     ],
     category: "nha-cua",
     tags: ["hương", "thư giãn"],
@@ -248,7 +248,7 @@ export const products: Product[] = [
       "Thảm len dệt tay, kích thước 80x120cm. Phù hợp góc đọc sách hoặc cuối giường.",
     price: 1_290_000,
     images: [
-      "https://images.unsplash.com/photo-1600166898405-89c0d8888350?w=1400&q=80",
+      "https://images.unsplash.com/photo-1531835551805-16d864c8d311?w=1400&q=80",
     ],
     category: "nha-cua",
     tags: ["nội thất"],
@@ -343,7 +343,7 @@ export const articles: Article[] = [
 export const orders: Order[] = [
   {
     id: "o1",
-    code: "ATL-24091",
+    code: "EK-24091",
     customer: "Nguyễn Lan",
     email: "lan@email.com",
     phone: "0908123456",
@@ -369,7 +369,7 @@ export const orders: Order[] = [
   },
   {
     id: "o2",
-    code: "ATL-24088",
+    code: "EK-24088",
     customer: "Trần Khoa",
     email: "khoa@email.com",
     phone: "0912333444",
@@ -394,7 +394,7 @@ export const orders: Order[] = [
   },
   {
     id: "o3",
-    code: "ATL-24085",
+    code: "EK-24085",
     customer: "Phạm Hà",
     email: "ha@email.com",
     phone: "0987666555",

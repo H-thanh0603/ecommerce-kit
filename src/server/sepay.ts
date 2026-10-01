@@ -1,10 +1,11 @@
 /**
  * SePay webhook — tự động gạch đơn chuyển khoản.
  * SePay POST JSON về route này, kèm header `Authorization: Apikey <SEPAY_API_KEY>`.
- * Khách ghi nội dung CK là mã đơn (VD: ATL-00012) thì đơn tự chuyển paid.
+ * Khách ghi nội dung CK là mã đơn (VD: EK-00012) thì đơn tự chuyển paid.
  * Lưu ý: bearer bắt buộc theo docs SePay nên không thể IP-allowlist — bù bằng constant-time compare.
  */
 
+import { siteConfig } from "@/config/site";
 import { safeEqual } from "@/server/crypto-util";
 
 export function sepayConfigured() {
@@ -12,7 +13,8 @@ export function sepayConfigured() {
 }
 
 export function extractOrderCode(content: string): string | null {
-  const m = /ATL-\d{5}/i.exec(content || "");
+  const prefix = siteConfig.orders.codePrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = new RegExp(`${prefix}-\\d{5}`, "i").exec(content || "");
   return m ? m[0].toUpperCase() : null;
 }
 

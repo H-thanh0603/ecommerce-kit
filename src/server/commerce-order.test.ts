@@ -21,7 +21,7 @@ async function restock(pickStock = 5, whStock = 5) {
 }
 
 describe("createOrder", () => {
-  it("trừ tồn SKU, không tin giá client, mã ATL- tuần tự", async () => {
+  it("trừ tồn SKU, không tin giá client, mã EK- tuần tự", async () => {
     // Nạp lại tồn (SKU + kho) để test chạy lặp, không phụ thuộc số lần chạy trước.
     const { before, sku } = await restock(5, 5);
     const stockBefore = 5;
@@ -46,7 +46,7 @@ describe("createOrder", () => {
       ],
     });
 
-    expect(order.code).toMatch(/^ATL-\d{5}$/);
+    expect(order.code).toMatch(/^EK-\d{5}$/);
     expect(order.items[0].price).toBe(before!.price);
     expect(order.total).toBeGreaterThan(0);
 
@@ -75,7 +75,7 @@ describe("createOrder", () => {
       paymentMethod: "cod",
       items: [item(before!.price)],
     });
-    expect(ok.code).toMatch(/^ATL-\d{5}$/);
+    expect(ok.code).toMatch(/^EK-\d{5}$/);
     await expect(
       createOrder({
         customer: "Mua 2",

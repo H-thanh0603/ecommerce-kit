@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { prisma } from "./db";
 import { alertLowStock } from "./order";
+import { siteConfig } from "@/config/site";
 
-const ADMIN = process.env.ADMIN_EMAIL || "admin@ekkit.vn";
+const ADMIN = process.env.ADMIN_EMAIL || siteConfig.admin.email;
 
 describe("low-stock alert", () => {
   it("tồn trên ngưỡng thì im lặng; chạm ngưỡng thì mail 1 lần/ngày", async () => {

@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db";
+import { siteConfig } from "@/config/site";
 import { toOrder, toProduct } from "@/server/map";
 import { processPayment } from "@/server/payments";
 import { onOrderCreated, onOrderStatusChanged } from "@/server/events";
@@ -188,7 +189,7 @@ export async function createOrder(input: CheckoutInput) {
 
   const order = await prisma.$transaction(async (tx) => {
     const seq = await nextOrderSeq(tx);
-    const code = `ATL-${String(seq).padStart(5, "0")}`;
+    const code = `${siteConfig.orders.codePrefix}-${String(seq).padStart(5, "0")}`;
 
     for (const line of lines) {
       if (line.sku) {
@@ -315,7 +316,7 @@ export const LOW_STOCK_THRESHOLD = 5;
 export async function alertLowStock(items: Array<{ productId: string; skuId?: string }>) {
   try {
     if (!items.length) return;
-    const admin = process.env.ADMIN_EMAIL || "admin@ekkit.vn";
+    const admin = process.env.ADMIN_EMAIL || siteConfig.admin.email;
     const startDay = vnMidnightUtc(new Date());
     // Gộp N+1 query thành batch: 1 findMany SKU + 1 findMany Product + 1 findMany MailLog.
     const skuIds = [...new Set(items.filter((i) => i.skuId).map((i) => i.skuId as string))];

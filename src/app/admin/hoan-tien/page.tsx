@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { money } from "@/lib/format";
+import { siteConfig } from "@/config/site";
 import { btnDanger, btnPrimary } from "@/components/admin/buttons";
 
 type Refund = {
@@ -66,7 +67,7 @@ export default function AdminRefunds() {
         (cần đơn đã thanh toán qua cổng đó, <code>paymentRef</code> = mã giao dịch gốc).
       </p>
       <div className="mt-6 flex flex-wrap gap-2">
-        <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Mã đơn (ATL-…)" className="rounded-full border border-line px-4 py-2 text-sm" />
+        <input value={code} onChange={(e) => setCode(e.target.value)} placeholder={`Mã đơn (${siteConfig.orders.codePrefix}-…)`} className="rounded-full border border-line px-4 py-2 text-sm" />
         <input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min={0} placeholder="Số tiền" className="w-36 rounded-full border border-line px-4 py-2 text-sm" />
         <select value={method} onChange={(e) => setMethod(e.target.value)} className="rounded-full border border-line px-3 py-2 text-sm">
           <option value="bank">Chuyển khoản</option>

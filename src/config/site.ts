@@ -111,6 +111,14 @@ export const siteConfig = {
     estimatedDays: "2–4 ngày làm việc",
   },
 
+  /**
+   * Tiền tố mã đơn (VD: EK-00012) — khách dùng mã này khi chuyển khoản,
+   * SePay dò nội dung CK theo đúng tiền tố này. Đổi tiền tố = đổi cả hai nơi.
+   */
+  orders: {
+    codePrefix: "EK",
+  },
+
   seo: {
     titleTemplate: "%s · Ekkit",
     defaultTitle: "Ekkit — Cửa hàng trực tuyến",
@@ -156,7 +164,14 @@ export type EffectivePayments = {
   vnpay: PayFlag;
   zalopay: PayFlag;
 };
-export type HomeBlock = "categories" | "flash" | "featured" | "journal";
+export type HomeBlock =
+  | "categories"
+  | "flash"
+  | "featured"
+  | "popular"
+  | "reviews"
+  | "combo"
+  | "journal";
 export type EffectiveHome = {
   eyebrow: string;
   image: string;
@@ -166,9 +181,9 @@ export type EffectiveHome = {
 
 export const defaultHome: EffectiveHome = {
   eyebrow: "Cửa hàng chọn lọc",
-  image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&q=80",
+  image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1600&q=80",
   imageAlt: "Cửa hàng",
-  blocks: ["categories", "flash", "featured", "journal"],
+  blocks: ["categories", "flash", "featured", "popular", "reviews", "combo", "journal"],
 };
 
 export type EffectiveSite = {
