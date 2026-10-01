@@ -10,6 +10,8 @@ export function ConsentBanner({ enabled, text }: { enabled?: boolean; text?: str
   useEffect(() => {
     if (enabled === false) return;
     try {
+      // Chỉ hiện banner khi chưa có lựa chọn — phải kiểm tra sau mount (SSR không đọc localStorage).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (!localStorage.getItem(KEY)) setShow(true);
     } catch {
       setShow(true);

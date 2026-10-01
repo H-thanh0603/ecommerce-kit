@@ -27,7 +27,10 @@ export function ReturnForm({ orders, email }: { orders: Order[]; email: string }
     if (Array.isArray(r.returns)) setMine(r.returns);
   }
   useEffect(() => {
-    loadMine();
+    void (async () => {
+      const r = await fetch("/api/returns").then((x) => x.json()).catch(() => ({}));
+      if (Array.isArray(r.returns)) setMine(r.returns);
+    })();
   }, []);
 
   async function submit() {

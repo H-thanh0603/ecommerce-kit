@@ -55,7 +55,17 @@ export default async function ComboPage() {
             <AddBundleButton bundleId={b.id} lines={b.lines} />
           </article>
         ))}
-        {detailed.length === 0 && <p className="text-sm text-muted">Chưa có combo nào.</p>}
+        {detailed.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-16 text-center md:col-span-2">
+            <p className="font-serif text-xl text-primary">Chưa có combo nào đang mở bán</p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+              Combo thường mở theo đợt — quay lại sau hoặc xem sản phẩm lẻ vẫn đang có sẵn nhé.
+            </p>
+            <Link href="/san-pham" className="mt-5 inline-block rounded-full bg-primary px-5 py-2 text-sm text-white">
+              Xem tất cả sản phẩm
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -23,7 +23,10 @@ export default function AdminReviews() {
     setRows(r.reviews || []);
   }
   useEffect(() => {
-    load();
+    void (async () => {
+      const r = await fetch("/api/admin/reviews").then((x) => x.json());
+      setRows(r.reviews || []);
+    })();
   }, []);
 
   async function act(id: string, action: "approve" | "delete") {

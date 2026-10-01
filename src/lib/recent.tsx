@@ -35,6 +35,8 @@ export function RecentTracker({ product }: { product: Product }) {
 export function useRecents() {
   const [items, setItems] = useState<Product[]>([]);
   useEffect(() => {
+    // Hydrate sau mount — lazy init đọc localStorage sẽ lệch SSR hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(readRecents());
   }, []);
   return items;

@@ -28,7 +28,14 @@ export default function AdminBundles() {
     setProducts((p.products || []).map((x: ProductOpt) => ({ id: x.id, name: x.name })));
   }
   useEffect(() => {
-    load();
+    void (async () => {
+      const [b, p] = await Promise.all([
+        fetch("/api/admin/bundles").then((x) => x.json()),
+        fetch("/api/products?pageSize=48").then((x) => x.json()),
+      ]);
+      setRows(b.bundles || []);
+      setProducts((p.products || []).map((x: ProductOpt) => ({ id: x.id, name: x.name })));
+    })();
   }, []);
 
   function setLine(i: number, patch: Partial<Line>) {

@@ -18,7 +18,10 @@ export default function AdminGifts() {
     setRows(r.gifts || []);
   }
   useEffect(() => {
-    load();
+    void (async () => {
+      const r = await fetch("/api/admin/gifts").then((x) => x.json());
+      setRows(r.gifts || []);
+    })();
   }, []);
 
   async function create() {

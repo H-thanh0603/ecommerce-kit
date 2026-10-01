@@ -19,6 +19,8 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
+      // Hydrate sau mount — lazy init đọc localStorage sẽ lệch SSR hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setIds(JSON.parse(raw) as string[]);
     } catch {
       /* ignore */

@@ -57,12 +57,10 @@ const BRAND_FIELDS = [
 
 const THEME_FIELDS = [
   ["primary", "Màu chính"],
-  ["primaryHover", "Màu chính (hover)"],
   ["accent", "Màu nhấn"],
   ["ink", "Màu chữ"],
   ["muted", "Màu chữ mờ"],
   ["canvas", "Màu nền"],
-  ["card", "Màu thẻ"],
   ["line", "Màu viền"],
 ] as const;
 

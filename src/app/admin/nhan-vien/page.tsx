@@ -17,7 +17,11 @@ export default function AdminStaff() {
     setMe(r.me || "");
   }
   useEffect(() => {
-    load();
+    void (async () => {
+      const r = await fetch("/api/admin/staff").then((x) => x.json());
+      setRows(r.staff || []);
+      setMe(r.me || "");
+    })();
   }, []);
 
   async function create(e: React.FormEvent<HTMLFormElement>) {

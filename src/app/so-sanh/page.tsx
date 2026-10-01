@@ -12,11 +12,13 @@ export default function ComparePage() {
   const features = useFeatures();
   const [products, setProducts] = useState<Product[]>([]);
   useEffect(() => {
-    if (!ids.length) return setProducts([]);
+    if (!ids.length) return;
     fetch(`/api/products?ids=${ids.join(",")}&pageSize=8`)
       .then((r) => r.json())
       .then((d) => setProducts(d.products || []));
   }, [ids]);
+  // ids rỗng → bảng rỗng (derive lúc render thay vì setState trong effect)
+  const shown = ids.length ? products : [];
   if (features.ready && !features.on("compare")) return <p className="px-4 py-20 text-center">Module so sánh đang tắt.</p>;
   const rows = [
     { label: "Giá", render: (p: Product) => money(p.price) },
@@ -31,7 +33,7 @@ export default function ComparePage() {
         <h1 className="font-serif text-4xl text-primary">So sánh sản phẩm</h1>
         <button onClick={clear} className="text-sm underline">Xóa hết</button>
       </div>
-      {products.length === 0 ? (
+      {shown.length === 0 ? (
         <p className="mt-8 text-muted">Chọn tối đa 4 SP từ danh sách (nút So sánh).</p>
       ) : (
         <div className="mt-8 overflow-x-auto rounded-2xl border border-line bg-white">
@@ -39,7 +41,7 @@ export default function ComparePage() {
             <thead>
               <tr>
                 <th className="p-3 text-left"> </th>
-                {products.map((p) => (
+                {shown.map((p) => (
                   <th key={p.id} className="p-3 text-left">
                     <Link href={`/san-pham/${p.slug}`} className="font-medium hover:underline">{p.name}</Link>
                     <button className="ml-2 text-xs text-accent" onClick={() => toggle(p.id)}>bỏ</button>
@@ -51,7 +53,7 @@ export default function ComparePage() {
               {rows.map((r) => (
                 <tr key={r.label} className="border-t border-line">
                   <td className="p-3 text-muted">{r.label}</td>
-                  {products.map((p) => (
+                  {shown.map((p) => (
                     <td key={p.id} className="p-3">{r.render(p)}</td>
                   ))}
                 </tr>

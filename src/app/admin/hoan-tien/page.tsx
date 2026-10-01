@@ -27,7 +27,10 @@ export default function AdminRefunds() {
     setRows(r.refunds || []);
   }
   useEffect(() => {
-    load();
+    void (async () => {
+      const r = await fetch("/api/admin/refunds").then((x) => x.json());
+      setRows(r.refunds || []);
+    })();
   }, []);
 
   async function create() {

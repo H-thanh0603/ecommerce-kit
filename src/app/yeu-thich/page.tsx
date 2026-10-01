@@ -12,12 +12,14 @@ export default function WishlistPage() {
   const features = useFeatures();
   const [products, setProducts] = useState<Product[]>([]);
   useEffect(() => {
-    if (!ids.length) return setProducts([]);
+    if (!ids.length) return;
     fetch(`/api/products?ids=${ids.join(",")}`)
       .then((r) => r.json())
       .then((d) => setProducts(d.products || []))
       .catch(() => setProducts([]));
   }, [ids]);
+  // ids rỗng → danh sách rỗng (derive lúc render thay vì setState trong effect)
+  const shown = ids.length ? products : [];
   if (features.ready && !features.on("wishlist")) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
@@ -25,7 +27,7 @@ export default function WishlistPage() {
       </div>
     );
   }
-  const list = products.filter((p) => ids.includes(p.id));
+  const list = shown.filter((p) => ids.includes(p.id));
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="font-serif text-4xl text-primary">Yêu thích</h1>

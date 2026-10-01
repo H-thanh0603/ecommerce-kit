@@ -27,7 +27,10 @@ export default function AdminArticles() {
     setRows(r.articles || []);
   }
   useEffect(() => {
-    load();
+    void (async () => {
+      const r = await fetch("/api/admin/articles").then((x) => x.json());
+      setRows(r.articles || []);
+    })();
   }, []);
 
   async function save(e: React.FormEvent) {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { siteConfig, isEnabled, type EffectiveSite } from "@/config/site";
+import { siteConfig, type EffectiveSite } from "@/config/site";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useWishlist } from "@/lib/wishlist";
@@ -52,14 +52,11 @@ export function Header({
     setOpen(false);
   };
 
-  // Gợi ý tìm kiếm — debounce 250ms, gọi /api/search/suggest
+  // Gợi ý tìm kiếm — debounce 250ms, gọi /api/search/suggest.
+  // Hi/ẩn dropdown derive lúc render (q đủ dài + có kết quả) thay vì reset setState trong effect.
   useEffect(() => {
     const query = q.trim();
-    if (query.length < 2) {
-      setSugs([]);
-      setShowSugs(false);
-      return;
-    }
+    if (query.length < 2) return;
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
@@ -78,6 +75,7 @@ export function Header({
       ctrl.abort();
     };
   }, [q]);
+  const sugsVisible = showSugs && q.trim().length >= 2 && sugs.length > 0;
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur">
@@ -161,7 +159,7 @@ export function Header({
                   className="w-44 bg-transparent text-sm outline-none"
                 />
               </form>
-              {showSugs && sugs.length > 0 && (
+              {sugsVisible && (
                 <div role="listbox" className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-line bg-white shadow-xl">
                   {sugs.map((s) => (
                     <Link

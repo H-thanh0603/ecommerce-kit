@@ -22,7 +22,10 @@ export default function AdminReturns() {
     setRows(r.returns || []);
   }
   useEffect(() => {
-    load();
+    void (async () => {
+      const r = await fetch(`/api/returns?status=${filter}`).then((x) => x.json());
+      setRows(r.returns || []);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 

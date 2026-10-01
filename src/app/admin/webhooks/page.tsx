@@ -17,7 +17,11 @@ export default function AdminWebhooks() {
     setRows(r.webhooks || []);
   }
   useEffect(() => {
-    load();
+    // Inline async IIFE — react-hooks/set-state-in-effect không chấp nhận gọi helper chứa setState
+    void (async () => {
+      const r = await fetch("/api/admin/webhooks").then((x) => x.json());
+      setRows(r.webhooks || []);
+    })();
   }, []);
 
   async function add() {
