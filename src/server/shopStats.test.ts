@@ -60,18 +60,36 @@ describe("task7: pagination", () => {
   });
 
   it("listCustomers page 1/page 2 phân trang", async () => {
-    const p1 = await listCustomers({ page: 1, pageSize: 1 });
-    const p2 = await listCustomers({ page: 2, pageSize: 1 });
-    const full = await listCustomers();
-    expect(full.length).toBeGreaterThan(1);
-    // So sánh trên snapshot mới nhất để không vỡ khi test khác tạo user song song:
-    // mỗi trang ≤ pageSize, 2 trang không giao nhau, id đều thuộc tập full.
-    const ids = new Set(full.map((u) => u.id));
-    expect(p1.length).toBeLessThanOrEqual(1);
-    expect(p2.length).toBeLessThanOrEqual(1);
-    for (const u of [...p1, ...p2]) expect(ids.has(u.id)).toBe(true);
-    const overlap = p1.filter((a) => p2.some((b) => b.id === a.id));
-    expect(overlap).toHaveLength(0);
+    // Tự tạo 2 khách — test không phụ thuộc lịch sử DB chia sẻ (chuẩn AGENTS.md).
+    const stamp = Date.now();
+    const created = await Promise.all(
+      (["a", "b"] as const).map((s) =>
+        prisma.user.create({
+          data: {
+            email: `cust-${s}-${stamp}@kit.vn`,
+            name: `Khách test ${s.toUpperCase()}`,
+            passwordHash: "-",
+          },
+        }),
+      ),
+    );
+    try {
+      const full = await listCustomers();
+      expect(full.length).toBeGreaterThanOrEqual(2);
+      const ids = new Set(full.map((u) => u.id));
+      for (const u of created) expect(ids.has(u.id)).toBe(true);
+
+      const p1 = await listCustomers({ page: 1, pageSize: 1 });
+      const p2 = await listCustomers({ page: 2, pageSize: 1 });
+      // Mỗi trang ≤ pageSize, 2 trang không giao nhau, id đều thuộc tập full.
+      expect(p1.length).toBeLessThanOrEqual(1);
+      expect(p2.length).toBeLessThanOrEqual(1);
+      for (const u of [...p1, ...p2]) expect(ids.has(u.id)).toBe(true);
+      const overlap = p1.filter((a) => p2.some((b) => b.id === a.id));
+      expect(overlap).toHaveLength(0);
+    } finally {
+      await prisma.user.deleteMany({ where: { id: { in: created.map((u) => u.id) } } });
+    }
   });
 });
 
