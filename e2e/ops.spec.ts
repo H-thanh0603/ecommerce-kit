@@ -58,7 +58,7 @@ test("returns duyet hoan ton", async ({ page }) => {
   expect(ret.ok()).toBe(true);
 
   await page.goto("/admin/tra-hang");
-  await page.locator("article", { hasText: orderCode }).getByRole("button", { name: "Duyệt + hoàn tồn" }).click();
+  await page.locator("article", { hasText: orderCode }).getByRole("button", { name: "Duyệt và hoàn tồn" }).click();
   await page.getByRole("button", { name: "Đã hoàn tồn" }).click();
   await expect(page.locator("article", { hasText: orderCode })).toBeVisible({ timeout: 10_000 });
 });
