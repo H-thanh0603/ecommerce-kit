@@ -49,7 +49,8 @@ export function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-20 right-4 z-50 md:bottom-4">
+      {/* bottom-20: tránh đè lên StickyBuyBar (PDP mobile) */}
       {open && (
         <div
           role="dialog"

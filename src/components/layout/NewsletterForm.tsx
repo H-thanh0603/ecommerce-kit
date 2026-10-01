@@ -46,7 +46,7 @@ export function NewsletterForm() {
         href="/chinh-sach#privacy"
         className="text-[10px] text-white/60 underline hover:text-white/90"
       >
-        Chính sách · Huỷ đăng ký (liên hệ hoặc gửi DELETE /api/newsletter)
+        Chính sách · Huỷ đăng ký bất cứ lúc nào (liên hệ cửa hàng)
       </a>
     </form>
   );

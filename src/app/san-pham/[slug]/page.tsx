@@ -6,6 +6,7 @@ import { money } from "@/lib/format";
 import { siteConfig } from "@/config/site";
 import { isFeatureOn } from "@/server/settings";
 import { AddToCart } from "@/components/product/AddToCart";
+import { StickyBuyBar } from "@/components/product/StickyBuyBar";
 import { Reviews } from "@/components/product/Reviews";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { BreadcrumbJsonLd, ProductJsonLd } from "@/components/seo/JsonLd";
@@ -102,6 +103,8 @@ export default async function ProductPage({ params }: Props) {
           <ProductGrid products={related} />
         </section>
       )}
+
+      <StickyBuyBar product={product} />
     </div>
   );
 }

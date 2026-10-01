@@ -334,7 +334,7 @@ export default function CheckoutPage() {
             {pending ? "Đang ghi đơn…" : "Đặt hàng"}
           </button>
           <p className="mt-3 text-xs text-muted">
-            COD và chuyển khoản có sẵn. MoMo·VNPay bật bằng khóa cổng trong .env.
+            Thanh toán khi nhận hàng hoặc chuyển khoản ngân hàng — thông tin tài khoản hiện sau khi đặt hàng.
           </p>
         </aside>
       </form>

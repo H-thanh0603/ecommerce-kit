@@ -5,7 +5,7 @@ import { siteConfig } from "@/config/site";
 import Link from "next/link";
 
 type Props = {
-  searchParams: Promise<{ cat?: string; q?: string; sort?: string; page?: string; flash?: string }>;
+  searchParams: Promise<{ cat?: string; q?: string; sort?: string; page?: string; flash?: string; min?: string; max?: string }>;
 };
 
 export const metadata = { title: "Sản phẩm" };
@@ -15,9 +15,11 @@ export default async function ProductsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const page = Number(sp.page || 1);
   const flashOnly = sp.flash === "1";
+  const minPrice = sp.min && Number(sp.min) > 0 ? Number(sp.min) : undefined;
+  const maxPrice = sp.max && Number(sp.max) > 0 ? Number(sp.max) : undefined;
   const [categories, result] = await Promise.all([
     listCategories(),
-    listProducts({ q: sp.q, cat: sp.cat, sort: sp.sort, page, pageSize: 12, flashSale: flashOnly || undefined }),
+    listProducts({ q: sp.q, cat: sp.cat, sort: sp.sort, page, pageSize: 12, flashSale: flashOnly || undefined, minPrice, maxPrice }),
   ]);
   const list = result.items;
   const currentCat = categories.find((c) => c.slug === sp.cat);
@@ -50,7 +52,10 @@ export default async function ProductsPage({ searchParams }: Props) {
             {c.name}
           </Link>
         ))}
-        <div className="ml-auto flex gap-2 text-sm">
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2 text-sm">
           {["popular", "price-asc", "price-desc"].map((s) => (
             <Link
               key={s}
@@ -61,6 +66,39 @@ export default async function ProductsPage({ searchParams }: Props) {
             </Link>
           ))}
         </div>
+
+        <form action="/san-pham" className="flex flex-wrap items-center gap-2 text-sm" role="search">
+          {(["cat", "q", "sort", "flash"] as const).map((k) =>
+            sp[k] ? <input key={k} type="hidden" name={k} value={sp[k]} /> : null,
+          )}
+          <input
+            type="number"
+            name="min"
+            min={0}
+            defaultValue={sp.min || ""}
+            placeholder="Giá từ (₫)"
+            aria-label="Giá từ"
+            className="w-32 rounded-full border border-line bg-white px-3 py-1.5 outline-none focus:border-primary"
+          />
+          <input
+            type="number"
+            name="max"
+            min={0}
+            defaultValue={sp.max || ""}
+            placeholder="Đến (₫)"
+            aria-label="Giá đến"
+            className="w-28 rounded-full border border-line bg-white px-3 py-1.5 outline-none focus:border-primary"
+          />
+          <button className="rounded-full bg-primary px-4 py-1.5 text-white">Lọc giá</button>
+          {(minPrice != null || maxPrice != null) && (
+            <Link
+              href={{ query: { cat: sp.cat, q: sp.q, sort: sp.sort, flash: sp.flash } }}
+              className="text-muted underline hover:text-ink"
+            >
+              Xoá lọc
+            </Link>
+          )}
+        </form>
       </div>
 
       <div className="mt-8">

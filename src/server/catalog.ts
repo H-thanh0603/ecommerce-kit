@@ -53,6 +53,8 @@ export async function listProducts(opts?: {
   flashSale?: boolean;
   ids?: string[];
   includeUnpublished?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
   page?: number;
   pageSize?: number;
 }) {
@@ -64,6 +66,12 @@ export async function listProducts(opts?: {
     published: opts?.includeUnpublished ? undefined : true,
   };
   if (opts?.cat) where.category = { slug: opts.cat };
+  if (opts?.minPrice != null || opts?.maxPrice != null) {
+    where.price = {
+      ...(opts?.minPrice != null ? { gte: opts.minPrice } : {}),
+      ...(opts?.maxPrice != null ? { lte: opts.maxPrice } : {}),
+    };
+  }
   if (opts?.featured) where.featured = true;
   if (opts?.ids?.length) where.id = { in: opts.ids };
   if (opts?.flashSale) {
@@ -203,6 +211,40 @@ export async function addReview(data: {
     },
   });
   return toReview(review);
+}
+
+/** Số liệu thật toàn catalog — cho hero stats trang chủ. */
+export async function getCatalogStats() {
+  const [productCount, agg, reviewCount] = await Promise.all([
+    prisma.product.count({ where: { published: true } }),
+    prisma.product.aggregate({
+      where: { published: true },
+      _sum: { sold: true },
+      _avg: { rating: true },
+    }),
+    prisma.review.count({ where: { status: "approved" } }),
+  ]);
+  return {
+    productCount,
+    sold: agg._sum.sold || 0,
+    ratingAvg: Number((agg._avg.rating || 0).toFixed(1)),
+    reviewCount,
+  };
+}
+
+/** Review đã duyệt, rating cao — testimonial trang chủ. */
+export async function listTopReviews(limit = 6) {
+  const rows = await prisma.review.findMany({
+    where: { status: "approved", rating: { gte: 4 } },
+    orderBy: [{ rating: "desc" }, { createdAt: "desc" }],
+    take: limit,
+    include: { product: { select: { name: true, slug: true } } },
+  });
+  return rows.map((r) => ({
+    ...toReview(r),
+    productName: r.product.name,
+    productSlug: r.product.slug,
+  }));
 }
 
 export async function listPendingReviews() {
