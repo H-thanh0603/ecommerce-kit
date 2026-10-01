@@ -117,7 +117,8 @@ describe("API route wrap tenant ALS (T5)", () => {
     const unwrapped = files.filter((f) => {
       if (SKIP.has(f)) return false;
       const src = fs.readFileSync(f, "utf8");
-      return !/withTenantHandler|withDefaultTenant|resolveTenant/.test(src);
+      // withAllTenants: cron chạy qua public + mọi tenant active (wrap per-schema)
+      return !/withTenantHandler|withDefaultTenant|withAllTenants|resolveTenant/.test(src);
     });
     expect(unwrapped).toEqual([]);
   });
