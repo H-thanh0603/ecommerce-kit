@@ -102,6 +102,7 @@ export const siteConfig = {
     momo: { enabled: false, label: "Ví MoMo" },
     vnpay: { enabled: false, label: "VNPay" },
     zalopay: { enabled: false, label: "ZaloPay" },
+    vietqr: { enabled: true, label: "VietQR — quét mã QR chuyển khoản" },
   },
 
   shipping: {
@@ -163,6 +164,7 @@ export type EffectivePayments = {
   momo: PayFlag;
   vnpay: PayFlag;
   zalopay: PayFlag;
+  vietqr: PayFlag;
 };
 export type HomeBlock =
   | "categories"

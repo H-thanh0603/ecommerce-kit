@@ -73,6 +73,7 @@ export const paymentsSchema = z.object({
   momo: payFlag,
   vnpay: payFlag,
   zalopay: payFlag,
+  vietqr: payFlag,
 });
 
 export const homeSchema = z.object({
@@ -137,6 +138,7 @@ export function mergeSiteConfig(overrides: SiteOverrides): EffectiveSite {
       momo: { ...siteConfig.payments.momo, ...overrides.payments?.momo },
       vnpay: { ...siteConfig.payments.vnpay, ...overrides.payments?.vnpay },
       zalopay: { ...siteConfig.payments.zalopay, ...overrides.payments?.zalopay },
+      vietqr: { ...siteConfig.payments.vietqr, ...overrides.payments?.vietqr },
     },
     home: {
       ...defaultHome,

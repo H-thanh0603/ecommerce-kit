@@ -55,6 +55,18 @@ const stubs: Record<string, PaymentProvider> = {
       };
     },
   },
+  vietqr: {
+    key: "vietqr",
+    async charge(order) {
+      const { buildVietqrPayUrl, vietqrConfigured } = await import("@/server/vietqr");
+      if (!vietqrConfigured()) {
+        return { ok: false, paymentStatus: "failed", message: "Chưa cấu hình tài khoản nhận VietQR" };
+      }
+      // Không trả payUrl — tránh checkout redirect sang ảnh QR; QR hiển thị ở trang thành công.
+      const r = buildVietqrPayUrl(order);
+      return { ok: r.ok, paymentStatus: "pending", message: r.message };
+    },
+  },
   zalopay: {
     key: "zalopay",
     async charge() {

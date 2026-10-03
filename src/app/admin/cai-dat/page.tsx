@@ -263,7 +263,7 @@ export default function AdminSettings() {
         <h2 className="font-medium">Thanh toán</h2>
         <p className="mt-1 text-xs text-muted">Áp dụng ngay lúc khách thanh toán. MoMo và VNPay vẫn cần khóa trong máy chủ.</p>
         <div className="mt-3 grid gap-3">
-          {(["cod", "momo", "vnpay", "zalopay"] as const).map((k) => (
+          {(["cod", "momo", "vnpay", "zalopay", "vietqr"] as const).map((k) => (
             <label key={k} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-sm">
               <span>{(data.payments || siteConfig.payments)[k].label}</span>
               <input

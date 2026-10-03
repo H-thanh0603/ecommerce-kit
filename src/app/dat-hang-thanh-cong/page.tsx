@@ -1,5 +1,8 @@
 import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
+import { prisma } from "@/server/db";
+import { buildVietqrPayUrl, vietqrBank } from "@/server/vietqr";
+import VietqrBox from "@/components/payment/VietqrBox";
 
 export const metadata = { title: "Đặt hàng thành công" };
 
@@ -10,6 +13,19 @@ export default async function SuccessPage({
 }) {
   enterTenant(await resolveRequestTenant());
   const { code } = await searchParams;
+  // Đơn VietQR chưa trả → hiện QR + nút "Tôi đã chuyển khoản" ngay ở đây.
+  const order = code
+    ? await prisma.order
+        .findUnique({
+          where: { code },
+          select: { code: true, total: true, paymentMethod: true, paymentStatus: true },
+        })
+        .catch(() => null)
+    : null;
+  const showQr =
+    order && order.paymentMethod === "vietqr" && order.paymentStatus !== "paid"
+      ? buildVietqrPayUrl({ code: order.code, total: order.total })
+      : null;
   if (!code) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
@@ -41,6 +57,16 @@ export default async function SuccessPage({
         Chuyển khoản thì ghi nội dung đúng mã đơn để đối soát nhanh. Theo dõi trạng thái tại{" "}
         <Link href="/tai-khoan" className="underline text-primary">đơn của tôi</Link>.
       </p>
+      {showQr && (
+        <div className="mx-auto max-w-sm">
+          <VietqrBox
+            code={order!.code}
+            total={order!.total}
+            qrUrl={showQr.payUrl}
+            bank={vietqrBank()}
+          />
+        </div>
+      )}
       <div className="mt-8 flex justify-center gap-3">
         <Link href="/san-pham" className="rounded-full bg-primary px-5 py-2.5 text-sm text-white">
           Tiếp tục mua

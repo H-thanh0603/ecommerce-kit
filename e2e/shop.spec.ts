@@ -36,3 +36,27 @@ test("tim kiem khong dau ra san pham", async ({ page }) => {
   await page.goto("/san-pham?q=ao+linen");
   await expect(page.locator('a[href^="/san-pham/"]').first()).toBeVisible();
 });
+
+/** Luồng VietQR: chọn phương thức → đặt hàng → trang thành công có QR + nút xác nhận. */
+test("khach chon VietQR thay QR va nut da chuyen khoan", async ({ page }) => {
+  const product = await ensureE2EProduct(page, "vietqr");
+
+  await page.goto(`/san-pham/${product.slug}`);
+  await page.getByRole("button", { name: "Thêm vào giỏ" }).first().click();
+  await page.waitForFunction(() => (localStorage.getItem("atelier.cart.v1") || "[]") !== "[]", { timeout: 10_000 });
+
+  await page.goto("/thanh-toan");
+  await page.getByText(/VietQR/).first().click();
+  const email = `e2e-vietqr${Date.now()}@kit.vn`;
+  const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Đặt hàng" }) });
+  await form.getByPlaceholder("Họ tên").fill("E2E Tester");
+  await form.getByPlaceholder("Số điện thoại").fill("0900000000");
+  await form.getByPlaceholder("Email", { exact: true }).fill(email);
+  await form.getByPlaceholder("Địa chỉ").fill("1 E2E, Q1");
+  await page.getByRole("button", { name: "Đặt hàng" }).click();
+  await expect(page).toHaveURL(/dat-hang-thanh-cong/, { timeout: 20_000 });
+  await expect(page.getByAltText("VietQR chuyển khoản")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tôi đã chuyển khoản" })).toBeVisible();
+
+  await unpublishProduct(page, product);
+});

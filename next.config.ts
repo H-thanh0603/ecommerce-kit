@@ -5,6 +5,7 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 // Admin dán URL host khác → thêm pattern tại đây.
 const remotePatterns: Array<{ protocol: "http" | "https"; hostname: string }> = [
   { protocol: "https", hostname: "images.unsplash.com" },
+  { protocol: "https", hostname: "img.vietqr.io" },
 ];
 if (process.env.S3_PUBLIC_BASE) {
   try {
