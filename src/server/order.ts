@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db";
 import { siteConfig } from "@/config/site";
-import { toOrder, toProduct } from "@/server/map";
+import { toOrder } from "@/server/map";
 import { processPayment } from "@/server/payments";
 import { onOrderCreated, onOrderStatusChanged } from "@/server/events";
 import { assertCouponTx } from "@/server/coupon";
@@ -358,6 +358,7 @@ export async function createOrder(input: CheckoutInput) {
   await onOrderCreated(mapped);
   const { logOrderEvent } = await import("@/server/order-events");
   await logOrderEvent(order.id, "created", `Ghi đơn ${mapped.code} · ${mapped.paymentMethod} · ${mapped.total}đ`);
+  const { alertLowStock } = await import("@/server/shop-stats");
   await alertLowStock(lines.map((l) => ({ productId: l.product.id, skuId: l.sku?.id })));
   let payUrl: string | undefined;
   // Đơn đã commit (trừ tồn) — mọi lỗi/thất bại build payUrl đều giữ pending
@@ -373,17 +374,9 @@ export async function createOrder(input: CheckoutInput) {
   return Object.assign(mapped, { payUrl });
 }
 
-export const LOW_STOCK_THRESHOLD = 5;
-
 /** Đơn pending quá N giờ (khách bỏ ngang ở trang gateway) → cron auto-cancel + hoàn tồn. */
 export const PENDING_AUTO_CANCEL_HOURS = 24;
 
-/**
- * Tự hủy đơn pending quá hạn — chỉ đơn CHƯA thanh toán (paid giữ lại để
- * admin đối soát gateway). Đi qua updateOrderStatus để tái dùng nguyên
- * đường hoàn tồn/điểm/coupon/giftcard + ghi orderEvent.
- * `onlyIds` bóp phạm vi cho test (DB dùng chung, tránh đụng đơn seed).
- */
 export async function cancelStalePendingOrders(
   olderThanHours = PENDING_AUTO_CANCEL_HOURS,
   opts?: { onlyIds?: string[] },
@@ -405,189 +398,4 @@ export async function cancelStalePendingOrders(
     if (row.status === "cancelled") cancelled += 1;
   }
   return { checked: stale.length, cancelled };
-}
-
-/** Mail cho admin khi tồn chạm ngưỡng — mỗi SKU 1 mail/ngày (chống spam). */
-export async function alertLowStock(items: Array<{ productId: string; skuId?: string }>) {
-  try {
-    if (!items.length) return;
-    const admin = process.env.ADMIN_EMAIL || siteConfig.admin.email;
-    const startDay = vnMidnightUtc(new Date());
-    // Gộp N+1 query thành batch: 1 findMany SKU + 1 findMany Product + 1 findMany MailLog.
-    const skuIds = [...new Set(items.filter((i) => i.skuId).map((i) => i.skuId as string))];
-    const skus = skuIds.length
-      ? await prisma.sku.findMany({ where: { id: { in: skuIds } }, include: { product: true } })
-      : [];
-    const skuById = new Map(skus.map((s) => [s.id, s]));
-    const needProductIds = [
-      ...new Set(items.filter((i) => !i.skuId || !skuById.has(i.skuId)).map((i) => i.productId)),
-    ];
-    const products = needProductIds.length
-      ? await prisma.product.findMany({ where: { id: { in: needProductIds } } })
-      : [];
-    const productById = new Map(products.map((p) => [p.id, p]));
-    for (const s of skus) productById.set(s.product.id, s.product);
-    const lows = new Map<string, { name: string; label: string; stock: number }>();
-    for (const it of items) {
-      const sku = it.skuId ? skuById.get(it.skuId) : undefined;
-      const product = sku?.product || productById.get(it.productId);
-      if (!product) continue;
-      const stock = sku ? sku.stock : product.stock;
-      if (stock > LOW_STOCK_THRESHOLD) continue;
-      const tag = `lowstock:${sku?.id || product.id}`;
-      if (!lows.has(tag)) {
-        lows.set(tag, { name: product.name, label: sku?.label || "", stock });
-      }
-    }
-    if (!lows.size) return;
-    const sentToday = await prisma.mailLog.findMany({
-      where: { to: admin, createdAt: { gte: startDay }, body: { contains: "lowstock:" } },
-      select: { body: true },
-    });
-    const sentBody = sentToday.map((m) => m.body).join("\n");
-    const { sendMail } = await import("@/server/mail");
-    for (const [tag, info] of lows) {
-      if (sentBody.includes(tag)) continue;
-      await sendMail(
-        admin,
-        `[Tồn thấp] ${info.name}${info.label ? ` (${info.label})` : ""} còn ${info.stock}`,
-        `${tag} — nhập thêm hàng. Ngưỡng ${LOW_STOCK_THRESHOLD}.`,
-      );
-    }
-  } catch {
-    /* best-effort */
-  }
-}
-
-const VN_TZ = "Asia/Ho_Chi_Minh";
-const VN_DAY_MS = 86400000;
-const vnDayFmt = new Intl.DateTimeFormat("en-CA", {
-  timeZone: VN_TZ,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-/** YYYY-MM-DD của 1 mốc theo giờ VN. */
-export function vnDateKey(d: Date) {
-  return vnDayFmt.format(d);
-}
-
-/** Nửa đêm VN (00:00 Asia/Ho_Chi_Minh) của ngày chứa mốc d, trả về Date UTC tương ứng. VN = UTC+7 quanh năm. */
-export function vnMidnightUtc(d: Date) {
-  const [y, m, day] = vnDayFmt.format(d).split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, day) - 7 * 3600 * 1000);
-}
-
-export async function shopStats() {
-  const now = new Date();
-  const startToday = vnMidnightUtc(now);
-  const [ny, nm] = vnDateKey(now).split("-").map(Number);
-  const startMonth = new Date(Date.UTC(ny, nm - 1, 1) - 7 * 3600 * 1000);
-  const start7 = new Date(startToday.getTime() - 6 * VN_DAY_MS);
-  const open: OrderStatus[] = ["pending", "confirmed", "shipping"];
-
-  const [booked, collected, today, month, byStatus, productCount, lowRows, topRows, leadCount, weekOrders] =
-    await Promise.all([
-      prisma.order.aggregate({ _sum: { total: true }, _count: true, where: { status: { not: "cancelled" } } }),
-      prisma.order.aggregate({ _sum: { total: true }, _count: true, where: { status: "completed" } }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        _count: true,
-        where: { status: { not: "cancelled" }, createdAt: { gte: startToday } },
-      }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        _count: true,
-        where: { status: { not: "cancelled" }, createdAt: { gte: startMonth } },
-      }),
-      prisma.order.groupBy({ by: ["status"], _count: true, _sum: { total: true } }),
-      prisma.product.count({ where: { published: true } }),
-      prisma.product.findMany({
-        where: { published: true, stock: { lte: LOW_STOCK_THRESHOLD } },
-        orderBy: { stock: "asc" },
-        take: 8,
-        include: productInclude,
-      }),
-      prisma.product.findMany({ orderBy: { sold: "desc" }, take: 5, include: productInclude }),
-      prisma.lead.count(),
-      prisma.order.findMany({
-        where: { createdAt: { gte: start7 }, status: { not: "cancelled" } },
-        select: { createdAt: true, total: true },
-      }),
-    ]);
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(start7.getTime() + i * VN_DAY_MS);
-    const key = vnDateKey(d);
-    const sum = weekOrders
-      .filter((o) => vnDateKey(o.createdAt) === key)
-      .reduce((s, o) => s + o.total, 0);
-    return { date: key.slice(5), total: sum };
-  });
-
-  return {
-    orderCount: booked._count,
-    productCount,
-    revenue: booked._sum.total ?? 0,
-    revenueCollected: collected._sum.total ?? 0,
-    revenueToday: today._sum.total ?? 0,
-    revenueMonth: month._sum.total ?? 0,
-    ordersToday: today._count,
-    ordersOpen: byStatus.filter((s) => open.includes(s.status as OrderStatus)).reduce((n, s) => n + s._count, 0),
-    lowStock: lowRows.length,
-    byStatus: byStatus.map((s) => ({ status: s.status, count: s._count, total: s._sum.total ?? 0 })),
-    lowProducts: lowRows.map(toProduct),
-    topProducts: topRows.map(toProduct),
-    leadCount,
-    days,
-  };
-}
-
-export async function listCustomers(opts?: { page?: number; pageSize?: number }) {
-  const paged = opts?.page != null || opts?.pageSize != null;
-  const page = Math.max(1, Math.floor(opts?.page ?? 1) || 1);
-  const pageSize = Math.min(100, Math.max(1, Math.floor(opts?.pageSize ?? 20) || 20));
-  const rows = await prisma.user.findMany({
-    where: { role: "customer" },
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { orders: true } } },
-    ...(paged ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
-  });
-  return rows.map((u) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    points: u.points,
-    memberTier: u.memberTier,
-    orderCount: u._count.orders,
-    createdAt: u.createdAt.toISOString().slice(0, 10),
-  }));
-}
-
-export async function createLead(data: { name: string; email: string; phone?: string; message: string }) {
-  return prisma.lead.create({
-    data: {
-      name: data.name,
-      email: data.email,
-      phone: data.phone || "",
-      message: data.message,
-    },
-  });
-}
-
-export async function listLeads() {
-  return prisma.lead.findMany({ orderBy: { createdAt: "desc" } });
-}
-
-export async function subscribeNewsletter(email: string) {
-  return prisma.newsletter.upsert({
-    where: { email: email.toLowerCase() },
-    create: { email: email.toLowerCase() },
-    update: {},
-  });
-}
-
-export async function listNewsletter() {
-  return prisma.newsletter.findMany({ orderBy: { createdAt: "desc" } });
 }

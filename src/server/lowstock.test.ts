@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { prisma } from "./db";
-import { alertLowStock } from "./order";
+import { alertLowStock } from "./shop-stats";
 import { siteConfig } from "@/config/site";
 
 const ADMIN = process.env.ADMIN_EMAIL || siteConfig.admin.email;

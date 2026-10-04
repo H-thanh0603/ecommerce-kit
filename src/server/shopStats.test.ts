@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { prisma } from "./db";
-import { LOW_STOCK_THRESHOLD, listCustomers, listOrders, shopStats } from "./order";
+import { LOW_STOCK_THRESHOLD, shopStats } from "./shop-stats";
+import { listCustomers } from "./leads";
+import { listOrders } from "./order";
 
 const vnFmt = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Ho_Chi_Minh",
