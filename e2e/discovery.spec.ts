@@ -35,4 +35,7 @@ test("sticky bar mobile mua ngay ve thanh toan", async ({ page }) => {
   await page.getByRole("button", { name: "Mua ngay" }).click();
   await expect(page).toHaveURL(/thanh-toan/, { timeout: 20_000 });
   await unpublishProduct(page, product);
+  // Dọn giỏ admin (cart DB thắng khi load cho user đăng nhập) — nếu không,
+  // dòng "E2E sticky" đã unpublish làm vỡ checkout của test sau (ops giftcard).
+  await page.request.post("/api/cart", { data: { items: [] } });
 });

@@ -11,6 +11,9 @@ test("gift card giam gia don hang", async ({ page }) => {
   const created = await page.request.post("/api/admin/gifts", { data: { code, balance: 200_000 } });
   expect(created.ok()).toBe(true);
 
+  // Giỏ phải trống trước khi mua — cart DB của admin có thể còn dòng
+  // unpublish từ test trước (sẽ chết "Sản phẩm không còn bán").
+  await page.request.post("/api/cart", { data: { items: [] } });
   // Mua SP test riêng (không ăn tồn thật).
   const product = await ensureE2EProduct(page, "gift");
   await page.goto(`/san-pham/${product.slug}`);

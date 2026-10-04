@@ -181,7 +181,7 @@ export async function nextOrderSeq(tx: Prisma.TransactionClient) {
 }
 
 /** Method được phép checkout — còn lại (zalopay/unknown/...) reject TRƯỚC transaction. */
-const SUPPORTED_PAYMENT_METHODS = new Set(["cod", "bankTransfer", "vnpay", "momo"]);
+const SUPPORTED_PAYMENT_METHODS = new Set(["cod", "bankTransfer", "vnpay", "momo", "vietqr"]);
 
 export async function createOrder(input: CheckoutInput) {
   if (!input.items.length) throw new Error("Giỏ hàng trống");
