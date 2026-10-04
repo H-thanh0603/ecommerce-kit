@@ -53,10 +53,15 @@ export async function rateLimit(key: string, limit: number, windowMs: number) {
 }
 
 export function clientKey(req: Request, kind: string) {
-  // Ưu tiên header do proxy tin cậy đặt (x-real-ip) — XFF client tự gửi được khi đứng thẳng.
-  const ip =
+  // TRUSTED_PROXY=true → tin x-real-ip/XFF (nginx/Vercel đặt).
+  // TRUSTED_PROXY=false → đứng thẳng (không proxy): header client tự gửi được,
+  //   lách per-IP limit được → gộp 1 bucket chung "local" (per-email limit vẫn giữ).
+  // Không set → giữ hành vi cũ (tin header) vì deploy chuẩn của kit luôn có proxy.
+  const trusted = process.env.TRUSTED_PROXY;
+  const fromHeader =
     req.headers.get("x-real-ip")?.trim() ||
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "local";
+    "";
+  const ip = trusted === "false" ? "local" : fromHeader || "local";
   return `${kind}:${ip}`;
 }
