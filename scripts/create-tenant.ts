@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 import { createTenant } from "../src/server/platform-db";
-import { parseHost } from "../src/server/tenant";
+import { parseHost, slugSchema } from "../src/server/tenant";
 
 /**
  * Tạo tenant: platform row → CREATE SCHEMA → migrate deploy → seed → brand name.
@@ -10,6 +10,13 @@ import { parseHost } from "../src/server/tenant";
 const [slug, name, hostsArg] = process.argv.slice(2);
 if (!slug || !name || !hostsArg) {
   console.error("Usage: tsx scripts/create-tenant.ts <slug> <ten> <host1,host2>");
+  process.exit(1);
+}
+// Slug thành tên schema SQL — chèn thẳng vào CREATE SCHEMA/DATABASE_URL,
+// dùng cùng slugSchema với platform (chống SQL injection qua argv).
+const parsed = slugSchema.safeParse(slug);
+if (!parsed.success) {
+  console.error(`Slug "${slug}" không hợp lệ (slugSchema): chỉ a-z/số/gạch dưới, 2–41 ký tự`);
   process.exit(1);
 }
 const base = (process.env.DATABASE_URL || "").split("?")[0];
