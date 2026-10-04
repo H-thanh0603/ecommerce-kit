@@ -375,6 +375,38 @@ export async function createOrder(input: CheckoutInput) {
 
 export const LOW_STOCK_THRESHOLD = 5;
 
+/** Đơn pending quá N giờ (khách bỏ ngang ở trang gateway) → cron auto-cancel + hoàn tồn. */
+export const PENDING_AUTO_CANCEL_HOURS = 24;
+
+/**
+ * Tự hủy đơn pending quá hạn — chỉ đơn CHƯA thanh toán (paid giữ lại để
+ * admin đối soát gateway). Đi qua updateOrderStatus để tái dùng nguyên
+ * đường hoàn tồn/điểm/coupon/giftcard + ghi orderEvent.
+ * `onlyIds` bóp phạm vi cho test (DB dùng chung, tránh đụng đơn seed).
+ */
+export async function cancelStalePendingOrders(
+  olderThanHours = PENDING_AUTO_CANCEL_HOURS,
+  opts?: { onlyIds?: string[] },
+) {
+  const cutoff = new Date(Date.now() - olderThanHours * 3_600_000);
+  const stale = await prisma.order.findMany({
+    where: {
+      status: "pending",
+      paymentStatus: { not: "paid" },
+      createdAt: { lt: cutoff },
+      ...(opts?.onlyIds?.length ? { id: { in: opts.onlyIds } } : {}),
+    },
+    select: { id: true },
+    take: 200,
+  });
+  let cancelled = 0;
+  for (const o of stale) {
+    const row = await updateOrderStatus(o.id, "cancelled", "auto-expire");
+    if (row.status === "cancelled") cancelled += 1;
+  }
+  return { checked: stale.length, cancelled };
+}
+
 /** Mail cho admin khi tồn chạm ngưỡng — mỗi SKU 1 mail/ngày (chống spam). */
 export async function alertLowStock(items: Array<{ productId: string; skuId?: string }>) {
   try {
