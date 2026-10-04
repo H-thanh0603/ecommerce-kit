@@ -18,6 +18,20 @@ if (process.env.S3_PUBLIC_BASE) {
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "bcryptjs", "nodemailer"],
+  // Tắt header lộ phiên bản Next
+  poweredByHeader: false,
+  // Security headers toàn cục
+  headers: async () => [
+    {
+      source: "/:path*",
+      headers: [
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      ],
+    },
+  ],
   images: {
     remotePatterns,
   },
