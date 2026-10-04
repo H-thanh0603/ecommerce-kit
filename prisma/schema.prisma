@@ -394,6 +394,8 @@ model MailLog {
   body      String
   status    String   @default("logged")
   error     String   @default("")
+  /// Số lần đã thử gửi (retry bởi retryFailedMails — tối đa 3).
+  attempts  Int      @default(0)
   createdAt DateTime @default(now())
 
   @@index([to, createdAt])

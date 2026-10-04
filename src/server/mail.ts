@@ -37,9 +37,12 @@ async function deliver(
   });
 }
 
+export const MAIL_MAX_ATTEMPTS = 3;
+
 /**
  * Ghi MailLog trước (status "logged"), gửi SMTP sau nếu đã cấu hình.
  * Không bao giờ throw — mail lỗi không được làm vỡ checkout.
+ * Fail thì đánh dấu "failed" + tăng attempts, retry bởi retryFailedMails().
  */
 export async function sendMail(
   to: string,
@@ -52,15 +55,59 @@ export async function sendMail(
     console.info(`[mail:db] to=${to} subject=${subject}`);
     return;
   }
+  await attemptDelivery(log.id, to, subject, body, opts);
+}
+
+async function attemptDelivery(
+  logId: string,
+  to: string,
+  subject: string,
+  body: string,
+  opts?: { listUnsubscribeUrl?: string },
+) {
   try {
     await deliver(to, subject, body, opts);
-    await prisma.mailLog.update({ where: { id: log.id }, data: { status: "sent" } });
+    await prisma.mailLog.update({
+      where: { id: logId },
+      data: { status: "sent", error: "", attempts: { increment: 1 } },
+    });
     console.info(`[mail:sent] to=${to} subject=${subject}`);
+    return true;
   } catch (e) {
     const error = e instanceof Error ? e.message.slice(0, 500) : "SMTP error";
-    await prisma.mailLog.update({ where: { id: log.id }, data: { status: "failed", error } });
+    await prisma.mailLog.update({
+      where: { id: logId },
+      data: { status: "failed", error, attempts: { increment: 1 } },
+    });
     console.error(`[mail:failed] to=${to} ${error}`);
+    return false;
   }
+}
+
+/**
+ * Retry mail failed trong 24h gần nhất, tối đa MAIL_MAX_ATTEMPTS lần.
+ * Bỏ qua mail reset mật khẩu (token hết hạn 15 phút, gửi lại vô nghĩa) và
+ * body đã bị retention redact ("[redacted]"). Cron tenant gọi qua withAllTenants.
+ */
+export async function retryFailedMails(now = Date.now()) {
+  if (!smtpConfigured()) return { retried: 0, sent: 0 };
+  const day = 86_400_000;
+  const candidates = await prisma.mailLog.findMany({
+    where: {
+      status: "failed",
+      attempts: { lt: MAIL_MAX_ATTEMPTS },
+      createdAt: { gt: new Date(now - day) },
+      NOT: [{ subject: { contains: "Đặt lại mật khẩu" } }, { body: "[redacted]" }],
+    },
+    orderBy: { createdAt: "asc" },
+    take: 50,
+  });
+  let sent = 0;
+  for (const m of candidates) {
+    const ok = await attemptDelivery(m.id, m.to, m.subject, m.body);
+    if (ok) sent += 1;
+  }
+  return { retried: candidates.length, sent };
 }
 
 export async function mailOrderCreated(order: Order) {

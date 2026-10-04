@@ -10,7 +10,7 @@
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/cron/order-expiry",
+      "path": "/api/cron/housekeeping",
       "schedule": "0 * * * *"
     }
   ]
