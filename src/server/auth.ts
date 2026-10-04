@@ -32,7 +32,9 @@ export async function getSession(): Promise<SessionPayload | null> {
     const role = user.role === "admin" ? "admin" : "customer";
     return { ...session, role, email: user.email };
   } catch {
-    // DB lỗi không giữa lúc dev — vẫn tin JWT (proxy đã xác minh chữ ký).
+    // Fail-closed: DB lỗi → từ chối phiên (JWT có thể đã bị revoke qua tokenVersion).
+    // Chỉ dev (DB đang khởi động) được fallback tin chữ ký JWT.
+    if (process.env.NODE_ENV === "production") return null;
     return session;
   }
 }
@@ -183,11 +185,12 @@ export async function requireAdmin() {
   const session = await getSession();
   if (!session || session.role !== "admin") return null;
   // getSession đã đồng bộ role từ DB; double-check id vẫn còn là admin.
+  // Fail-closed: DB lỗi → từ chối (trừ dev khi DB đang khởi động).
   try {
     const user = await prisma.user.findUnique({ where: { id: session.id }, select: { role: true } });
     if (!user || user.role !== "admin") return null;
   } catch {
-    /* offline → session đã verify chữ ký */
+    if (process.env.NODE_ENV === "production") return null;
   }
   return session;
 }
