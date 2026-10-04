@@ -60,12 +60,75 @@ export async function getOrderByCode(code: string) {
   return row ? toOrder(row) : null;
 }
 
+/**
+ * Đảo ngược đơn khi hủy: hoàn tồn SKU/product + kho, hoàn điểm đã tiêu,
+ * thu hồi lượt dùng coupon (xóa redemption — maxUses đếm từ redemption),
+ * hoàn số dư giftcard đã consume. Chỉ gọi trong transaction sau khi đã
+ * claim status (idempotent — hủy 2 lần không hoàn 2 lần).
+ */
+async function cancelOrderReversalTx(tx: Prisma.TransactionClient, orderId: string) {
+  const row = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+  if (!row) return;
+  const ref = `CAN-${row.code}`;
+  for (const line of row.items) {
+    if (line.skuId) {
+      await tx.sku.update({ where: { id: line.skuId }, data: { stock: { increment: line.quantity } } });
+    } else {
+      await tx.product.update({ where: { id: line.productId }, data: { stock: { increment: line.quantity } } });
+    }
+    await tx.product.update({ where: { id: line.productId }, data: { sold: { decrement: line.quantity } } });
+    await tx.stockMovement.create({
+      data: { productId: line.productId, skuId: line.skuId, delta: line.quantity, reason: "cancel", ref },
+    });
+    if (row.warehouseId) {
+      const skuRow = line.skuId ? await tx.sku.findUnique({ where: { id: line.skuId } }) : null;
+      const skuKey = skuRow?.label || line.variantLabel || "";
+      await tx.warehouseStock.upsert({
+        where: { warehouseId_productId_skuKey: { warehouseId: row.warehouseId, productId: line.productId, skuKey } },
+        create: { warehouseId: row.warehouseId, productId: line.productId, skuKey, stock: line.quantity },
+        update: { stock: { increment: line.quantity } },
+      });
+    }
+  }
+  if (row.pointsUsed > 0 && row.userId) {
+    await tx.user.update({ where: { id: row.userId }, data: { points: { increment: row.pointsUsed } } });
+  }
+  await tx.couponRedemption.deleteMany({ where: { orderId: row.id } });
+  const gifts = await tx.giftRedemption.findMany({ where: { orderId: row.id } });
+  for (const g of gifts) {
+    await tx.giftCard.update({ where: { id: g.giftId }, data: { balance: { increment: g.amount } } });
+    await tx.giftRedemption.delete({ where: { id: g.id } });
+  }
+}
+
 export async function updateOrderStatus(id: string, status: OrderStatus, actorEmail = "") {
-  const row = await prisma.order.update({
-    where: { id },
-    data: { status },
-    include: { items: true },
-  });
+  const prior = await prisma.order.findUnique({ where: { id }, select: { status: true } });
+  if (!prior) throw new Error("Không tìm thấy đơn hàng");
+  if (prior.status === status) {
+    const same = await prisma.order.findUnique({ where: { id }, include: { items: true } });
+    return toOrder(same!);
+  }
+  let row;
+  if (status === "cancelled") {
+    // Claim status bằng updateMany có điều kiện — 2 admin hủy cùng lúc chỉ 1 lần hoàn tồn.
+    row = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.order.updateMany({
+        where: { id, status: { not: "cancelled" } },
+        data: { status },
+      });
+      if (claimed.count !== 1) return tx.order.findUnique({ where: { id }, include: { items: true } });
+      await cancelOrderReversalTx(tx, id);
+      return tx.order.findUnique({ where: { id }, include: { items: true } });
+    });
+    // Đơn completed nên đi luồng trả hàng/hoàn tiền — hủy trực tiếp sẽ hoàn tồn 2 lần nếu return đã restock.
+    if (prior.status === "completed") {
+      const { logOrderEvent } = await import("@/server/order-events");
+      await logOrderEvent(id, "status", "Cảnh báo: hủy đơn đã completed — cân nhắc luồng trả hàng/hoàn tiền", actorEmail);
+    }
+  } else {
+    row = await prisma.order.update({ where: { id }, data: { status }, include: { items: true } });
+  }
+  if (!row) throw new Error("Không tìm thấy đơn hàng");
   const order = toOrder(row);
   await onOrderStatusChanged(order, status);
   const { logOrderEvent } = await import("@/server/order-events");
