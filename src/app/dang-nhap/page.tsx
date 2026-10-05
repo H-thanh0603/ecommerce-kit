@@ -1,13 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
+import { fieldErrors, registerFormSchema } from "@/lib/validators";
+
+/** Chỉ nhận path nội bộ bắt đầu "/" và không "//" — chặn open-redirect qua ?next=//evil. */
+function safeNext(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-md px-4 py-16" />}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const { login, register } = useAuth();
   const router = useRouter();
+  const nextPath = safeNext(useSearchParams().get("next"));
   const [mode, setMode] = useState<"login" | "register">("login");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -23,6 +39,12 @@ export default function LoginPage() {
       const email = String(data.get("email") || "");
       const password = String(data.get("password") || "");
       const name = String(data.get("name") || "");
+      if (mode === "register") {
+        const check = registerFormSchema.safeParse({ name, email, password });
+        if (!check.success) {
+          return setMessage(Object.values(fieldErrors(check.error))[0] || "Kiểm tra lại thông tin");
+        }
+      }
       const res =
         mode === "login"
           ? await login(email, password, mfaRequired ? mfaCode : undefined)
@@ -30,8 +52,11 @@ export default function LoginPage() {
       setMessage(res.message);
       if (res.ok) {
         // Admin đi thẳng /admin — phát hiện theo session trả về, không lộ email trên UI.
+        // User thường quay về trang bị chặn trước đó (?next=) nếu có.
         if (res.user?.role === "admin") {
           router.push("/admin");
+        } else if (nextPath) {
+          router.push(nextPath);
         } else {
           router.push("/tai-khoan");
         }

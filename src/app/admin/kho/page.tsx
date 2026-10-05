@@ -13,7 +13,13 @@ export default function AdminWarehouse() {
   const [products, setProducts] = useState<ProductOpt[]>([]);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState("");
-  const load = () => fetch("/api/warehouses").then((r) => r.json()).then((d) => setRows(d.warehouses || []));
+  const [loading, setLoading] = useState(true);
+  const load = () =>
+    fetch("/api/warehouses")
+      .then((r) => r.json())
+      .then((d) => setRows(d.warehouses || []))
+      .catch(() => setMsg("Không tải được kho"))
+      .finally(() => setLoading(false));
   useEffect(() => {
     load();
     fetch("/api/products?pageSize=48").then((r) => r.json()).then((d) => setProducts(d.products || []));
@@ -62,6 +68,8 @@ export default function AdminWarehouse() {
       </form>
       {msg && <p className="mt-3 text-sm text-primary">{msg}</p>}
       <ul className="mt-6 space-y-3">
+        {loading && <li className="text-sm text-muted">Đang tải…</li>}
+        {!loading && rows.length === 0 && <li className="text-sm text-muted">Chưa có kho nào — thêm bằng form phía trên.</li>}
         {rows.map((w) => (
           <li key={w.id} className="rounded-xl border border-line bg-white p-4 text-sm">
             <p className="font-medium">{w.name} ({w.code}) {w.isDefault ? "· mặc định" : ""}</p>

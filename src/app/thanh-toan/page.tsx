@@ -10,6 +10,7 @@ import { useFeatures } from "@/lib/features";
 import { discountAmount, money, shippingFee, vietQrUrl } from "@/lib/format";
 import { AnalyticsEvents, trackEvent } from "@/lib/analytics";
 import { clearBundleId, readBundleId } from "@/components/bundle/AddBundleButton";
+import { checkoutFormSchema, fieldErrors } from "@/lib/validators";
 
 type Coupon = { code: string; type: "percent" | "fixed" | "shipping"; value: number; minOrder: number };
 
@@ -41,6 +42,7 @@ export default function CheckoutPage() {
   const [buyer, setBuyer] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerAddress, setBuyerAddress] = useState("");
+  const [fieldErrs, setFieldErrs] = useState<Record<string, string>>({});
   const [savedAddr, setSavedAddr] = useState<Array<{ id: string; label: string; name: string; phone: string; address: string }>>([]);
 
   useEffect(() => {
@@ -129,6 +131,19 @@ export default function CheckoutPage() {
         coupon: applied?.code,
       });
       const form = new FormData(e.currentTarget);
+      // Client validation trước khi gọi API — dùng cùng schema với ràng buộc server.
+      const check = checkoutFormSchema.safeParse({
+        name: String(form.get("name") || ""),
+        phone: String(form.get("phone") || ""),
+        email: String(form.get("email") || ""),
+        address: String(form.get("address") || ""),
+      });
+      if (!check.success) {
+        const errs = fieldErrors(check.error);
+        setFieldErrs(errs);
+        return setError(Object.values(errs)[0] || "Kiểm tra lại thông tin nhận hàng");
+      }
+      setFieldErrs({});
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -209,10 +224,22 @@ export default function CheckoutPage() {
               </select>
             )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <input required name="name" value={buyer || user?.name || ""} onChange={(e) => setBuyer(e.target.value)} placeholder="Họ tên" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
-              <input required name="phone" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} placeholder="Số điện thoại" className="rounded-xl border border-line px-3 py-2.5 text-sm" />
-              <input required type="email" name="email" defaultValue={user?.email || ""} placeholder="Email" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
-              <input required name="address" value={buyerAddress} onChange={(e) => setBuyerAddress(e.target.value)} placeholder="Địa chỉ" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" />
+              <div>
+                <input required name="name" value={buyer || user?.name || ""} onChange={(e) => setBuyer(e.target.value)} placeholder="Họ tên" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+                {fieldErrs.name && <p className="mt-1 text-xs text-red-600">{fieldErrs.name}</p>}
+              </div>
+              <div>
+                <input required name="phone" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} placeholder="Số điện thoại" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+                {fieldErrs.phone && <p className="mt-1 text-xs text-red-600">{fieldErrs.phone}</p>}
+              </div>
+              <div className="sm:col-span-2">
+                <input required type="email" name="email" defaultValue={user?.email || ""} placeholder="Email" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+                {fieldErrs.email && <p className="mt-1 text-xs text-red-600">{fieldErrs.email}</p>}
+              </div>
+              <div className="sm:col-span-2">
+                <input required name="address" value={buyerAddress} onChange={(e) => setBuyerAddress(e.target.value)} placeholder="Địa chỉ" className="w-full rounded-xl border border-line px-3 py-2.5 text-sm" />
+                {fieldErrs.address && <p className="mt-1 text-xs text-red-600">{fieldErrs.address}</p>}
+              </div>
               <textarea name="note" placeholder="Ghi chú đơn hàng" className="rounded-xl border border-line px-3 py-2.5 text-sm sm:col-span-2" rows={3} />
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input type="checkbox" checked={innerCity} onChange={(e) => setInnerCity(e.target.checked)} />

@@ -7,8 +7,14 @@ import { btnDanger, btnGhost, btnPrimary } from "@/components/admin/buttons";
 export default function AdminCategories() {
   const [rows, setRows] = useState<Category[]>([]);
   const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Category | null>(null);
-  const load = () => fetch("/api/categories").then((r) => r.json()).then((d) => setRows(d.categories || []));
+  const load = () =>
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((d) => setRows(d.categories || []))
+      .catch(() => setMsg("Không tải được danh mục"))
+      .finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,6 +45,8 @@ export default function AdminCategories() {
         {msg && <p className="text-sm text-muted">{msg}</p>}
       </form>
       <ul className="mt-6 space-y-2">
+        {loading && <li className="text-sm text-muted">Đang tải…</li>}
+        {!loading && rows.length === 0 && <li className="text-sm text-muted">Chưa có danh mục nào — thêm bằng form phía trên.</li>}
         {rows.map((c) => (
           <li key={c.id} className="flex items-center justify-between rounded-xl border border-line bg-white px-4 py-3 text-sm">
             <span>{c.name} · {c.slug} · {c.productCount} SP</span>

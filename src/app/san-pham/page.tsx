@@ -109,6 +109,13 @@ export default async function ProductsPage({ searchParams }: Props) {
               Tất cả sản phẩm
             </Link>
           </div>
+        ) : list.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-16 text-center text-muted">
+            <p>Không tìm thấy sản phẩm nào khớp bộ lọc.</p>
+            <Link href="/san-pham" className="mt-4 inline-block rounded-full border border-line px-5 py-2 text-sm">
+              Xoá lọc
+            </Link>
+          </div>
         ) : (
           <ProductGrid products={list} />
         )}

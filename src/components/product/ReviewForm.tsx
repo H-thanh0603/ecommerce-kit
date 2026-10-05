@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import Link from "next/link";
+import { fieldErrors, reviewSchema } from "@/lib/validators";
 
 export function ReviewForm({ productId }: { productId: string }) {
   const { user } = useAuth();
@@ -19,14 +20,18 @@ export function ReviewForm({ productId }: { productId: string }) {
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const check = reviewSchema.safeParse({
+      productId,
+      rating: form.get("rating"),
+      content: form.get("content"),
+    });
+    if (!check.success) {
+      return setMsg(Object.values(fieldErrors(check.error))[0] || "Kiểm tra lại đánh giá");
+    }
     const res = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        productId,
-        rating: Number(form.get("rating")),
-        content: form.get("content"),
-      }),
+      body: JSON.stringify(check.data),
     });
     const data = await res.json();
     setMsg(res.ok ? "Đã gửi đánh giá" : data.message || "Lỗi");
