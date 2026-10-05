@@ -684,3 +684,47 @@ Không commit `.env` — chỉ `.env.example`.
 ---
 
 *Hết báo cáo — 180/180 câu. Verdict cuối: **CONDITIONAL GO** (2026-09-23; lịch sử NO-GO 2026-09-22 — 4 BLOCKER đã đóng).*
+
+---
+
+## 16. Audit follow-up — MVP Free-tier Checklist (2026-10-05)
+
+Audit độc lập theo `docs/MVP_FREE_TIER_CHECKLIST_for_AI.md` (báo cáo đầy đủ trong phiên làm việc).
+Verdict trước đợt fix: **CONDITIONAL** → sau đợt fix: **GO (free-tier)**, còn mục "để sau" bên dưới.
+
+### Đã fix (4 commits: d61ca37, a4de411, 9369c7b, 6f4aa78, e597a9f)
+
+| Mục audit | Fix | Commit |
+|---|---|---|
+| SEC (P0) RCE `next/og` (GHSA-vcvr-r3jv-pc5j) | next 16.3.5 → **16.3.8** | d61ca37 |
+| BE-003 (P0) `vietqr/check` không auth | ownership pattern retry-pay (guest email khớp, sai → 404) + rate-limit 10/phút; VietqrBox guest nhập email | d61ca37 |
+| REL-001 (P0) S3 upload thiếu timeout | `AbortSignal.timeout(30s)` + rate-limit upload 20/5' | d61ca37 |
+| BE-001 (P) validation thủ công | zod cho reviews/bookings/addresses/coupons-admin/webhooks (rating 1–5 hết NaN, startsAt tương lai, URL http(s) chống SSRF); schema chung `src/lib/validators.ts` dùng cả client | a4de411 |
+| BE-005 (P) booking double-book | Serializable tx + retry P2034; whitelist status | a4de411 |
+| BE-005 (P) invoice race | counter + create cùng tx; P2002 → existing (hết nhảy số INV) | a4de411 |
+| BE-005 (P) lost-update điểm | `grantOrderPointsTx` (increment) + claim idempotent như nhánh cancel; fix stale snapshot pointsEarned | a4de411, e597a9f |
+| DB-002 (P) CouponRedemption không unique | `@@unique([couponId, orderId])` + migration `20261005120000` (đã deploy mọi schema) | a4de411 |
+| SEC-007 (P) IPN không rate-limit | momo/vietqr/sepay 60/phút/IP; sepay markPaid guard not-paid | 9369c7b |
+| AI-004 (P) PII sang xAI | `toOrderForAI` bỏ email/phone/địa chỉ/tên/note | 9369c7b |
+| DB-003 (P) unbounded listOrders | phân trang DB-side admin/don-hang + dashboard 8 đơn + GET /api/orders 50/lần + AI recent_orders pageSize | 9369c7b |
+| FE-002/FE-004 (P) UX | login `?next=` (chặn open-redirect), client validation schema chung, empty/loading state admin danh-múc/kho + /san-pham | 6f4aa78 |
+| TEST | +13 test: vietqr/check IDOR, booking race, invoice parallel, double-complete, pagination, AI redact, validators | e597a9f |
+
+### Verification sau fix
+
+| Lệnh | Kết quả |
+|---|---|
+| `npx tsc --noEmit` | sạch |
+| `npm test` | **173/173 PASS** (51 files) |
+| `npm run build` | OK (bản next 16.3.8) |
+| `npm audit` | critical `next` biến mất; còn 1 critical vitest + high dev-only (không nằm trong production bundle) |
+
+### Còn open (để sau — có user thật/thu tiền)
+
+- `mfaSecret` lưu plaintext DB → encrypt-at-rest khi có user thật.
+- CSP còn `'unsafe-inline'` (giới hạn Next.js); Redis rate-limit fail-open (cân nhắc alarm).
+- vitest critical + high dev deps (esbuild/braces/deepmerge-ts qua prisma CLI) — chờ major version, không ảnh hưởng production.
+- Risk đã ghi nhận: race vượt `maxUsesPerUser` khi >1 (count-check; unique [couponId,email] sẽ vỡ case này).
+- Test còn thiếu cho module `shipping.ts`/`payments.ts` (booking đã có).
+
+*Lịch sử: 2026-09-22 NO-GO → 2026-09-23 CONDITIONAL GO → 2026-10-05 GO (free-tier, sau đợt fix MVP checklist).*
