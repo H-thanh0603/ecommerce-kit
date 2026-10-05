@@ -92,6 +92,8 @@ export async function saveImage(
         "x-amz-content-sha256": payloadHash,
         "x-amz-date": amzDate,
       },
+      // Upload ảnh cho rộng hơn các call API khác (8-15s), nhưng không treo vô hạn.
+      signal: AbortSignal.timeout(30_000),
       body: new Uint8Array(buf),
     });
     if (!res.ok) return { ok: false, message: `S3 từ chối: ${res.status}` };

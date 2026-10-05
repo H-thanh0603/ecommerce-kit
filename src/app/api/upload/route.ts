@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { saveImage } from "@/server/storage";
+import { rateLimit, clientKey } from "@/server/rate-limit";
 import path from "path";
 import { withTenantHandler } from "@/server/request-tenant";
 
@@ -16,6 +17,9 @@ function isImageMagic(buf: Buffer, ext: string): boolean {
 }
 
 async function postHandler(req: Request) {
+  if (!(await rateLimit(clientKey(req, "upload"), 20, 5 * 60_000)).ok) {
+    return NextResponse.json({ message: "Thử lại sau" }, { status: 429 });
+  }
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   const form = await req.formData();

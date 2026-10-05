@@ -10,13 +10,16 @@ type Props = {
   total: number;
   qrUrl: string;
   bank: { bank: string; accountName: string; accountNumber: string };
+  /** Email đặt đơn — chỉ để đối chiếu quyền dò giao dịch (guest). */
+  email?: string;
 };
 
 /** QR chuyển khoản cho đơn + nút "Tôi đã chuyển khoản" (dò giao dịch qua SePay). */
-export default function VietqrBox({ code, total, qrUrl, bank }: Props) {
+export default function VietqrBox({ code, total, qrUrl, bank, email }: Props) {
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const [pending, setPending] = useState(false);
+  const [guestEmail, setGuestEmail] = useState("");
 
   const confirm = async () => {
     if (pending) return;
@@ -26,7 +29,7 @@ export default function VietqrBox({ code, total, qrUrl, bank }: Props) {
       const res = await fetch("/api/payments/vietqr/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, email: email || guestEmail || undefined }),
       });
       const data = (await res.json()) as { ok?: boolean; paid?: boolean; message?: string };
       if (data.paid) {
@@ -61,6 +64,16 @@ export default function VietqrBox({ code, total, qrUrl, bank }: Props) {
           Nội dung chuyển khoản: <span className="font-medium text-ink">{code}</span> (ghi đúng mã đơn để tự động đối soát)
         </p>
       </div>
+      {!email && (
+        <input
+          type="email"
+          required
+          value={guestEmail}
+          onChange={(e) => setGuestEmail(e.target.value)}
+          placeholder="Email đặt đơn (để đối chiếu)"
+          className="mt-4 w-full rounded-lg border border-line px-3 py-2 text-sm"
+        />
+      )}
       <button
         type="button"
         onClick={confirm}
