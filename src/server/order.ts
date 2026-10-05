@@ -155,7 +155,8 @@ export async function updateOrderStatus(id: string, status: OrderStatus, actorEm
           await tx.order.update({ where: { id }, data: { pointsEarned: g.earned } });
         }
       }
-      return cur;
+      // Fetch lại sau khi ghi pointsEarned — không trả snapshot stale.
+      return tx.order.findUnique({ where: { id }, include: { items: true } });
     });
   } else {
     row = await prisma.order.update({ where: { id }, data: { status }, include: { items: true } });
