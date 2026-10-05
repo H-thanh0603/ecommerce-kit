@@ -13,15 +13,7 @@ import { productInclude } from "@/server/product-include";
 import { type CartItem, type OrderStatus } from "@/types";
 import type { Prisma } from "@prisma/client";
 
-export async function listOrders(
-  filter?: {
-    email?: string;
-    userId?: string;
-    status?: string;
-    q?: string;
-  },
-  opts?: { page?: number; pageSize?: number },
-) {
+function orderWhere(filter?: { email?: string; userId?: string; status?: string; q?: string }) {
   const and: Prisma.OrderWhereInput[] = [];
   if (filter?.status) and.push({ status: filter.status });
   if (filter?.email || filter?.userId) {
@@ -43,16 +35,38 @@ export async function listOrders(
       ],
     });
   }
+  return and.length ? { AND: and } : undefined;
+}
+
+export async function listOrders(
+  filter?: {
+    email?: string;
+    userId?: string;
+    status?: string;
+    q?: string;
+  },
+  opts?: { page?: number; pageSize?: number },
+) {
   const paged = opts?.page != null || opts?.pageSize != null;
   const page = Math.max(1, Math.floor(opts?.page ?? 1) || 1);
   const pageSize = Math.min(100, Math.max(1, Math.floor(opts?.pageSize ?? 20) || 20));
   const rows = await prisma.order.findMany({
-    where: and.length ? { AND: and } : undefined,
+    where: orderWhere(filter),
     include: { items: true },
     orderBy: { createdAt: "desc" },
     ...(paged ? { skip: (page - 1) * pageSize, take: pageSize } : {}),
   });
   return rows.map(toOrder);
+}
+
+/** Tổng số đơn khớp filter — dùng cùng opts phân trang của listOrders. */
+export async function countOrders(filter?: {
+  email?: string;
+  userId?: string;
+  status?: string;
+  q?: string;
+}) {
+  return prisma.order.count({ where: orderWhere(filter) });
 }
 
 export async function getOrderByCode(code: string) {

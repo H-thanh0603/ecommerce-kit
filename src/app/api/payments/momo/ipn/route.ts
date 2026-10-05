@@ -2,11 +2,15 @@ import { NextResponse } from "next/server";
 import { handleMomoIpn } from "@/server/momo";
 import { logOrderEventByCode } from "@/server/order-events";
 import { prisma } from "@/server/db";
+import { rateLimit, clientKey } from "@/server/rate-limit";
 import { resolveTenant, withDefaultTenant, wireTenantLookup } from "@/server/tenant";
 import { runWithTenant } from "@/server/tenant-context";
 
 /** MoMo gọi POST JSON về đây sau khi khách trả. */
 export async function POST(req: Request) {
+  if (!(await rateLimit(clientKey(req, "ipn"), 60, 60_000)).ok) {
+    return NextResponse.json({ ok: false, message: "Too many requests" }, { status: 429 });
+  }
   wireTenantLookup(); // idempotent — IPN không đi qua root layout
   const host = req.headers.get("host") || "";
   const tenant = host ? await resolveTenant(host).catch(() => null) : null;

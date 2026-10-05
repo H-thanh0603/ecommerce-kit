@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { extractVietqrOrderCode, handleVietqrIpn } from "@/server/vietqr";
 import { logOrderEventByCode } from "@/server/order-events";
 import { prisma } from "@/server/db";
+import { rateLimit, clientKey } from "@/server/rate-limit";
 import { resolveTenant, withDefaultTenant, wireTenantLookup } from "@/server/tenant";
 import { runWithTenant } from "@/server/tenant-context";
 
@@ -10,6 +11,10 @@ import { runWithTenant } from "@/server/tenant-context";
  * Chữ ký: header `x-vietqr-signature` = HMAC-SHA256(raw body, VIETQR_WEBHOOK_SECRET).
  */
 export async function POST(req: Request) {
+  // Chống spam buộc server tính HMAC; gateway thật gọi rất thưa nên 60/phút/IP là dư.
+  if (!(await rateLimit(clientKey(req, "ipn"), 60, 60_000)).ok) {
+    return NextResponse.json({ ok: false, message: "Too many requests" }, { status: 429 });
+  }
   wireTenantLookup(); // idempotent — webhook không đi qua root layout
   const host = req.headers.get("host") || "";
   const tenant = host ? await resolveTenant(host).catch(() => null) : null;

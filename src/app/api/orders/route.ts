@@ -34,13 +34,16 @@ const checkoutSchema = z.object({
   items: z.array(itemSchema).min(1),
 });
 
-async function getHandler() {
+async function getHandler(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ orders: [] });
+  const url = new URL(req.url);
+  const page = Math.max(1, Number(url.searchParams.get("page") || 1) || 1);
+  // Chặn unbounded list: tối đa 50 đơn/lần gọi, client đi ?page= để xem tiếp.
   const orders =
     session.role === "admin"
-      ? await listOrders()
-      : await listOrders({ email: session.email, userId: session.id });
+      ? await listOrders(undefined, { page, pageSize: 50 })
+      : await listOrders({ email: session.email, userId: session.id }, { page, pageSize: 50 });
   return NextResponse.json({ orders });
 }
 

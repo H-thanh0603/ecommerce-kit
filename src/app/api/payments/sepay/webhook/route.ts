@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { handleSepayWebhook } from "@/server/sepay";
 import { logOrderEventByCode } from "@/server/order-events";
 import { prisma } from "@/server/db";
+import { rateLimit, clientKey } from "@/server/rate-limit";
 import { resolveTenant, withDefaultTenant, wireTenantLookup } from "@/server/tenant";
 import { runWithTenant } from "@/server/tenant-context";
 
 export async function POST(req: Request) {
+  if (!(await rateLimit(clientKey(req, "ipn"), 60, 60_000)).ok) {
+    return NextResponse.json({ ok: false, message: "Too many requests" }, { status: 429 });
+  }
   wireTenantLookup(); // idempotent — webhook không đi qua root layout
   const host = req.headers.get("host") || "";
   const tenant = host ? await resolveTenant(host).catch(() => null) : null;
@@ -23,7 +27,11 @@ export async function POST(req: Request) {
             select: { code: true, total: true, paymentStatus: true, paymentMethod: true },
           }),
         markPaid: async (code) => {
-          await prisma.order.updateMany({ where: { code }, data: { paymentStatus: "paid" } });
+          // Guard not-paid: nhất quán với vietqr/momo, chặn ghi đè nếu IPN khác đã chốt.
+          await prisma.order.updateMany({
+            where: { code, paymentStatus: { not: "paid" } },
+            data: { paymentStatus: "paid" },
+          });
         },
       },
     );

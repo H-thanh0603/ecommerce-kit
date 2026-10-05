@@ -96,6 +96,38 @@ const agentTools: OpenAI.Chat.ChatCompletionTool[] = [
   },
 ];
 
+/** Đơn hàng trước khi đưa vào prompt LLM: bỏ email/phone/địa chỉ/tên/note khách
+ *  — đây là PII rời hệ thống sang xAI; agent chỉ cần thông tin vận hành đơn. */
+export function toOrderForAI(o: {
+  code: string;
+  status: string;
+  paymentMethod: string;
+  paymentStatus?: string;
+  subtotal: number;
+  shippingFee: number;
+  discount: number;
+  total: number;
+  couponCode?: string;
+  ghnOrderCode?: string;
+  createdAt?: string | Date;
+  items: { name: string; quantity: number; price: number }[];
+}) {
+  return {
+    code: o.code,
+    status: o.status,
+    paymentMethod: o.paymentMethod,
+    paymentStatus: o.paymentStatus || "",
+    subtotal: o.subtotal,
+    shippingFee: o.shippingFee,
+    discount: o.discount,
+    total: o.total,
+    couponCode: o.couponCode,
+    ghnOrderCode: o.ghnOrderCode,
+    createdAt: o.createdAt,
+    items: (o.items || []).map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),
+  };
+}
+
 async function runTool(name: string, argsJson: string) {
   const args = argsJson ? JSON.parse(argsJson) : {};
   if (name === "list_products") {
@@ -106,11 +138,13 @@ async function runTool(name: string, argsJson: string) {
   }
   if (name === "get_order") {
     const order = await getOrderByCode(String(args.code || ""));
-    return order ? JSON.stringify(order) : "Không tìm thấy đơn";
+    return order ? JSON.stringify(toOrderForAI(order)) : "Không tìm thấy đơn";
   }
   if (name === "recent_orders") {
-    const orders = await listOrders();
-    return JSON.stringify(orders.slice(0, Number(args.limit) || 8));
+    const limit = Math.min(20, Math.max(1, Math.floor(Number(args.limit) || 8)));
+    // Phân trang DB-side: không kéo toàn bộ bảng Order vào context.
+    const orders = await listOrders(undefined, { pageSize: limit });
+    return JSON.stringify(orders.map(toOrderForAI));
   }
   if (name === "draft_product_copy") {
     const p = await getProductById(String(args.productId));

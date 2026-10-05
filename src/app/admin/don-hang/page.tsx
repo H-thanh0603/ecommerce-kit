@@ -1,6 +1,6 @@
 import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
-import { listOrders } from "@/server/commerce";
+import { countOrders, listOrders } from "@/server/commerce";
 import { OrderStatusForm } from "@/components/admin/OrderStatusForm";
 import { money, qtyLabel } from "@/lib/format";
 import { isEnabled } from "@/config/site";
@@ -24,11 +24,15 @@ export default async function AdminOrders({
 }) {
   enterTenant(await resolveRequestTenant());
   const sp = await searchParams;
-  const orders = await listOrders({ status: sp.status || undefined, q: sp.q || undefined });
+  // Phân trang DB-side (skip/take) — không kéo toàn bộ bảng Order về rồi slice trong RAM.
   const pageSize = 20;
   const page = Math.max(1, Number(sp.page || 1) || 1);
-  const pages = Math.max(1, Math.ceil(orders.length / pageSize));
-  const view = orders.slice((page - 1) * pageSize, page * pageSize);
+  const filter = { status: sp.status || undefined, q: sp.q || undefined };
+  const [orders, total] = await Promise.all([
+    listOrders(filter, { page, pageSize }),
+    countOrders(filter),
+  ]);
+  const pages = Math.max(1, Math.ceil(total / pageSize));
   const qs = (n: number) => {
     const p = new URLSearchParams();
     if (sp.status) p.set("status", sp.status);
@@ -56,10 +60,10 @@ export default async function AdminOrders({
         </select>
         <button className="rounded-full bg-primary px-4 py-2 text-sm text-white">Lọc</button>
       </form>
-      <p className="mt-2 text-sm text-muted">{orders.length} đơn. Chọn ô vuông để giao hoặc in nhiều đơn trên trang này.</p>
+      <p className="mt-2 text-sm text-muted">{total} đơn. Chọn ô vuông để giao hoặc in nhiều đơn trên trang này.</p>
       <OrderSelection>
       <div className="mt-6 space-y-4">
-        {view.map((o) => (
+        {orders.map((o) => (
           <article key={o.id} className="rounded-2xl border border-line bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-medium"><OrderCheck id={o.id} />{o.code}</p>

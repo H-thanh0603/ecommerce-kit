@@ -13,7 +13,8 @@ const statusLabel: Record<string, string> = {
 
 export default async function AdminHome() {
   enterTenant(await resolveRequestTenant());
-  const [stats, orders] = await Promise.all([shopStats(), listOrders()]);
+  // Dashboard chỉ hiển thị 8 đơn mới — không kéo toàn bộ bảng Order.
+  const [stats, orders] = await Promise.all([shopStats(), listOrders(undefined, { pageSize: 8 })]);
   const maxDay = Math.max(1, ...stats.days.map((d) => d.total));
   const pending = stats.byStatus.find((s) => s.status === "pending")?.count ?? 0;
   const tasks = [
