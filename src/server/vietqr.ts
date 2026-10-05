@@ -70,9 +70,10 @@ export function verifyVietqr(raw: string, signature: string, secret = process.en
 
 const codePrefix = siteConfig.orders.codePrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** Tách mã đơn khỏi nội dung chuyển khoản — cùng tiền tố với sepay.ts. */
+/** Tách mã đơn khỏi nội dung chuyển khoản — cùng tiền tố với sepay.ts.
+ *  Mã đơn 5-12 ký tự hoa/số (cũ 5 chữ số, mới 8 ký tự ngẫu nhiên). */
 export function extractVietqrOrderCode(content: string): string | null {
-  const m = new RegExp(`${codePrefix}-\\d{5}`, "i").exec(content || "");
+  const m = new RegExp(`${codePrefix}-[A-Z0-9]{5,12}(?![A-Z0-9])`, "i").exec(content || "");
   return m ? m[0].toUpperCase() : null;
 }
 

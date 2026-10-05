@@ -61,8 +61,8 @@ describe("session JWT", () => {
     expect(out!.role).toBe("customer");
   });
 
-  it("sessionMatchesTenant: token cũ thiếu claim → true; claim khác tenant → false", () => {
-    expect(sessionMatchesTenant({ ...payload(), tenantSlug: undefined }, "shopa")).toBe(true);
+  it("sessionMatchesTenant: token thiếu claim tenant → false (fail-closed); claim khác tenant → false", () => {
+    expect(sessionMatchesTenant({ ...payload(), tenantSlug: undefined }, "shopa")).toBe(false);
     expect(sessionMatchesTenant({ ...payload(), tenantSlug: "shopa" }, "shopa")).toBe(true);
     expect(sessionMatchesTenant({ ...payload(), tenantSlug: "shopb" }, "shopa")).toBe(false);
   });

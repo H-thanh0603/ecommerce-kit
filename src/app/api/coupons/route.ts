@@ -3,6 +3,7 @@ import { assertCoupon } from "@/server/commerce";
 import { isFeatureOn } from "@/server/settings";
 import { getSession } from "@/server/auth";
 import { withTenantHandler } from "@/server/request-tenant";
+import { publicError } from "@/server/errors";
 
 async function postHandler(req: Request) {
   if (!(await isFeatureOn("coupons"))) {
@@ -21,7 +22,7 @@ async function postHandler(req: Request) {
       coupon: { code: coupon.code, type: coupon.type, value: coupon.value, minOrder: coupon.minOrder },
     });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Mã không hợp lệ" }, { status: 400 });
+    return NextResponse.json({ message: publicError(e, "Mã không hợp lệ") }, { status: 400 });
   }
 }
 

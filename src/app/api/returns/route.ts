@@ -3,6 +3,7 @@ import { listReturns, requestReturn, resolveReturn } from "@/server/returns";
 import { getSession, requireAdmin } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { withTenantHandler } from "@/server/request-tenant";
+import { publicError } from "@/server/errors";
 
 /** Khách gửi yêu cầu trả hàng. */
 async function postHandler(req: Request) {
@@ -20,7 +21,7 @@ async function postHandler(req: Request) {
     );
     return NextResponse.json({ ok: true, id: r.id });
   } catch (e) {
-    return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : "Gửi thất bại" }, { status: 400 });
+    return NextResponse.json({ ok: false, message: publicError(e, "Gửi thất bại") }, { status: 400 });
   }
 }
 
@@ -50,7 +51,7 @@ async function putHandler(req: Request) {
     const r = await resolveReturn(String(body.id || ""), body.approve === true, Number(body.refundAmount || 0));
     return NextResponse.json({ ok: true, status: r.status });
   } catch (e) {
-    return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : "Xử lý thất bại" }, { status: 400 });
+    return NextResponse.json({ ok: false, message: publicError(e, "Xử lý thất bại") }, { status: 400 });
   }
 }
 

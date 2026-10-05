@@ -26,6 +26,7 @@ vi.mock("next/headers", () => ({
 import { POST } from "./route";
 import { prisma } from "@/server/db";
 import { createOrder, getProductById } from "@/server/commerce";
+import { defaultWarehouse, setWarehouseStock } from "@/server/warehouse";
 
 // SP riêng p9 cho file này (p1-p8 đã có chủ — xem AGENTS.md về song song test).
 const PID = "p9";
@@ -61,6 +62,9 @@ describe("vietqr/check chống IDOR", () => {
     emails.push(email);
     const before = await getProductById(PID);
     await prisma.product.update({ where: { id: PID }, data: { stock: 10 } });
+    // Nạp lại cả tồn kho mặc định — các run trước đã trừ, DB dùng chung giữa các file.
+    const wh = await defaultWarehouse();
+    if (wh) await setWarehouseStock(wh.id, PID, "", 10);
     const order = await createOrder({
       customer: "Khách VietQR",
       email,

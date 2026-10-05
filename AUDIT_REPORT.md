@@ -719,12 +719,25 @@ Verdict trước đợt fix: **CONDITIONAL** → sau đợt fix: **GO (free-tier
 | `npm run build` | OK (bản next 16.3.8) |
 | `npm audit` | critical `next` biến mất; còn 1 critical vitest + high dev-only (không nằm trong production bundle) |
 
+### Đợt fix 2 — 6 điểm yếu còn lại (cùng ngày)
+
+| Điểm yếu | Fix |
+|---|---|
+| Mã đơn tuần tự `EK-00001` dò được qua trang công khai | Mã đơn ngẫu nhiên 8 ký tự (bỏ I/L/O/0/1); regex extract nội dung CK (sepay/vietqr) chấp nhận 5-12 ký tự |
+| `mfaSecret` plaintext trong DB | AES-256-GCM encrypt-at-rest (`crypto-util.ts` secret-box, key từ AUTH_SECRET); legacy plaintext → upgrade-on-read lúc login |
+| JWT cũ thiếu tenant claim vẫn được nhận | fail-closed: thiếu claim → từ chối (user đăng nhập lại) |
+| `TRUSTED_PROXY` unset = bẫy cấu hình | validate IP trong header + warn 1 lần trên production + item checklist DEPLOY §9 |
+| Redis rate-limit fail-open im lặng | Sentry captureException khi Redis lỗi |
+| Prisma message có thể lộ qua `e.message` | `publicError()` cho public routes (orders/reviews/bookings/returns/coupons/products/categories) — admin giữ detail |
+
+Verification: tsc sạch · 176/176 unit · 13/13 e2e trên build prod · build OK.
+
 ### Còn open (để sau — có user thật/thu tiền)
 
-- `mfaSecret` lưu plaintext DB → encrypt-at-rest khi có user thật.
-- CSP còn `'unsafe-inline'` (giới hạn Next.js); Redis rate-limit fail-open (cân nhắc alarm).
+- CSP còn `'unsafe-inline'` (giới hạn Next.js).
 - vitest critical + high dev deps (esbuild/braces/deepmerge-ts qua prisma CLI) — chờ major version, không ảnh hưởng production.
 - Risk đã ghi nhận: race vượt `maxUsesPerUser` khi >1 (count-check; unique [couponId,email] sẽ vỡ case này).
 - Test còn thiếu cho module `shipping.ts`/`payments.ts` (booking đã có).
+- Lưu ý vận hành: đổi `AUTH_SECRET` sẽ làm MFA secret đã mã hóa không giải mã được (admin re-enroll) — đã nằm trong quy trình key rotation.
 
 *Lịch sử: 2026-09-22 NO-GO → 2026-09-23 CONDITIONAL GO → 2026-10-05 GO (free-tier, sau đợt fix MVP checklist).*

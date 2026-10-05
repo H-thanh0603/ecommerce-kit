@@ -150,6 +150,9 @@ trong checklist team — **không commit key**.
 ## 9. Checklist production
 
 - [ ] `AUTH_SECRET` ngẫu nhiên (script `new:project` đã tự sinh)
+- [ ] `TRUSTED_PROXY` set rõ: `true` khi chạy sau proxy (Vercel/nginx — tin
+      `x-real-ip`/`X-Forwarded-For`), `false` khi chạy trực tiếp (không tin header
+      client tự gửi được). Thiếu biến này ở production là cấu hình sai — server sẽ warn.
 - [ ] Đổi `ADMIN_PASSWORD` thành password mạnh — **KHÔNG seed lại**
       (seed `deleteMany()` toàn bảng = xóa sạch data prod; đổi password
       bằng cách tạo admin mới hoặc UPDATE SQL, không chạy seed)

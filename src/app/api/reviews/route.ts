@@ -4,6 +4,7 @@ import { getSession } from "@/server/auth";
 import { isFeatureOn } from "@/server/settings";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { withTenantHandler } from "@/server/request-tenant";
+import { publicError } from "@/server/errors";
 import { reviewSchema } from "@/lib/validators";
 
 async function postHandler(req: Request) {
@@ -28,7 +29,7 @@ async function postHandler(req: Request) {
     });
     return NextResponse.json({ review });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
+    return NextResponse.json({ message: publicError(e) }, { status: 400 });
   }
 }
 

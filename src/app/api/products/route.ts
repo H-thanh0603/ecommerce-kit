@@ -3,6 +3,7 @@ import { listProducts } from "@/server/commerce";
 import { requireAdmin } from "@/server/auth";
 import { upsertProduct } from "@/server/commerce";
 import { withTenantHandler } from "@/server/request-tenant";
+import { publicError } from "@/server/errors";
 
 async function getHandler(req: Request) {
   const { clientKey, rateLimit } = await import("@/server/rate-limit");
@@ -55,7 +56,7 @@ async function postHandler(req: Request) {
     });
     return NextResponse.json({ product });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
+    return NextResponse.json({ message: publicError(e) }, { status: 400 });
   }
 }
 

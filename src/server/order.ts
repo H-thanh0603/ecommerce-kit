@@ -11,6 +11,7 @@ import { defaultWarehouse } from "@/server/warehouse";
 import { grantOrderPointsTx, spendPointsTx } from "@/server/membership";
 import { productInclude } from "@/server/product-include";
 import { type CartItem, type OrderStatus } from "@/types";
+import { randomBytes } from "crypto";
 import type { Prisma } from "@prisma/client";
 
 function orderWhere(filter?: { email?: string; userId?: string; status?: string; q?: string }) {
@@ -209,6 +210,23 @@ export async function nextOrderSeq(tx: Prisma.TransactionClient) {
   return row.value;
 }
 
+// Mã đơn ngẫu nhiên (không tuần tự) — chống dò counter/enum đơn qua trang công khai.
+// Bỏ ký tự dễ nhầm I/L/O/0/1; 8 ký tự ≈ 2^40 tổ hợp, trùng → sinh lại (max 5 lần).
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+export async function generateOrderCode(tx: Prisma.TransactionClient) {
+  const prefix = siteConfig.orders.codePrefix;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const bytes = randomBytes(8);
+    let suffix = "";
+    for (const b of bytes) suffix += CODE_ALPHABET[b % CODE_ALPHABET.length];
+    const code = `${prefix}-${suffix}`;
+    const dup = await tx.order.findUnique({ where: { code }, select: { id: true } });
+    if (!dup) return code;
+  }
+  throw new Error("Không sinh được mã đơn — thử lại");
+}
+
 /** Method được phép checkout — còn lại (zalopay/unknown/...) reject TRƯỚC transaction. */
 const SUPPORTED_PAYMENT_METHODS = new Set(["cod", "bankTransfer", "vnpay", "momo", "vietqr"]);
 
@@ -281,7 +299,7 @@ export async function createOrder(input: CheckoutInput) {
 
   const order = await prisma.$transaction(async (tx) => {
     const seq = await nextOrderSeq(tx);
-    const code = `${siteConfig.orders.codePrefix}-${String(seq).padStart(5, "0")}`;
+    const code = await generateOrderCode(tx);
 
     for (const line of lines) {
       if (line.sku) {

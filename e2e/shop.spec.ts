@@ -27,7 +27,7 @@ test("khach dat hang COD thanh cong", async ({ page }) => {
   await form.getByPlaceholder("Địa chỉ").fill("1 E2E, Q1");
   await page.getByRole("button", { name: "Đặt hàng" }).click();
   await expect(page).toHaveURL(/dat-hang-thanh-cong/, { timeout: 20_000 });
-  await expect(page.getByText(/EK-\d{5}/)).toBeVisible();
+  await expect(page.getByText(/EK-[A-Z0-9]{8}/)).toBeVisible();
 
   await unpublishProduct(page, product);
 });

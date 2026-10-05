@@ -3,6 +3,7 @@ import { requireAdmin } from "@/server/auth";
 import { isFeatureOn } from "@/server/settings";
 import { prisma } from "@/server/db";
 import { generateRecoveryCodes, generateTotpSecret, totpUri, verifyTotp } from "@/server/mfa";
+import { encryptSecret } from "@/server/crypto-util";
 import { hashPassword, verifyPassword } from "@/server/auth";
 import { withTenantHandler } from "@/server/request-tenant";
 
@@ -69,7 +70,8 @@ async function postHandler(req: Request) {
       where: { id: admin.id },
       data: {
         mfaEnabled: true,
-        mfaSecret: secret,
+        // Encrypt-at-rest: không lưu TOTP secret plaintext trong DB.
+        mfaSecret: encryptSecret(secret),
         mfaRecovery: JSON.stringify(hashed),
       },
     });

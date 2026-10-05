@@ -14,7 +14,8 @@ export function sepayConfigured() {
 
 export function extractOrderCode(content: string): string | null {
   const prefix = siteConfig.orders.codePrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const m = new RegExp(`${prefix}-\\d{5}`, "i").exec(content || "");
+  // Mã đơn: prefix + 5-12 ký tự hoa/số (cũ là 5 chữ số, mới là 8 ký tự ngẫu nhiên).
+  const m = new RegExp(`${prefix}-[A-Z0-9]{5,12}(?![A-Z0-9])`, "i").exec(content || "");
   return m ? m[0].toUpperCase() : null;
 }
 

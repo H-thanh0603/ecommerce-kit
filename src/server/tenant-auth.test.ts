@@ -41,13 +41,14 @@ describe("session tenant claim (T4)", () => {
     expect(sessionMatchesTenant(payload!, "shopa")).toBe(true);
   });
 
-  it("session cũ không claim → chấp nhận (backward compat deploy)", async () => {
+  it("session cũ không claim → từ chối (fail-closed, đăng nhập lại)", async () => {
     const token = await signSession({
       id: "u2", name: "B", email: "b@x.vn", role: "customer", tokenVersion: 0,
     });
     const payload = await readSessionToken(token);
     expect(payload?.tenantSlug).toBeUndefined();
-    expect(sessionMatchesTenant(payload!, "shopb")).toBe(true);
+    expect(sessionMatchesTenant(payload!, "shopb")).toBe(false);
+    expect(sessionMatchesTenant(payload!, "shopa")).toBe(false);
   });
 });
 

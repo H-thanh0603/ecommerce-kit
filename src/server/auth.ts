@@ -102,7 +102,15 @@ export async function loginUser(email: string, password: string, mfaCode?: strin
   const { isFeatureOn } = await import("@/server/settings");
   if (user.mfaEnabled && (await isFeatureOn("mfa"))) {
     const { verifyTotp } = await import("@/server/mfa");
-    let pass = mfaCode ? verifyTotp(user.mfaSecret, mfaCode) : false;
+    const { decryptSecret, isEncryptedSecret, encryptSecret } = await import("@/server/crypto-util");
+    const secret = decryptSecret(user.mfaSecret);
+    // Upgrade-on-read: secret plaintext cũ (lưu trước khi có encryption) → mã hóa lại.
+    if (secret && !isEncryptedSecret(user.mfaSecret)) {
+      await prisma.user
+        .update({ where: { id: user.id }, data: { mfaSecret: encryptSecret(secret) } })
+        .catch(() => {});
+    }
+    let pass = mfaCode && secret ? verifyTotp(secret, mfaCode) : false;
     if (!pass && mfaCode) {
       pass = await verifyRecoveryCode(user.id, user.mfaRecovery, mfaCode);
     }

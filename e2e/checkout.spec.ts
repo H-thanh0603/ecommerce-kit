@@ -54,9 +54,9 @@ test("checkout COD: tru ton dung 1 + admin danh dau hoan tat", async ({ page }) 
   const email = `e2e-full${Date.now()}@kit.vn`;
   await page.getByRole("button", { name: "Đặt hàng" }).click();
   await expect(page).toHaveURL(/dat-hang-thanh-cong/, { timeout: 20_000 });
-  const codeEl = page.getByText(/EK-\d{5}/).first();
+  const codeEl = page.getByText(/EK-[A-Z0-9]{8}/).first();
   const code = await codeEl.textContent();
-  expect(code).toMatch(/EK-\d{5}/);
+  expect(code).toMatch(/EK-[A-Z0-9]{8}/);
 
   // Tồn kho giảm đúng 1 sau khi đặt
   expect(await stockOf(page, product.id)).toBe(stockBefore - 1);

@@ -46,7 +46,7 @@ describe("createOrder", () => {
       ],
     });
 
-    expect(order.code).toMatch(/^EK-\d{5}$/);
+    expect(order.code).toMatch(/^EK-[A-Z0-9]{8}$/);
     expect(order.items[0].price).toBe(before!.price);
     expect(order.total).toBeGreaterThan(0);
 
@@ -75,7 +75,7 @@ describe("createOrder", () => {
       paymentMethod: "cod",
       items: [item(before!.price)],
     });
-    expect(ok.code).toMatch(/^EK-\d{5}$/);
+    expect(ok.code).toMatch(/^EK-[A-Z0-9]{8}$/);
     await expect(
       createOrder({
         customer: "Mua 2",

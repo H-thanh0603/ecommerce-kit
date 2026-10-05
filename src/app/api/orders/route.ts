@@ -5,6 +5,7 @@ import { getSession } from "@/server/auth";
 import { isFeatureOn } from "@/server/settings";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { withTenantHandler } from "@/server/request-tenant";
+import { publicError } from "@/server/errors";
 
 const itemSchema = z.object({
   productId: z.string(),
@@ -82,7 +83,7 @@ async function postHandler(req: Request) {
       const dup = await prisma.order.findUnique({ where: { clientRequestId: rid }, include: { items: true } });
       if (dup) return NextResponse.json({ order: toOrder(dup), idempotent: true });
     }
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Không đặt được hàng" }, { status: 400 });
+    return NextResponse.json({ message: publicError(e, "Không đặt được hàng") }, { status: 400 });
   }
 }
 

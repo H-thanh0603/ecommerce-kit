@@ -70,12 +70,12 @@ describe("session revoke (tokenVersion)", () => {
     const user = await prisma.user.create({
       data: { email, name: "TV", passwordHash: "x", role: "customer", tokenVersion: 5 },
     });
-    // Cookie mang tv=0 (khớp schema default nhưng DB là 5)
-    await setSessionCookie({ id: user.id, name: "TV", email, role: "customer", tokenVersion: 0 });
+    // Cookie mang tv=0 (khớp schema default nhưng DB là 5) — tenantSlug phải khớp schema hiện tại ("public")
+    await setSessionCookie({ id: user.id, name: "TV", email, role: "customer", tokenVersion: 0, tenantSlug: "public" });
     expect(await getSession()).toBeNull();
 
     // Cookie mang tv=5 → hợp lệ
-    await setSessionCookie({ id: user.id, name: "TV", email, role: "customer", tokenVersion: 5 });
+    await setSessionCookie({ id: user.id, name: "TV", email, role: "customer", tokenVersion: 5, tenantSlug: "public" });
     expect((await getSession())?.email).toBe(email);
 
     await prisma.user.delete({ where: { id: user.id } });

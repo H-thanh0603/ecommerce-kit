@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listCategories, upsertCategory } from "@/server/commerce";
 import { requireAdmin } from "@/server/auth";
 import { withTenantHandler } from "@/server/request-tenant";
+import { publicError } from "@/server/errors";
 
 async function getHandler() {
   return NextResponse.json({ categories: await listCategories() });
@@ -20,7 +21,7 @@ async function postHandler(req: Request) {
     });
     return NextResponse.json({ category });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
+    return NextResponse.json({ message: publicError(e) }, { status: 400 });
   }
 }
 

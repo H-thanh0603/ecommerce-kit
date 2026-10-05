@@ -52,8 +52,9 @@ export async function readSessionToken(token: string | undefined): Promise<Sessi
   }
 }
 
-/** Session hợp lệ với tenant hiện tại? Thiếu claim (token cũ) → true. */
+/** Session hợp lệ với tenant hiện tại? Token cũ thiếu claim tenant → từ chối
+ *  (fail-closed: đề phòng token từ schema khác bị tái sử dụng; user chỉ cần đăng nhập lại). */
 export function sessionMatchesTenant(s: SessionPayload, currentSlug: string): boolean {
-  if (!s.tenantSlug) return true;
+  if (!s.tenantSlug) return false;
   return s.tenantSlug === currentSlug;
 }

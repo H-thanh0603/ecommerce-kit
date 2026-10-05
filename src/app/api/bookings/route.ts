@@ -4,6 +4,7 @@ import { getSession, requireAdmin } from "@/server/auth";
 import { isFeatureOn } from "@/server/settings";
 import { clientKey, rateLimit } from "@/server/rate-limit";
 import { withTenantHandler } from "@/server/request-tenant";
+import { publicError } from "@/server/errors";
 import { bookingSchema } from "@/lib/validators";
 
 async function getHandler() {
@@ -47,7 +48,7 @@ async function postHandler(req: Request) {
     });
     return NextResponse.json({ booking });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
+    return NextResponse.json({ message: publicError(e) }, { status: 400 });
   }
 }
 
@@ -60,7 +61,7 @@ async function patchHandler(req: Request) {
     const booking = await setBookingStatus(String(body.id), String(body.status));
     return NextResponse.json({ booking });
   } catch (e) {
-    return NextResponse.json({ message: e instanceof Error ? e.message : "Lỗi" }, { status: 400 });
+    return NextResponse.json({ message: publicError(e) }, { status: 400 });
   }
 }
 
