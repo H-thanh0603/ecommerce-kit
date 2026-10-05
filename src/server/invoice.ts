@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import { toOrder } from "@/server/map";
+import { Prisma } from "@prisma/client";
 
 export async function issueInvoice(orderId: string, buyerTax = "", opts?: { buyerAddress?: string; taxRate?: number }) {
   const existing = await prisma.invoice.findUnique({ where: { orderId } });
@@ -9,23 +10,36 @@ export async function issueInvoice(orderId: string, buyerTax = "", opts?: { buye
   const taxRate = Math.min(100, Math.max(0, opts?.taxRate ?? 10));
   // Giá đã gồm VAT → tách VAT: vat = total * rate / (100 + rate)
   const vatAmount = Math.round((order.total * taxRate) / (100 + taxRate));
-  const counter = await prisma.orderCounter.upsert({
-    where: { id: "invoice" },
-    create: { id: "invoice", value: 1 },
-    update: { value: { increment: 1 } },
-  });
-  const number = `INV-${String(counter.value).padStart(5, "0")}`;
-  return prisma.invoice.create({
-    data: {
-      orderId,
-      number,
-      buyerName: order.customer,
-      buyerTax,
-      buyerAddress: opts?.buyerAddress || order.address,
-      taxRate,
-      vatAmount,
-    },
-  });
+  try {
+    // Cả counter lẫn create phải cùng transaction: nếu tách, create lỗi giữa chừng
+    // làm mất số INV (nhảy số). 2 request song song cùng đơn → 1 cái P2002 ở
+    // Invoice.orderId unique → bắt và trả existing (idempotent).
+    return await prisma.$transaction(async (tx) => {
+      const counter = await tx.orderCounter.upsert({
+        where: { id: "invoice" },
+        create: { id: "invoice", value: 1 },
+        update: { value: { increment: 1 } },
+      });
+      const number = `INV-${String(counter.value).padStart(5, "0")}`;
+      return tx.invoice.create({
+        data: {
+          orderId,
+          number,
+          buyerName: order.customer,
+          buyerTax,
+          buyerAddress: opts?.buyerAddress || order.address,
+          taxRate,
+          vatAmount,
+        },
+      });
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const dup = await prisma.invoice.findUnique({ where: { orderId } });
+      if (dup) return dup;
+    }
+    throw e;
+  }
 }
 
 export async function getInvoiceByOrder(orderId: string) {

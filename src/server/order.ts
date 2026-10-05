@@ -8,7 +8,7 @@ import { consumeGiftTx } from "@/server/giftcard";
 import { quoteOrder } from "@/server/pricing";
 import { isFeatureOn } from "@/server/settings";
 import { defaultWarehouse } from "@/server/warehouse";
-import { grantOrderPoints, spendPointsTx } from "@/server/membership";
+import { grantOrderPointsTx, spendPointsTx } from "@/server/membership";
 import { productInclude } from "@/server/product-include";
 import { type CartItem, type OrderStatus } from "@/types";
 import type { Prisma } from "@prisma/client";
@@ -125,6 +125,24 @@ export async function updateOrderStatus(id: string, status: OrderStatus, actorEm
       const { logOrderEvent } = await import("@/server/order-events");
       await logOrderEvent(id, "status", "Cảnh báo: hủy đơn đã completed — cân nhắc luồng trả hàng/hoàn tiền", actorEmail);
     }
+  } else if (status === "completed") {
+    // Claim tương tự nhánh cancelled: chống cộng điểm 2 lần khi 2 admin hoàn tất cùng lúc.
+    // Điểm cộng trong cùng transaction bằng increment — không lost update.
+    const membershipOn = await isFeatureOn("membership");
+    row = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.order.updateMany({
+        where: { id, status: { not: "completed" } },
+        data: { status },
+      });
+      const cur = await tx.order.findUnique({ where: { id }, include: { items: true } });
+      if (claimed.count === 1 && cur && membershipOn && cur.userId) {
+        const g = await grantOrderPointsTx(tx, cur.userId, cur.total);
+        if (g.earned > 0) {
+          await tx.order.update({ where: { id }, data: { pointsEarned: g.earned } });
+        }
+      }
+      return cur;
+    });
   } else {
     row = await prisma.order.update({ where: { id }, data: { status }, include: { items: true } });
   }
@@ -133,10 +151,6 @@ export async function updateOrderStatus(id: string, status: OrderStatus, actorEm
   await onOrderStatusChanged(order, status);
   const { logOrderEvent } = await import("@/server/order-events");
   await logOrderEvent(row.id, "status", `Chuyển trạng thái → ${status}`, actorEmail);
-  if (status === "completed" && (await isFeatureOn("membership")) && row.userId) {
-    const g = await grantOrderPoints(row.userId, order.total);
-    await prisma.order.update({ where: { id }, data: { pointsEarned: g.earned } });
-  }
   if (actorEmail) {
     const { logAudit } = await import("@/server/audit");
     await logAudit({

@@ -18,8 +18,9 @@ export async function POST(req: Request) {
       findOrder: async (code) =>
         prisma.order.findUnique({ where: { code }, select: { code: true, total: true, paymentStatus: true } }),
       markPaid: async (code, transId) => {
+        // where chặn ghi đè nếu return/webhook đã kịp chốt paid (nhất quán với vietqr).
         await prisma.order.updateMany({
-          where: { code },
+          where: { code, paymentStatus: { not: "paid" } },
           data: { paymentStatus: "paid", paymentRef: transId || String(data.transId || "") },
         });
       },

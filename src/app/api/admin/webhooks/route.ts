@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { deleteWebhook, dispatchWebhooks, listWebhooks, upsertWebhook } from "@/server/webhooks";
 import { withTenantHandler } from "@/server/request-tenant";
+import { webhookUrlSchema } from "@/lib/validators";
 
 async function getHandler() {
   const admin = await requireAdmin();
@@ -30,9 +31,16 @@ async function postHandler(req: Request) {
       const results = await dispatchWebhooks("ping", { at: new Date().toISOString() });
       return NextResponse.json({ ok: true, results });
     }
+    const urlCheck = webhookUrlSchema.safeParse(String(body.url || ""));
+    if (!urlCheck.success) {
+      return NextResponse.json(
+        { ok: false, message: urlCheck.error.issues[0]?.message || "URL không hợp lệ" },
+        { status: 400 },
+      );
+    }
     const wh = await upsertWebhook({
       id: body.id || undefined,
-      url: String(body.url || ""),
+      url: urlCheck.data,
       secret: body.secret ? String(body.secret) : undefined,
       events: String(body.events || ""),
       active: body.active !== false,

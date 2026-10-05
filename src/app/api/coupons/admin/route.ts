@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { deleteCoupon, listCoupons, upsertCoupon } from "@/server/commerce";
 import { requireAdmin } from "@/server/auth";
 import { withTenantHandler } from "@/server/request-tenant";
+import { couponAdminSchema } from "@/lib/validators";
 
 async function getHandler() {
   const admin = await requireAdmin();
@@ -13,17 +14,22 @@ async function postHandler(req: Request) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
+  const parsed = couponAdminSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ message: parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ" }, { status: 400 });
+  }
   try {
+    const d = parsed.data;
     const coupon = await upsertCoupon({
-      id: body.id,
-      code: String(body.code || ""),
-      type: String(body.type || "percent"),
-      value: Number(body.value),
-      minOrder: Number(body.minOrder || 0),
-      active: body.active !== false,
-      maxUses: body.maxUses === "" || body.maxUses == null ? null : Number(body.maxUses),
-      maxUsesPerUser: body.maxUsesPerUser === "" || body.maxUsesPerUser == null ? null : Number(body.maxUsesPerUser),
-      endsAt: body.endsAt ? new Date(body.endsAt) : null,
+      id: d.id,
+      code: d.code,
+      type: d.type,
+      value: d.value,
+      minOrder: d.minOrder,
+      active: d.active,
+      maxUses: d.maxUses ?? null,
+      maxUsesPerUser: d.maxUsesPerUser ?? null,
+      endsAt: d.endsAt ? new Date(d.endsAt) : null,
     });
     const { logAudit } = await import("@/server/audit");
     await logAudit({

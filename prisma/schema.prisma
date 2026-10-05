@@ -149,6 +149,11 @@ model CouponRedemption {
   orderId   String
   createdAt DateTime @default(now())
 
+  // 1 đơn chỉ redeem 1 mã 1 lần — chặn race ghi đôi ở DB-level.
+  // LƯU Ý: race 2 đơn khác nhau của cùng user vượt maxUsesPerUser khi >1
+  // vẫn dựa count-check trong assertCouponTx (unique [couponId, email]
+  // sẽ vỡ trường hợp maxUsesPerUser > 1 nên không thêm).
+  @@unique([couponId, orderId])
   @@index([couponId])
   @@index([email])
 }

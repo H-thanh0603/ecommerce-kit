@@ -16,15 +16,25 @@ export function discountFromPoints(points: number) {
   return points * siteConfig.membership.vndPerPoint;
 }
 
-export async function grantOrderPoints(userId: string, total: number) {
+/** Cộng điểm bằng increment trong transaction — không read-then-write nên
+ *  2 đơn completed đồng thời không mất cập nhật (lost update). */
+export async function grantOrderPointsTx(tx: Prisma.TransactionClient, userId: string, total: number) {
   const earned = pointsFromTotal(total);
   if (earned <= 0) return { earned: 0, points: 0, memberTier: "dong" };
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return { earned: 0, points: 0, memberTier: "dong" };
-  const points = user.points + earned;
+  const upd = await tx.user.updateMany({
+    where: { id: userId },
+    data: { points: { increment: earned } },
+  });
+  if (upd.count !== 1) return { earned: 0, points: 0, memberTier: "dong" };
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { points: true } });
+  const points = user?.points ?? earned;
   const memberTier = tierFor(points);
-  await prisma.user.update({ where: { id: userId }, data: { points, memberTier } });
+  await tx.user.update({ where: { id: userId }, data: { memberTier } });
   return { earned, points, memberTier };
+}
+
+export async function grantOrderPoints(userId: string, total: number) {
+  return prisma.$transaction((tx) => grantOrderPointsTx(tx, userId, total));
 }
 
 export async function spendPoints(userId: string, spend: number) {
