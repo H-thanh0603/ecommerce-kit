@@ -28,6 +28,7 @@ model User {
   redemptions  CouponRedemption[]
   resets       PasswordReset[]
   bookings     Booking[]
+  savedViews   AdminSavedView[]
   points       Int                @default(0)
   memberTier   String             @default("dong")
   createdAt    DateTime           @default(now())
@@ -507,6 +508,26 @@ model AuditLog {
   @@index([createdAt])
   @@index([actorEmail, createdAt])
   @@index([action, createdAt])
+}
+
+/**
+ * Bộ lọc lưu sẵn của admin (pattern Twenty CRM "saved view"):
+ * mỗi view = 1 bộ querystring của 1 trang admin, per-user.
+ * Filter vẫn nằm 100% trong URL khi bấm view (rule UI-001/UI-011).
+ */
+model AdminSavedView {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  /// Trang admin mà view áp dụng, VD "/admin/don-hang".
+  path      String
+  name      String
+  /// Querystring không có dấu "?" (rỗng = view "tất cả").
+  query     String   @default("")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, path, name])
+  @@index([userId, path])
 }
 
 model Tenant {

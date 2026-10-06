@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listCustomers } from "@/server/commerce";
 import { siteConfig } from "@/config/site";
 import { btnGhost } from "@/components/admin/buttons";
+import { SavedViews } from "@/components/admin/SavedViews";
 
 function tierLabel(tier: string) {
   const row = siteConfig.membership[tier as keyof typeof siteConfig.membership];
@@ -39,6 +40,7 @@ export default async function AdminCustomers({
           className="w-full max-w-sm rounded-full border border-line bg-white px-4 py-2 text-sm"
         />
       </form>
+      <SavedViews path="/admin/khach-hang" params={{ q: sp.q, page: sp.page }} />
       <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-white">
         <table className="w-full text-left text-sm">
           <thead className="bg-canvas text-muted">
