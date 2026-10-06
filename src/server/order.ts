@@ -75,6 +75,12 @@ export async function getOrderByCode(code: string) {
   return row ? toOrder(row) : null;
 }
 
+/** Chi tiết 1 đơn theo id — dùng cho side panel admin (?order=<id>). */
+export async function getOrderById(id: string) {
+  const row = await prisma.order.findUnique({ where: { id }, include: { items: true } });
+  return row ? toOrder(row) : null;
+}
+
 /**
  * Đảo ngược đơn khi hủy: hoàn tồn SKU/product + kho, hoàn điểm đã tiêu,
  * thu hồi lượt dùng coupon (xóa redemption — maxUses đếm từ redemption),

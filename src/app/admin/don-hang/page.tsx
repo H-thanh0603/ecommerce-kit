@@ -1,12 +1,11 @@
 import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import Link from "next/link";
-import { countOrders, listOrders } from "@/server/commerce";
+import { countOrders, getOrderById, listOrders } from "@/server/commerce";
 import { OrderStatusForm } from "@/components/admin/OrderStatusForm";
-import { money, qtyLabel } from "@/lib/format";
-import { isEnabled } from "@/config/site";
-import { IssueInvoiceButton } from "@/components/admin/IssueInvoiceButton";
-import { GhnButton, OrderTimeline, PayBadge } from "@/components/admin/OrderActions";
+import { money } from "@/lib/format";
 import { OrderCheck, OrderSelection } from "@/components/admin/OrderSelection";
+import { SavedViews } from "@/components/admin/SavedViews";
+import { OrderPanel } from "@/components/admin/OrderPanel";
 
 const statuses = [
   { value: "", label: "Tất cả" },
@@ -20,7 +19,7 @@ const statuses = [
 export default async function AdminOrders({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string; order?: string }>;
 }) {
   enterTenant(await resolveRequestTenant());
   const sp = await searchParams;
@@ -32,14 +31,23 @@ export default async function AdminOrders({
     listOrders(filter, { page, pageSize }),
     countOrders(filter),
   ]);
+  // Side panel: detail fetch theo ?order=<id> — list phía sau giữ nguyên filter (UI-011).
+  const panelOrder = sp.order ? await getOrderById(sp.order) : null;
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const baseParams = new URLSearchParams();
+  if (sp.status) baseParams.set("status", sp.status);
+  if (sp.q) baseParams.set("q", sp.q);
   const qs = (n: number) => {
-    const p = new URLSearchParams();
-    if (sp.status) p.set("status", sp.status);
-    if (sp.q) p.set("q", sp.q);
+    const p = new URLSearchParams(baseParams);
     if (n > 1) p.set("page", String(n));
     const s = p.toString();
     return s ? `?${s}` : "";
+  };
+  const detailHref = (id: string) => {
+    const p = new URLSearchParams(baseParams);
+    if (page > 1) p.set("page", String(page));
+    p.set("order", id);
+    return `?${p.toString()}`;
   };
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -60,6 +68,7 @@ export default async function AdminOrders({
         </select>
         <button className="rounded-full bg-primary px-4 py-2 text-sm text-white">Lọc</button>
       </form>
+      <SavedViews path="/admin/don-hang" params={{ status: sp.status, q: sp.q, page: sp.page }} />
       <p className="mt-2 text-sm text-muted">{total} đơn. Chọn ô vuông để giao hoặc in nhiều đơn trên trang này.</p>
       <OrderSelection>
       <div className="mt-6 space-y-4">
@@ -70,25 +79,14 @@ export default async function AdminOrders({
               <OrderStatusForm id={o.id} status={o.status} />
             </div>
             <p className="mt-1 text-sm text-muted">
-              {o.customer} · {o.email} · {o.phone} · {o.address}
+              {o.customer} · {o.email} · {o.createdAt}
             </p>
-            <p className="text-xs text-muted">{o.createdAt} · {o.paymentMethod}</p>
-            <div className="mt-1">
-              <PayBadge status={o.paymentStatus} method={o.paymentMethod} />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium tabular-nums">Tổng {money(o.total)}</p>
+              <Link href={`/admin/don-hang${detailHref(o.id)}`} className="text-sm text-primary underline-offset-2 hover:underline">
+                Chi tiết →
+              </Link>
             </div>
-            <ul className="mt-3 text-sm">
-              {o.items.map((i) => (
-                <li key={i.productId + (i.variantLabel || "")}>
-                  {i.name} {qtyLabel(i.quantity, i.unit)} — {money(i.price)}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-sm font-medium">Tổng {money(o.total)}</p>
-            {isEnabled("invoices") && <IssueInvoiceButton orderId={o.id} />}
-            {isEnabled("ghn") && o.status !== "cancelled" && (
-              <GhnButton orderCode={o.code} hasLabel={o.ghnOrderCode} />
-            )}
-            <OrderTimeline orderId={o.id} />
           </article>
         ))}
         {orders.length === 0 && <p className="text-sm text-muted">Không có đơn khớp bộ lọc.</p>}
@@ -107,6 +105,7 @@ export default async function AdminOrders({
           ))}
         </div>
       )}
+      {panelOrder && <OrderPanel order={panelOrder} />}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ORDER_TRANSITIONS, type OrderStatus } from "@/types";
 import { btnPrimary } from "@/components/admin/buttons";
+import { useOptimisticAction } from "@/lib/use-optimistic-action";
 
 const labels: Record<OrderStatus, string> = {
   pending: "Chờ xác nhận",
@@ -17,12 +18,22 @@ const labelOf = (status: OrderStatus) => labels[status] ?? status;
 
 export function OrderStatusForm({ id, status }: { id: string, status: OrderStatus }) {
   const router = useRouter();
-  const [value, setValue] = useState(status);
   const [msg, setMsg] = useState("");
-  const [busy, setBusy] = useState(false);
 
-  // Chỉ hiện trạng thái hiện tại + các transition hợp lệ theo state machine
-  // (backend `ORDER_TRANSITIONS` cũng chặn — UI chỉ là bản sao thuận mắt).
+  const { value, pending, error, run } = useOptimisticAction(status, async (next) => {
+    const res = await fetch(`/api/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: next }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || "Không cập nhật được trạng thái");
+    setMsg(`Đã cập nhật: ${labelOf(next)}`);
+    router.refresh();
+  });
+
+  // `value` = trạng thái optimistic (hook) — options/advance tính theo value để
+  // UI chuyển mượt ngay khi bấm; commit lỗi thì hook tự revert về `status`.
   const options: OrderStatus[] = [value, ...ORDER_TRANSITIONS[value]];
 
   const advance =
@@ -32,27 +43,11 @@ export function OrderStatusForm({ id, status }: { id: string, status: OrderStatu
         ? { next: "completed" as const, label: "Đánh dấu hoàn tất" }
         : null;
 
-  async function save(next: OrderStatus) {
-    if (next === value || busy) return;
+  function save(next: OrderStatus) {
+    if (next === value || pending) return;
     if (next === "cancelled" && !window.confirm("Huỷ đơn này? Khách sẽ thấy trạng thái đã huỷ.")) return;
-    const prev = value;
-    setValue(next);
-    setBusy(true);
     setMsg("");
-    const res = await fetch(`/api/orders/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: next }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setValue(prev);
-      setMsg(data.message || "Không cập nhật được trạng thái");
-    } else {
-      setMsg(`Đã cập nhật: ${labelOf(next)}`);
-      router.refresh();
-    }
-    setBusy(false);
+    run(next);
   }
 
   return (
@@ -60,7 +55,7 @@ export function OrderStatusForm({ id, status }: { id: string, status: OrderStatu
       {advance && (
         <button
           type="button"
-          disabled={busy}
+          disabled={pending}
           onClick={() => save(advance.next)}
           className={btnPrimary}
         >
@@ -72,7 +67,7 @@ export function OrderStatusForm({ id, status }: { id: string, status: OrderStatu
         <select
           aria-label="Trạng thái đơn"
           value={value}
-          disabled={busy}
+          disabled={pending}
           className="ml-2 rounded-full border border-line bg-white px-3 py-1.5 text-sm text-ink"
           onChange={(e) => save(e.target.value as OrderStatus)}
         >
@@ -83,9 +78,9 @@ export function OrderStatusForm({ id, status }: { id: string, status: OrderStatu
           ))}
         </select>
       </label>
-      {msg && (
-        <p role="status" className="text-xs text-muted">
-          {msg}
+      {(error || msg) && (
+        <p role="status" className={`text-xs ${error ? "text-accent" : "text-muted"}`}>
+          {error || msg}
         </p>
       )}
     </div>
