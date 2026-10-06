@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { isFeatureOn } from "@/server/settings";
+import { rateLimit, clientKey } from "@/server/rate-limit";
 import { exportProductsXlsx, importProductsXlsx } from "@/server/excel";
 import { withTenantHandler } from "@/server/request-tenant";
 
-async function getHandler() {
+async function getHandler(req: Request) {
+  // Export quét toàn bộ bảng product + dựng file xlsx — endpoint đắt, giới hạn mạnh.
+  if (!(await rateLimit(clientKey(req, "excel-export"), 5, 60_000)).ok) {
+    return NextResponse.json({ message: "Quá nhiều yêu cầu, thử lại sau" }, { status: 429 });
+  }
   if (!(await isFeatureOn("excel"))) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });
@@ -18,6 +23,9 @@ async function getHandler() {
 }
 
 async function postHandler(req: Request) {
+  if (!(await rateLimit(clientKey(req, "excel-import"), 5, 60_000)).ok) {
+    return NextResponse.json({ message: "Quá nhiều yêu cầu, thử lại sau" }, { status: 429 });
+  }
   if (!(await isFeatureOn("excel"))) return NextResponse.json({ message: "Tắt" }, { status: 404 });
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ message: "Cần admin" }, { status: 401 });

@@ -61,10 +61,12 @@ test("checkout COD: tru ton dung 1 + admin danh dau hoan tat", async ({ page }) 
   // Tồn kho giảm đúng 1 sau khi đặt
   expect(await stockOf(page, product.id)).toBe(stockBefore - 1);
 
-  // Admin đẩy đơn lên hoàn tất qua UI admin
+  // Admin đẩy đơn lên hoàn tất qua UI admin — đi đúng state machine: shipping → completed
   await page.goto(`/admin/don-hang?q=${code!.trim()}`);
   const card = page.locator("article", { has: page.getByText(code!.trim()) }).first();
   await expect(card).toBeVisible();
+  await card.getByLabel("Trạng thái đơn").selectOption("shipping");
+  await expect(page.getByRole("status").filter({ hasText: "Đang giao" })).toBeVisible({ timeout: 15_000 });
   await card.getByLabel("Trạng thái đơn").selectOption("completed");
   await expect(page.getByRole("status").filter({ hasText: "Hoàn tất" })).toBeVisible({ timeout: 15_000 });
 

@@ -19,8 +19,9 @@ async function getHandler(req: Request) {
   if (amount !== order.total) return fail("amount");
   const ok = query.vnp_ResponseCode === "00";
   if (order.paymentStatus !== "paid") {
+    // Guard `not: "paid"` — IPN song song đã chốt paid thì return không ghi đè paymentRef.
     await prisma.order.updateMany({
-      where: { code },
+      where: { code, paymentStatus: { not: "paid" } },
       data: { paymentStatus: ok ? "paid" : "failed", paymentRef: ok ? query.vnp_TransactionNo || order.paymentRef : order.paymentRef },
     });
   }

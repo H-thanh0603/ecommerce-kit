@@ -2,24 +2,28 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { OrderStatus } from "@/types";
+import { ORDER_TRANSITIONS, type OrderStatus } from "@/types";
 import { btnPrimary } from "@/components/admin/buttons";
 
-const options: { value: OrderStatus; label: string }[] = [
-  { value: "pending", label: "Chờ xác nhận" },
-  { value: "confirmed", label: "Đã xác nhận" },
-  { value: "shipping", label: "Đang giao" },
-  { value: "completed", label: "Hoàn tất" },
-  { value: "cancelled", label: "Đã huỷ" },
-];
+const labels: Record<OrderStatus, string> = {
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  shipping: "Đang giao",
+  completed: "Hoàn tất",
+  cancelled: "Đã huỷ",
+};
 
-const labelOf = (status: OrderStatus) => options.find((o) => o.value === status)?.label ?? status;
+const labelOf = (status: OrderStatus) => labels[status] ?? status;
 
-export function OrderStatusForm({ id, status }: { id: string; status: OrderStatus }) {
+export function OrderStatusForm({ id, status }: { id: string, status: OrderStatus }) {
   const router = useRouter();
   const [value, setValue] = useState(status);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Chỉ hiện trạng thái hiện tại + các transition hợp lệ theo state machine
+  // (backend `ORDER_TRANSITIONS` cũng chặn — UI chỉ là bản sao thuận mắt).
+  const options: OrderStatus[] = [value, ...ORDER_TRANSITIONS[value]];
 
   const advance =
     value === "pending" || value === "confirmed"
@@ -73,8 +77,8 @@ export function OrderStatusForm({ id, status }: { id: string; status: OrderStatu
           onChange={(e) => save(e.target.value as OrderStatus)}
         >
           {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
+            <option key={o} value={o}>
+              {labelOf(o)}
             </option>
           ))}
         </select>

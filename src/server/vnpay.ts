@@ -72,7 +72,9 @@ export type VnpOrderRecord = { code: string; total: number; paymentStatus: strin
 export type VnpIpnResult = { RspCode: string; Message: string };
 export type VnpOrderStore = {
   findOrder: (code: string) => Promise<VnpOrderRecord | null>;
-  markPaid: (code: string) => Promise<void>;
+  /** Trả true nếu đơn thật sự chuyển sang paid lần đầu (guard `not: "paid"`) —
+   *  false khi race IPN/return đã chốt paid trước → route không bắn order.paid lần 2. */
+  markPaid: (code: string) => Promise<boolean>;
   markFailed: (code: string) => Promise<void>;
 };
 
@@ -101,7 +103,8 @@ export async function handleVnpayIpn(
   if (order.paymentStatus === "paid") return { RspCode: "02", Message: "Order already confirmed" };
   try {
     if (query.vnp_ResponseCode === "00") {
-      await store.markPaid(code);
+      const changed = await store.markPaid(code);
+      if (!changed) return { RspCode: "02", Message: "Order already confirmed" };
       return { RspCode: "00", Message: "Success" };
     }
     await store.markFailed(code);

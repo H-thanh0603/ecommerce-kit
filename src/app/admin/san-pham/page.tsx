@@ -52,9 +52,9 @@ export default async function AdminProducts({
             <tr>
               <th className="px-4 py-3">Tên</th>
               <th className="px-4 py-3">Danh mục</th>
-              <th className="px-4 py-3">Giá</th>
-              <th className="px-4 py-3">Tồn</th>
-              <th className="px-4 py-3">Đã bán</th>
+              <th className="px-4 py-3 text-right">Giá</th>
+              <th className="px-4 py-3 text-right">Tồn</th>
+              <th className="px-4 py-3 text-right">Đã bán</th>
               <th className="px-4 py-3">Hiện</th>
               <th className="sticky right-0 bg-canvas px-4 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.15)]">Thao tác</th>
             </tr>
@@ -75,9 +75,9 @@ export default async function AdminProducts({
                   </Link>
                 </td>
                 <td className="px-4 py-3">{p.category}</td>
-                <td className="px-4 py-3">{money(p.price)}</td>
-                <td className="px-4 py-3">{p.stock}</td>
-                <td className="px-4 py-3">{p.sold}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{money(p.price)}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{p.stock}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{p.sold}</td>
                 <td className="px-4 py-3">{p.published === false ? "Ẩn" : "Có"}</td>
                 <td className="sticky right-0 bg-white px-4 py-3 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.12)]">
                   <ProductActions product={p} />

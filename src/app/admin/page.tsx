@@ -46,9 +46,22 @@ export default async function AdminHome() {
   const revenue = [
     { label: "Thực thu", value: money(stats.revenueCollected), sub: "Đơn đã hoàn tất" },
     { label: "Ghi nhận", value: money(stats.revenue), sub: "Mọi đơn trừ đơn đã huỷ" },
-    { label: "Hôm nay", value: money(stats.revenueToday), sub: `${stats.ordersToday} đơn` },
-    { label: "Tháng này", value: money(stats.revenueMonth), sub: "Đơn chưa huỷ trong tháng" },
+    {
+      label: "Hôm nay",
+      value: money(stats.revenueToday),
+      sub: `${stats.ordersToday} đơn · Hôm qua ${money(stats.revenueYesterday)}`,
+    },
+    {
+      label: "Tháng này",
+      value: money(stats.revenueMonth),
+      sub: `Tháng trước ${money(stats.revenuePrevMonth)}`,
+    },
   ];
+  const attention = [
+    { label: "Hoàn tiền chờ", value: stats.refundsPending, href: "/admin/hoan-tien" },
+    { label: "Trả hàng chờ", value: stats.returnsPending, href: "/admin/tra-hang" },
+    { label: "Đánh giá chờ duyệt", value: stats.reviewsPending, href: "/admin/danh-gia" },
+  ].filter((a) => a.value > 0);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -104,7 +117,7 @@ export default async function AdminHome() {
                 <Link href={`/admin/don-hang?status=${s.status}`} className="underline">
                   {statusLabel[s.status] || s.status} ({s.count})
                 </Link>
-                <span>{money(s.total)}</span>
+                <span className="tabular-nums">{money(s.total)}</span>
               </li>
             ))}
           </ul>
@@ -117,7 +130,7 @@ export default async function AdminHome() {
                 <Link href={`/admin/san-pham?edit=${p.id}`} className="hover:underline">
                   {p.name}
                 </Link>
-                <span className="text-muted">{p.sold} bán</span>
+                <span className="text-muted tabular-nums">{p.sold} bán</span>
               </li>
             ))}
           </ul>
@@ -125,7 +138,22 @@ export default async function AdminHome() {
       </div>
 
       <section id="can-nhap" className="mt-6 rounded-2xl border border-line bg-white p-5">
-        <h2 className="font-medium">Cần nhập hàng</h2>
+        <h2 className="font-medium">Cần chú ý</h2>
+        {attention.length > 0 && (
+          <ul className="mt-3 flex flex-wrap gap-2 text-sm">
+            {attention.map((a) => (
+              <li key={a.label}>
+                <Link
+                  href={a.href}
+                  className="inline-block rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-accent hover:border-accent"
+                >
+                  {a.label}: {a.value}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <h3 className="mt-4 text-sm text-muted">Cần nhập hàng</h3>
         {stats.lowProducts.length === 0 ? (
           <p className="mt-3 text-sm text-muted">Không có sản phẩm nào dưới ngưỡng.</p>
         ) : (
@@ -152,7 +180,7 @@ export default async function AdminHome() {
             <tr>
               <th className="px-4 py-3 font-medium">Mã</th>
               <th className="px-4 py-3 font-medium">Khách</th>
-              <th className="px-4 py-3 font-medium">Tổng</th>
+              <th className="px-4 py-3 text-right font-medium">Tổng</th>
               <th className="px-4 py-3 font-medium">Trạng thái</th>
             </tr>
           </thead>
@@ -172,7 +200,7 @@ export default async function AdminHome() {
                   </Link>
                 </td>
                 <td className="px-4 py-3">{o.customer}</td>
-                <td className="px-4 py-3">{money(o.total)}</td>
+                <td className="px-4 py-3 text-right tabular-nums">{money(o.total)}</td>
                 <td className="px-4 py-3">{statusLabel[o.status] || o.status}</td>
               </tr>
             ))}

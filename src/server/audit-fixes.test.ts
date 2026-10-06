@@ -107,6 +107,8 @@ describe("điểm thành viên khi hoàn tất đơn", () => {
       update: { value: JSON.stringify({ ...oldFeatures, membership: true }) },
     });
     try {
+      // State machine: completed chỉ tới được từ shipping — đặt tay qua Prisma (seed tối giản).
+      await prisma.order.update({ where: { id: order.id }, data: { status: "shipping" } });
       const first = await updateOrderStatus(order.id, "completed");
       expect(first.pointsEarned).toBe(1200);
       const after1 = (await prisma.user.findUnique({ where: { id: user.id } }))!.points;

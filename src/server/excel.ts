@@ -7,7 +7,6 @@ async function excel() {
 
 export async function exportProductsXlsx() {
   const ExcelJS = await excel();
-  const { items } = await listProducts({ includeUnpublished: true, pageSize: 48 });
   const wb = new ExcelJS.Workbook();
   const sheet = wb.addWorksheet("products");
   sheet.columns = [
@@ -23,20 +22,26 @@ export async function exportProductsXlsx() {
     { header: "unit", key: "unit" },
     { header: "published", key: "published" },
   ];
-  for (const p of items) {
-    sheet.addRow({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      subtitle: p.subtitle || "",
-      description: p.description,
-      price: p.price,
-      stock: p.stock,
-      category: p.category,
-      tags: p.tags.join(","),
-      unit: p.unit || "cai",
-      published: p.published ? 1 : 0,
-    });
+  // Export đủ toàn bộ catalog — listProducts cap pageSize 48 nên phải lặp trang.
+  const pageSize = 48;
+  for (let page = 1; ; page++) {
+    const { items, pages } = await listProducts({ includeUnpublished: true, page, pageSize });
+    for (const p of items) {
+      sheet.addRow({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        subtitle: p.subtitle || "",
+        description: p.description,
+        price: p.price,
+        stock: p.stock,
+        category: p.category,
+        tags: p.tags.join(","),
+        unit: p.unit || "cai",
+        published: p.published ? 1 : 0,
+      });
+    }
+    if (page >= pages) break;
   }
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf);

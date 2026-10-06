@@ -2,6 +2,9 @@
 
 > Quy ước cho agent (người + AI) khi sửa repo này. Đọc file này trước khi code.
 
+**Trước khi làm UI admin / API / logic tiền-tồn, đọc thêm [docs/PRODUCT_ENGINEERING_RULES.md](docs/PRODUCT_ENGINEERING_RULES.md)** —
+bộ rule có ID (DATA/UI/BE/DB/SEC/AI) về biểu đồ, bảng, idempotency, state machine, audit…
+
 ## Lệnh
 
 ```bash

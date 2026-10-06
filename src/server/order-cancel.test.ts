@@ -47,6 +47,46 @@ afterAll(async () => {
   if (wh) await setWarehouseStock(wh.id, PID, "", 56);
 });
 
+describe("order state machine", () => {
+  it("pending → completed bị chặn (phải đi qua shipping)", async () => {
+    await restock(10);
+    const email = `sm1-${Date.now()}@kit.vn`;
+    try {
+      const order = await createOrder(baseOrder(email));
+      await expect(updateOrderStatus(order.id, "completed")).rejects.toThrow(/Không thể chuyển/);
+      // Đơn giữ nguyên trạng thái sau khi bị chặn
+      expect((await prisma.order.findUnique({ where: { id: order.id } }))!.status).toBe("pending");
+    } finally {
+      await cleanup(email);
+    }
+  });
+
+  it("completed là trạng thái kết thúc — không hủy trực tiếp (phải qua trả hàng/hoàn tiền)", async () => {
+    await restock(10);
+    const email = `sm2-${Date.now()}@kit.vn`;
+    try {
+      const order = await createOrder(baseOrder(email));
+      await prisma.order.update({ where: { id: order.id }, data: { status: "shipping" } });
+      await updateOrderStatus(order.id, "completed");
+      await expect(updateOrderStatus(order.id, "cancelled")).rejects.toThrow(/Không thể chuyển/);
+    } finally {
+      await cleanup(email);
+    }
+  });
+
+  it("cancelled là trạng thái kết thúc — không chuyển lại được", async () => {
+    await restock(10);
+    const email = `sm3-${Date.now()}@kit.vn`;
+    try {
+      const order = await createOrder(baseOrder(email));
+      await updateOrderStatus(order.id, "cancelled");
+      await expect(updateOrderStatus(order.id, "pending")).rejects.toThrow(/Không thể chuyển/);
+    } finally {
+      await cleanup(email);
+    }
+  });
+});
+
 describe("updateOrderStatus → cancelled", () => {
   it("hoàn tồn + sold, ghi stockMovement 'cancel', hủy lần 2 không hoàn thêm", async () => {
     await restock(10);

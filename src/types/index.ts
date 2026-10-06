@@ -19,6 +19,8 @@ export type Product = {
   price: number;
   compareAtPrice?: number;
   images: string[];
+  /** Alt text song song theo index với `images` — ảnh đầu tiên là ảnh chính (rule UI-013). */
+  imageAlts?: string[];
   category: string;
   tags: string[];
   rating: number;
@@ -64,6 +66,19 @@ export type OrderStatus =
   | "shipping"
   | "completed"
   | "cancelled";
+
+/**
+ * State machine đơn hàng — backend enforce (updateOrderStatus), UI chỉ hiện
+ * transition hợp lệ. `completed`/`cancelled` là trạng thái kết thúc: đơn đã
+ * hoàn tất phải đi luồng trả hàng/hoàn tiền, không hủy trực tiếp.
+ */
+export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  pending: ["confirmed", "shipping", "cancelled"],
+  confirmed: ["shipping", "cancelled"],
+  shipping: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+};
 
 export type Order = {
   id: string;

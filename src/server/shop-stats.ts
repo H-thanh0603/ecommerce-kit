@@ -32,38 +32,56 @@ export async function shopStats() {
   const startToday = vnMidnightUtc(now);
   const [ny, nm] = vnDateKey(now).split("-").map(Number);
   const startMonth = new Date(Date.UTC(ny, nm - 1, 1) - 7 * 3600 * 1000);
+  const startYesterday = new Date(startToday.getTime() - VN_DAY_MS);
+  const startPrevMonth = new Date(Date.UTC(ny, nm - 2, 1) - 7 * 3600 * 1000);
   const start7 = new Date(startToday.getTime() - 6 * VN_DAY_MS);
   const open: OrderStatus[] = ["pending", "confirmed", "shipping"];
 
-  const [booked, collected, today, month, byStatus, productCount, lowRows, topRows, leadCount, weekOrders] =
-    await Promise.all([
-      prisma.order.aggregate({ _sum: { total: true }, _count: true, where: { status: { not: "cancelled" } } }),
-      prisma.order.aggregate({ _sum: { total: true }, _count: true, where: { status: "completed" } }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        _count: true,
-        where: { status: { not: "cancelled" }, createdAt: { gte: startToday } },
-      }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        _count: true,
-        where: { status: { not: "cancelled" }, createdAt: { gte: startMonth } },
-      }),
-      prisma.order.groupBy({ by: ["status"], _count: true, _sum: { total: true } }),
-      prisma.product.count({ where: { published: true } }),
-      prisma.product.findMany({
-        where: { published: true, stock: { lte: LOW_STOCK_THRESHOLD } },
-        orderBy: { stock: "asc" },
-        take: 8,
-        include: productInclude,
-      }),
-      prisma.product.findMany({ orderBy: { sold: "desc" }, take: 5, include: productInclude }),
-      prisma.lead.count(),
-      prisma.order.findMany({
-        where: { createdAt: { gte: start7 }, status: { not: "cancelled" } },
-        select: { createdAt: true, total: true },
-      }),
-    ]);
+  const [
+    booked, collected, today, month, yesterday, prevMonth,
+    byStatus, productCount, lowRows, topRows, leadCount, weekOrders,
+    refundsPending, returnsPending, reviewsPending,
+  ] = await Promise.all([
+    prisma.order.aggregate({ _sum: { total: true }, _count: true, where: { status: { not: "cancelled" } } }),
+    prisma.order.aggregate({ _sum: { total: true }, _count: true, where: { status: "completed" } }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      _count: true,
+      where: { status: { not: "cancelled" }, createdAt: { gte: startToday } },
+    }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      _count: true,
+      where: { status: { not: "cancelled" }, createdAt: { gte: startMonth } },
+    }),
+    // Kỳ trước để KPI có mốc so sánh (rule: "Bao nhiêu? So với cái gì?")
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { status: { not: "cancelled" }, createdAt: { gte: startYesterday, lt: startToday } },
+    }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { status: { not: "cancelled" }, createdAt: { gte: startPrevMonth, lt: startMonth } },
+    }),
+    prisma.order.groupBy({ by: ["status"], _count: true, _sum: { total: true } }),
+    prisma.product.count({ where: { published: true } }),
+    prisma.product.findMany({
+      where: { published: true, stock: { lte: LOW_STOCK_THRESHOLD } },
+      orderBy: { stock: "asc" },
+      take: 8,
+      include: productInclude,
+    }),
+    prisma.product.findMany({ orderBy: { sold: "desc" }, take: 5, include: productInclude }),
+    prisma.lead.count(),
+    prisma.order.findMany({
+      where: { createdAt: { gte: start7 }, status: { not: "cancelled" } },
+      select: { createdAt: true, total: true },
+    }),
+    // Việc chờ xử lý — dashboard phải trả lời "tôi cần làm gì tiếp theo?"
+    prisma.refund.count({ where: { status: "pending" } }),
+    prisma.returnRequest.count({ where: { status: "pending" } }),
+    prisma.review.count({ where: { status: "pending" } }),
+  ]);
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(start7.getTime() + i * VN_DAY_MS);
@@ -81,7 +99,12 @@ export async function shopStats() {
     revenueCollected: collected._sum.total ?? 0,
     revenueToday: today._sum.total ?? 0,
     revenueMonth: month._sum.total ?? 0,
+    revenueYesterday: yesterday._sum.total ?? 0,
+    revenuePrevMonth: prevMonth._sum.total ?? 0,
     ordersToday: today._count,
+    refundsPending,
+    returnsPending,
+    reviewsPending,
     ordersOpen: byStatus.filter((s) => open.includes(s.status as OrderStatus)).reduce((n, s) => n + s._count, 0),
     lowStock: lowRows.length,
     byStatus: byStatus.map((s) => ({ status: s.status, count: s._count, total: s._sum.total ?? 0 })),

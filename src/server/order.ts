@@ -10,7 +10,7 @@ import { isFeatureOn } from "@/server/settings";
 import { defaultWarehouse } from "@/server/warehouse";
 import { grantOrderPointsTx, spendPointsTx } from "@/server/membership";
 import { productInclude } from "@/server/product-include";
-import { type CartItem, type OrderStatus } from "@/types";
+import { ORDER_TRANSITIONS, type CartItem, type OrderStatus } from "@/types";
 import { randomBytes } from "crypto";
 import type { Prisma } from "@prisma/client";
 
@@ -123,6 +123,11 @@ export async function updateOrderStatus(id: string, status: OrderStatus, actorEm
     const same = await prisma.order.findUnique({ where: { id }, include: { items: true } });
     return toOrder(same!);
   }
+  // State machine — chặn transition không hợp lệ (vd completed → pending).
+  // Đơn completed phải đi luồng trả hàng/hoàn tiền, không hủy trực tiếp.
+  if (!ORDER_TRANSITIONS[prior.status as OrderStatus].includes(status)) {
+    throw new Error(`Không thể chuyển đơn từ "${prior.status}" sang "${status}"`);
+  }
   let row;
   if (status === "cancelled") {
     // Claim status bằng updateMany có điều kiện — 2 admin hủy cùng lúc chỉ 1 lần hoàn tồn.
@@ -135,11 +140,6 @@ export async function updateOrderStatus(id: string, status: OrderStatus, actorEm
       await cancelOrderReversalTx(tx, id);
       return tx.order.findUnique({ where: { id }, include: { items: true } });
     });
-    // Đơn completed nên đi luồng trả hàng/hoàn tiền — hủy trực tiếp sẽ hoàn tồn 2 lần nếu return đã restock.
-    if (prior.status === "completed") {
-      const { logOrderEvent } = await import("@/server/order-events");
-      await logOrderEvent(id, "status", "Cảnh báo: hủy đơn đã completed — cân nhắc luồng trả hàng/hoàn tiền", actorEmail);
-    }
   } else if (status === "completed") {
     // Claim tương tự nhánh cancelled: chống cộng điểm 2 lần khi 2 admin hoàn tất cùng lúc.
     // Điểm cộng trong cùng transaction bằng increment — không lost update.

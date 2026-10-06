@@ -26,6 +26,7 @@ function storeOf(order: VnpOrderRecord | null, spy: { paid: string[]; failed: st
     findOrder: async (code) => (order && order.code === code ? order : null),
     markPaid: async (code) => {
       spy.paid.push(code);
+      return true;
     },
     markFailed: async (code) => {
       spy.failed.push(code);
@@ -106,5 +107,18 @@ describe("handleVnpayIpn", () => {
     const r = await handleVnpayIpn(signedQuery({ vnp_ResponseCode: "24" }), storeOf(order, spy));
     expect(r.RspCode).toBe("00");
     expect(spy.failed).toEqual(["ATL-00001"]);
+  });
+
+  it("02 khi markPaid báo đã có luồng khác chốt paid trước (race IPN/return)", async () => {
+    const spy = { paid: [] as string[], failed: [] as string[] };
+    const order = { code: "ATL-00001", total: 150_000, paymentStatus: "pending" };
+    const store = storeOf(order, spy);
+    store.markPaid = async (code) => {
+      spy.paid.push(code);
+      return false; // updateMany count === 0 — guard `not: "paid"` chặn ghi đè
+    };
+    const r = await handleVnpayIpn(signedQuery({ vnp_ResponseCode: "00" }), store);
+    expect(r.RspCode).toBe("02");
+    expect(spy.paid).toEqual(["ATL-00001"]);
   });
 });
