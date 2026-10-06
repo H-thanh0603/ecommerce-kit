@@ -111,4 +111,6 @@ export const moduleCatalog = [
   { id: "review-moderation", name: "Duyệt đánh giá", included: true, files: ["src/app/admin/danh-gia"] },
   { id: "bundles", name: "Combo", flag: "bundles", files: ["src/server/bundle.ts", "src/app/combo"] },
   { id: "abandoned", name: "Nhắc giỏ bỏ quên", included: true, files: ["src/server/abandoned.ts", "src/app/api/cron/abandoned-cart"] },
+  { id: "admin-command-palette", name: "Command palette ⌘K (admin)", flag: "commandPalette", files: ["src/components/admin/CommandPalette.tsx", "src/lib/admin-nav.ts", "src/server/admin-search.ts"] },
+  { id: "admin-saved-views", name: "Bộ lọc lưu sẵn (admin)", flag: "savedViews", files: ["src/components/admin/SavedViews.tsx", "src/server/admin-views.ts"] },
 ] as const;

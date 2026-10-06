@@ -79,6 +79,10 @@ export const siteConfig = {
     ghn: false,
     /** MFA/TOTP cho admin — default OFF; bật ở /admin/cai-dat rồi setup trên tài khoản. */
     mfa: false,
+    /** Pattern Twenty CRM: palette ⌘K điều hướng + tìm nhanh trong admin. */
+    commandPalette: true,
+    /** Pattern Twenty CRM: lưu bộ lọc URL thành view đặt tên (per-user). */
+    savedViews: true,
   },
 
   membership: {
