@@ -14,6 +14,10 @@ test("admin dang nhap va xem don", async ({ page }) => {
 /** Command palette ⌘K: mở bằng Ctrl+K, gõ để lọc điều hướng, Enter chuyển trang. */
 test("palette mo bang ctrl+k va dieu huong", async ({ page }) => {
   await page.goto("/admin");
+  // Nút trigger do client component render — chờ nó = chờ hydration xong,
+  // tránh race bấm Ctrl+K trước khi listener được gắn (flaky khi chunk đã cache).
+  const trigger = page.getByRole("button", { name: "Mở tìm nhanh (Ctrl+K)" });
+  await expect(trigger).toBeVisible();
   await page.keyboard.press("ControlOrMeta+k");
   const dialog = page.getByRole("dialog", { name: "Tìm nhanh admin" });
   await expect(dialog).toBeVisible();
