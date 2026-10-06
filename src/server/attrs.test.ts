@@ -39,4 +39,58 @@ describe("product attrs", () => {
     // Dọn
     await prisma.product.update({ where: { id: "p7" }, data: { attrsJson: "{}" } });
   });
+
+  it("lưu imageAlts song song với images, lưu lại không alts thì reset rỗng", async () => {
+    const before = await getProductById("p7");
+    const slug = before!.slug;
+    try {
+      await upsertProduct({
+        id: "p7",
+        slug,
+        name: before!.name,
+        description: before!.description,
+        price: before!.price,
+        images: ["https://cdn.example/alt-a.jpg", "https://cdn.example/alt-b.jpg"],
+        imageAlts: ["Túi canvas nhìn nghiêng", ""],
+        tags: before!.tags,
+        categorySlug: before!.category,
+        stock: before!.stock,
+      });
+      const withAlts = await getProductById("p7");
+      expect(withAlts!.images).toEqual([
+        "https://cdn.example/alt-a.jpg",
+        "https://cdn.example/alt-b.jpg",
+      ]);
+      expect(withAlts!.imageAlts).toEqual(["Túi canvas nhìn nghiêng", ""]);
+      // Ảnh đầu là ảnh chính → alt của nó dùng ở storefront (rule UI-013)
+
+      // Lưu lại không truyền imageAlts → alt reset rỗng (không lem dữ liệu cũ)
+      await upsertProduct({
+        id: "p7",
+        slug,
+        name: before!.name,
+        description: before!.description,
+        price: before!.price,
+        images: ["https://cdn.example/alt-c.jpg"],
+        tags: before!.tags,
+        categorySlug: before!.category,
+        stock: before!.stock,
+      });
+      const withoutAlts = await getProductById("p7");
+      expect(withoutAlts!.imageAlts).toEqual([""]);
+    } finally {
+      // Khôi phục ảnh gốc của SP dùng chung
+      await upsertProduct({
+        id: "p7",
+        slug,
+        name: before!.name,
+        description: before!.description,
+        price: before!.price,
+        images: before!.images,
+        tags: before!.tags,
+        categorySlug: before!.category,
+        stock: before!.stock,
+      });
+    }
+  });
 });

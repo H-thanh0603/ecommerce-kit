@@ -32,6 +32,32 @@ export function ProductEditor({
   const [open, setOpen] = useState(Boolean(initialEditId));
   const [editId, setEditId] = useState<string>(initialEditId || "");
   const editing = products.find((p) => p.id === editId);
+  // Gallery ảnh: dòng đầu là ảnh chính. Reset theo editId bằng pattern
+  // "adjust state during render" (React docs) — không dùng effect.
+  const [images, setImages] = useState<{ url: string; alt: string }[]>(() =>
+    editing ? (editing.images || []).map((url, i) => ({ url, alt: editing.imageAlts?.[i] || "" })) : [],
+  );
+  const [prevEditId, setPrevEditId] = useState(editId);
+  if (prevEditId !== editId) {
+    setPrevEditId(editId);
+    setImages(
+      editing
+        ? (editing.images || []).map((url, i) => ({ url, alt: editing.imageAlts?.[i] || "" }))
+        : [],
+    );
+  }
+
+  const setImage = (idx: number, patch: Partial<{ url: string; alt: string }>) =>
+    setImages((cur) => cur.map((im, i) => (i === idx ? { ...im, ...patch } : im)));
+  const moveImage = (idx: number, dir: -1 | 1) =>
+    setImages((cur) => {
+      const to = idx + dir;
+      if (to < 0 || to >= cur.length) return cur;
+      const next = [...cur];
+      [next[idx], next[to]] = [next[to], next[idx]];
+      return next;
+    });
+  const removeImage = (idx: number) => setImages((cur) => cur.filter((_, i) => i !== idx));
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,10 +72,8 @@ export function ProductEditor({
       price: Number(form.get("price")),
       stock: Number(form.get("stock")),
       categorySlug: form.get("categorySlug"),
-      images: String(form.get("images") || "")
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      images: images.map((im) => im.url.trim()).filter(Boolean),
+      imageAlts: images.map((im) => im.alt.trim().slice(0, 200)),
       tags: String(form.get("tags") || ""),
       attrs: parseAttrs(String(form.get("attrsText") || "")),
       featured: form.get("featured") === "on",
@@ -121,16 +145,50 @@ export function ProductEditor({
             </select>
           </label>
           <label className="grid gap-1 text-sm">Thẻ, cách nhau bởi dấu phẩy<input name="tags" defaultValue={editing?.tags.join(", ")} className="rounded-xl border border-line px-3 py-2" /></label>
-          <label className="grid gap-1 text-sm sm:col-span-2">
-            Ảnh, mỗi dòng một URL
-            <textarea
-              name="images"
-              rows={2}
-              defaultValue={editing?.images.join("\n")}
-              className="rounded-xl border border-line px-3 py-2"
-              id="images-field"
-            />
-          </label>
+          <div className="grid gap-2 text-sm sm:col-span-2">
+            <span>
+              Ảnh — dòng đầu là <strong>ảnh chính</strong>, mỗi ảnh nên có alt text (SEO + người khiếm thị)
+            </span>
+            {images.map((im, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-canvas px-3 py-2">
+                <span title="Ảnh chính" aria-label={i === 0 ? "Ảnh chính" : `Ảnh ${i + 1}`} className="w-6 text-center">
+                  {i === 0 ? "★" : i + 1}
+                </span>
+                {/* eslint-disable-next-line @next/next/no-img-element -- preview ảnh admin */}
+                <img src={im.url} alt={im.alt || "Ảnh sản phẩm"} className="h-10 w-10 rounded object-cover" />
+                <input
+                  value={im.url}
+                  onChange={(e) => setImage(i, { url: e.target.value })}
+                  placeholder="URL ảnh"
+                  aria-label={`URL ảnh ${i + 1}`}
+                  className="min-w-40 flex-1 rounded-lg border border-line bg-white px-2 py-1.5"
+                />
+                <input
+                  value={im.alt}
+                  onChange={(e) => setImage(i, { alt: e.target.value })}
+                  placeholder="Mô tả ảnh (alt)"
+                  aria-label={`Alt text ảnh ${i + 1}`}
+                  className="min-w-40 flex-1 rounded-lg border border-line bg-white px-2 py-1.5"
+                />
+                <button type="button" onClick={() => moveImage(i, -1)} disabled={i === 0} aria-label="Chuyển ảnh lên" className="px-1 disabled:opacity-30">
+                  ↑
+                </button>
+                <button type="button" onClick={() => moveImage(i, 1)} disabled={i === images.length - 1} aria-label="Chuyển ảnh xuống" className="px-1 disabled:opacity-30">
+                  ↓
+                </button>
+                <button type="button" onClick={() => removeImage(i)} aria-label="Xóa ảnh" className="px-1 text-accent">
+                  ✕
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="w-fit rounded-full border border-line px-3 py-1.5 text-xs hover:border-primary"
+              onClick={() => setImages((cur) => [...cur, { url: "", alt: "" }])}
+            >
+              + Thêm ảnh
+            </button>
+          </div>
           <label className="grid gap-1 text-sm sm:col-span-2">
             Tải ảnh lên
           <input
@@ -140,11 +198,11 @@ export function ProductEditor({
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
+              setMsg("Đang tải ảnh…");
               const url = await upload(file);
               if (!url) return setMsg("Upload thất bại");
-              const area = document.getElementById("images-field") as HTMLTextAreaElement | null;
-              if (area) area.value = area.value ? `${area.value}\n${url}` : url;
-              setMsg("Đã thêm ảnh " + url);
+              setImages((cur) => [...cur, { url, alt: "" }]);
+              setMsg("Đã thêm ảnh");
             }}
           />
           </label>

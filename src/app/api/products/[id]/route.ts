@@ -18,6 +18,7 @@ async function patchHandler(req: Request, { params }: { params: Promise<{ id: st
       price: Number(body.price),
       compareAtPrice: body.compareAtPrice ? Number(body.compareAtPrice) : null,
       images: Array.isArray(body.images) ? body.images : String(body.images || "").split("\n").filter(Boolean),
+      imageAlts: Array.isArray(body.imageAlts) ? body.imageAlts.map((a: unknown) => String(a || "").slice(0, 200)) : undefined,
       tags: Array.isArray(body.tags) ? body.tags : String(body.tags || "").split(",").map((t: string) => t.trim()).filter(Boolean),
       categorySlug: String(body.categorySlug || ""),
       stock: Number(body.stock ?? 0),

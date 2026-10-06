@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { Prisma } from "@prisma/client";
 
 /**
@@ -20,4 +21,28 @@ export function publicError(e: unknown, fallback = "Lỗi xử lý — thử l�
     if (!looksInternal) return msg;
   }
   return fallback;
+}
+
+/** req_xxxxxxxx — trả về client trong error để đối chiếu log/Sentry khi user báo lỗi. */
+export function newRequestId() {
+  return `req_${randomBytes(4).toString("hex")}`;
+}
+
+/**
+ * Lỗi API có cấu trúc thống nhất (rule BE-013): `{ ok, code, message, requestId }`.
+ * `code` máy đọc được cho frontend map UX; `message` tiếng Việt hiển thị thẳng;
+ * `requestId` in log server để trace chéo khi user báo lỗi. Dùng cho route business quan trọng.
+ */
+export function apiError(
+  code: string,
+  message: string,
+): { ok: false; code: string; message: string; requestId: string } {
+  const requestId = newRequestId();
+  console.error(`[api-error] ${requestId} ${code}: ${message}`);
+  return { ok: false as const, code, message, requestId };
+}
+
+/** Wrapper NextResponse cho apiError — status nằm ở đây, không nằm trong body. */
+export function apiErrorResponse(code: string, message: string, status = 400) {
+  return Response.json(apiError(code, message), { status });
 }

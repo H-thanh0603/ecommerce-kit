@@ -32,7 +32,7 @@ type ProductRow = {
   unit: string;
   weightGrams: number;
   category: { slug: string };
-  images?: { url: string; sort: number }[];
+  images?: { url: string; sort: number; alt?: string }[];
   skus?: { id: string; label: string; stock: number }[];
 };
 
@@ -55,6 +55,7 @@ export function toProduct(row: ProductRow): Product {
     price: row.price,
     compareAtPrice: row.compareAtPrice ?? undefined,
     images: (row.images || []).slice().sort((a, b) => a.sort - b.sort).map((i) => i.url),
+    imageAlts: (row.images || []).slice().sort((a, b) => a.sort - b.sort).map((i) => i.alt || ""),
     category: row.category.slug,
     tags: row.tags ? row.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
     rating: row.rating,

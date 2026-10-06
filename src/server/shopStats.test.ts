@@ -77,18 +77,28 @@ describe("task7: pagination", () => {
     );
     try {
       const full = await listCustomers();
-      expect(full.length).toBeGreaterThanOrEqual(2);
-      const ids = new Set(full.map((u) => u.id));
+      expect(full.items.length).toBeGreaterThanOrEqual(2);
+      const ids = new Set(full.items.map((u) => u.id));
       for (const u of created) expect(ids.has(u.id)).toBe(true);
+      // total nhất quán với pages
+      expect(full.pages).toBe(Math.ceil(full.total / full.pageSize));
 
       const p1 = await listCustomers({ page: 1, pageSize: 1 });
       const p2 = await listCustomers({ page: 2, pageSize: 1 });
       // Mỗi trang ≤ pageSize, 2 trang không giao nhau, id đều thuộc tập full.
-      expect(p1.length).toBeLessThanOrEqual(1);
-      expect(p2.length).toBeLessThanOrEqual(1);
-      for (const u of [...p1, ...p2]) expect(ids.has(u.id)).toBe(true);
-      const overlap = p1.filter((a) => p2.some((b) => b.id === a.id));
+      expect(p1.items.length).toBeLessThanOrEqual(1);
+      expect(p2.items.length).toBeLessThanOrEqual(1);
+      for (const u of [...p1.items, ...p2.items]) expect(ids.has(u.id)).toBe(true);
+      const overlap = p1.items.filter((a) => p2.items.some((b) => b.id === a.id));
       expect(overlap).toHaveLength(0);
+
+      // Search DB-side theo q
+      const hit = await listCustomers({ q: `cust-a-${stamp}` });
+      expect(hit.total).toBe(1);
+      expect(hit.items[0].email).toBe(created[0].email);
+      const miss = await listCustomers({ q: `khong-ton-tai-${stamp}` });
+      expect(miss.items).toHaveLength(0);
+      expect(miss.total).toBe(0);
     } finally {
       await prisma.user.deleteMany({ where: { id: { in: created.map((u) => u.id) } } });
     }

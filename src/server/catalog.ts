@@ -291,6 +291,8 @@ export async function upsertProduct(data: {
   price: number;
   compareAtPrice?: number | null;
   images: string[];
+  /** Alt text song song theo index với images ("" nếu trống) — phục vụ SEO/a11y. */
+  imageAlts?: string[];
   tags: string[];
   categorySlug: string;
   stock: number;
@@ -338,8 +340,9 @@ export async function upsertProduct(data: {
 
     await tx.productImage.deleteMany({ where: { productId: saved.id } });
     if (data.images.length) {
+      const alts = data.imageAlts || [];
       await tx.productImage.createMany({
-        data: data.images.map((url, sort) => ({ productId: saved.id, url, sort })),
+        data: data.images.map((url, sort) => ({ productId: saved.id, url, sort, alt: alts[sort] || "" })),
       });
     }
 

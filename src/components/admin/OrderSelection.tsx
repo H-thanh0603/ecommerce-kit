@@ -24,16 +24,27 @@ export function OrderSelection({ children }: { children: React.ReactNode }) {
     if (!confirm(`Chuyển ${ids.length} đơn sang đang giao?`)) return;
     setBusy(true);
     setMsg("");
-    let ok = 0;
-    for (const id of ids) {
-      const res = await fetch(`/api/orders/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "shipping" }),
-      });
-      if (res.ok) ok += 1;
+    const res = await fetch("/api/orders/bulk-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, status: "shipping" }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) {
+      setMsg("Không chuyển được — thử lại sau");
+    } else if (data.failedCount > 0) {
+      // Báo rõ từng đơn lỗi (mã đơn + lý do) — không all-or-nothing giả tạo.
+      const failedLines = (data.results as Array<{ ok: boolean; code: string; message?: string }>)
+        .filter((r) => !r.ok)
+        .map((r) => `${r.code} — ${r.message || "lỗi"}`)
+        .slice(0, 5)
+        .join("; ");
+      setMsg(
+        `Thành công ${data.okCount}/${ids.length}. Lỗi: ${failedLines}${data.failedCount > 5 ? "…" : ""}`,
+      );
+    } else {
+      setMsg(`Đã chuyển ${data.okCount} đơn sang đang giao`);
     }
-    setMsg(`Đã chuyển ${ok}/${ids.length} đơn sang đang giao`);
     setIds([]);
     setBusy(false);
     router.refresh();

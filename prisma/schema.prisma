@@ -83,6 +83,7 @@ model Product {
   @@index([published, featured])
   @@index([slug])
   @@index([name])
+  @@index([price])
 }
 
 model ProductImage {
@@ -90,6 +91,7 @@ model ProductImage {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
+  alt       String  @default("")
   sort      Int     @default(0)
 
   @@index([productId, sort])

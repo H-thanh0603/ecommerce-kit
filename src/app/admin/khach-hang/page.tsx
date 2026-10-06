@@ -17,21 +17,23 @@ function viDate(iso: string) {
 export default async function AdminCustomers({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   enterTenant(await resolveRequestTenant());
   const sp = await searchParams;
-  const q = (sp.q || "").trim().toLowerCase();
-  const all = await listCustomers();
-  const rows = q ? all.filter((u) => `${u.name} ${u.email}`.toLowerCase().includes(q)) : all;
+  const q = (sp.q || "").trim();
+  const page = Math.max(1, Number(sp.page || 1) || 1);
+  const result = await listCustomers({ q, page, pageSize: 20 });
+  // Phân trang giữ nguyên q trong URL (rule UI-011 — filter state phải được giữ).
+  const pageHref = (n: number) => `/admin/khach-hang?${q ? `q=${encodeURIComponent(q)}&` : ""}page=${n}`;
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <h1 className="font-serif text-3xl text-primary">Khách hàng</h1>
-      <p className="mt-2 text-sm text-muted">{rows.length} tài khoản khách</p>
+      <p className="mt-2 text-sm text-muted">{result.total} tài khoản khách</p>
       <form className="mt-4">
         <input
           name="q"
-          defaultValue={sp.q || ""}
+          defaultValue={q}
           placeholder="Tìm tên hoặc email"
           aria-label="Tìm khách"
           className="w-full max-w-sm rounded-full border border-line bg-white px-4 py-2 text-sm"
@@ -44,26 +46,26 @@ export default async function AdminCustomers({
               <th className="px-4 py-3">Tên</th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Hạng</th>
-              <th className="px-4 py-3">Điểm</th>
-              <th className="px-4 py-3">Đơn</th>
+              <th className="px-4 py-3 text-right">Điểm</th>
+              <th className="px-4 py-3 text-right">Đơn</th>
               <th className="px-4 py-3">Ngày</th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
+            {result.items.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-muted">
                   {q ? "Không có khách khớp." : "Chưa có khách. Khách xuất hiện sau khi đăng ký tài khoản."}
                 </td>
               </tr>
             )}
-            {rows.map((u) => (
+            {result.items.map((u) => (
               <tr key={u.id} className="border-t border-line">
                 <td className="px-4 py-3">{u.name}</td>
                 <td className="px-4 py-3">{u.email}</td>
                 <td className="px-4 py-3">{tierLabel(u.memberTier)}</td>
-                <td className="px-4 py-3">{u.points}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-right tabular-nums">{u.points}</td>
+                <td className="px-4 py-3 text-right">
                   <Link href={`/admin/don-hang?q=${encodeURIComponent(u.email)}`} className={btnGhost}>
                     {u.orderCount} đơn
                   </Link>
@@ -74,6 +76,22 @@ export default async function AdminCustomers({
           </tbody>
         </table>
       </div>
+      {result.pages > 1 && (
+        <nav className="mt-4 flex flex-wrap gap-2 text-sm" aria-label="Phân trang">
+          {Array.from({ length: result.pages }, (_, i) => i + 1).map((n) => (
+            <Link
+              key={n}
+              href={pageHref(n)}
+              aria-current={n === result.page ? "page" : undefined}
+              className={`rounded-full border px-3 py-1 ${
+                n === result.page ? "border-primary bg-primary text-white" : "border-line bg-white hover:border-primary"
+              }`}
+            >
+              {n}
+            </Link>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

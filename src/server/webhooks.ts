@@ -72,11 +72,13 @@ export async function upsertWebhook(data: { id?: string; url: string; secret?: s
     throw new Error("URL không hợp lệ");
   }
   if (!["http:", "https:"].includes(url.protocol)) throw new Error("Chỉ http(s)");
+  const existing = data.id
+    ? await prisma.webhookEndpoint.findUnique({ where: { id: data.id } })
+    : await prisma.webhookEndpoint.findFirst({ where: { url: url.toString() } });
   const secret =
     data.secret ||
-    (data.id
-      ? (await prisma.webhookEndpoint.findUnique({ where: { id: data.id } }))?.secret || ""
-      : [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join(""));
+    existing?.secret ||
+    [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join("");
   if (!secret) throw new Error("Thiếu secret");
   const payload = {
     url: url.toString(),
@@ -84,8 +86,9 @@ export async function upsertWebhook(data: { id?: string; url: string; secret?: s
     events: (data.events || "order.created,order.status,order.paid").slice(0, 500),
     active: data.active ?? true,
   };
-  return data.id
-    ? prisma.webhookEndpoint.update({ where: { id: data.id }, data: payload })
+  // Upsert thật theo URL — save 2 lần cùng URL cập nhật thay vì tạo trùng (đẩy event 2 lần).
+  return existing
+    ? prisma.webhookEndpoint.update({ where: { id: existing.id }, data: payload })
     : prisma.webhookEndpoint.create({ data: payload });
 }
 

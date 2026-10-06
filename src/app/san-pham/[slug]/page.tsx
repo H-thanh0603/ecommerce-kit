@@ -51,7 +51,7 @@ export default async function ProductPage({ params }: Props) {
       </p>
 
       <div className="mt-6 grid gap-10 md:grid-cols-2">
-        <ProductGallery images={product.images} name={product.name} />
+        <ProductGallery images={product.images} alts={product.imageAlts} name={product.name} />
         <div className="md:sticky md:top-28 md:self-start">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">{product.category}</p>
           <h1 className="mt-2 font-serif text-4xl text-primary">{product.name}</h1>
