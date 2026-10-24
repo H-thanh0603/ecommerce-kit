@@ -5,6 +5,7 @@ import { ensureSchema, dropSchema } from "./test-schema";
 import { prisma } from "./db";
 
 const SLUG = `views_${Date.now()}`;
+const SLUG_B = `viewsb_${Date.now()}`;
 const stamp = Date.now();
 
 let userA = "";
@@ -21,11 +22,13 @@ async function seed() {
 
 beforeAll(async () => {
   await ensureSchema(SLUG);
+  await ensureSchema(SLUG_B);
   await runWithTenant(SLUG, seed);
 }, 180_000);
 
 afterAll(async () => {
   await dropSchema(SLUG);
+  await dropSchema(SLUG_B);
 }, 60_000);
 
 describe("savedViewInput", () => {
@@ -62,6 +65,17 @@ describe("saved views per-user", () => {
     // A tự xóa view của A thì OK (idempotent khi lặp lại).
     await expect(runWithTenant(SLUG, () => deleteSavedView(userA, created.id))).resolves.toEqual({ ok: true });
     await expect(runWithTenant(SLUG, () => deleteSavedView(userA, created.id))).rejects.toThrow(
+      "Không tìm thấy bộ lọc",
+    );
+  });
+
+  it("isolation tenant: view của tenant A không thấy/xóa được từ tenant B", async () => {
+    const created = await runWithTenant(SLUG, () =>
+      saveSavedView(userA, { path: "/admin/don-hang", name: "View Tenant A", query: "status=confirmed" }),
+    );
+    const viewsB = await runWithTenant(SLUG_B, () => listSavedViews(userA, "/admin/don-hang"));
+    expect(viewsB).toHaveLength(0);
+    await expect(runWithTenant(SLUG_B, () => deleteSavedView(userA, created.id))).rejects.toThrow(
       "Không tìm thấy bộ lọc",
     );
   });

@@ -5,6 +5,7 @@ import { ensureSchema, dropSchema } from "./test-schema";
 import { prisma } from "./db";
 
 const SLUG = `search_${Date.now()}`;
+const SLUG_B = `searchb_${Date.now()}`;
 const stamp = Date.now();
 
 async function seed() {
@@ -45,11 +46,13 @@ async function seed() {
 
 beforeAll(async () => {
   await ensureSchema(SLUG);
+  await ensureSchema(SLUG_B);
   await runWithTenant(SLUG, seed);
 }, 180_000);
 
 afterAll(async () => {
   await dropSchema(SLUG);
+  await dropSchema(SLUG_B);
 }, 60_000);
 
 describe("adminQuickSearch", () => {
@@ -67,6 +70,15 @@ describe("adminQuickSearch", () => {
     expect(byCode.some((h) => h.kind === "order" && h.href.includes(`order=`))).toBe(true);
     expect(byProduct.some((h) => h.kind === "product" && h.title.includes("Áo thun"))).toBe(true);
     expect(byEmail.some((h) => h.kind === "customer" && h.subtitle === `kh${stamp}@test.vn`)).toBe(true);
+  });
+
+  it("isolation tenant: dữ liệu tenant A không tìm thấy từ tenant B", async () => {
+    const [byCode, byEmail] = await Promise.all([
+      runWithTenant(SLUG_B, () => adminQuickSearch(`EK${stamp}`)),
+      runWithTenant(SLUG_B, () => adminQuickSearch(`kh${stamp}@test.vn`)),
+    ]);
+    expect(byCode).toEqual([]);
+    expect(byEmail).toEqual([]);
   });
 
   it("mỗi nhóm tối đa 5 kết quả (BE-009), href là path admin an toàn", async () => {
