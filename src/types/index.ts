@@ -80,6 +80,15 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   cancelled: [],
 };
 
+/** Label tiếng Việt cho OrderStatus — UI luôn hiện chữ, không in mã raw (rule UI-005). */
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  shipping: "Đang giao",
+  completed: "Hoàn tất",
+  cancelled: "Đã huỷ",
+};
+
 export type Order = {
   id: string;
   code: string;

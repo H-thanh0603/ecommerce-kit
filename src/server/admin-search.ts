@@ -1,5 +1,6 @@
 import { money } from "@/lib/format";
 import { prisma } from "@/server/db";
+import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types";
 
 /**
  * Tìm nhanh cho command palette ⌘K (pattern Twenty CRM) — module phụ.
@@ -65,7 +66,7 @@ export async function adminQuickSearch(rawQ: string): Promise<AdminQuickSearchHi
       kind: "order",
       href: `/admin/don-hang?q=${encodeURIComponent(o.code)}&order=${o.id}`,
       title: o.code,
-      subtitle: `${o.customer} · ${money(o.total)} · ${o.status}`,
+      subtitle: `${o.customer} · ${money(o.total)} · ${ORDER_STATUS_LABELS[o.status as OrderStatus] ?? o.status}`,
     })),
     ...products.map((p): AdminQuickSearchHit => ({
       kind: "product",
