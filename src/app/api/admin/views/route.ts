@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
 import { withTenantHandler } from "@/server/request-tenant";
-import { apiErrorResponse } from "@/server/errors";
+import { apiErrorResponse, publicError } from "@/server/errors";
 import { deleteSavedView, listSavedViews, saveSavedView, savedViewInput } from "@/server/admin-views";
 
 /** Bộ lọc lưu sẵn per-user — mọi nhánh đều guard admin + scope theo userId. */
@@ -45,7 +45,7 @@ async function deleteHandler(req: Request) {
     await deleteSavedView(admin.id, id);
     return NextResponse.json({ ok: true as const });
   } catch (e) {
-    return apiErrorResponse("delete_failed", e instanceof Error ? e.message : "Xóa bộ lọc thất bại", 400);
+    return apiErrorResponse("delete_failed", publicError(e, "Xóa bộ lọc thất bại"), 400);
   }
 }
 
