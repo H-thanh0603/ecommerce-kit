@@ -1,3 +1,4 @@
+import { money } from "@/lib/format";
 import { prisma } from "@/server/db";
 
 /**
@@ -14,10 +15,6 @@ export type AdminQuickSearchHit = {
 };
 
 const LIMIT = 5;
-
-function fmtVnd(n: number) {
-  return new Intl.NumberFormat("vi-VN").format(n) + "₫";
-}
 
 export async function adminQuickSearch(rawQ: string): Promise<AdminQuickSearchHit[]> {
   const q = rawQ.trim();
@@ -68,13 +65,13 @@ export async function adminQuickSearch(rawQ: string): Promise<AdminQuickSearchHi
       kind: "order",
       href: `/admin/don-hang?q=${encodeURIComponent(o.code)}&order=${o.id}`,
       title: o.code,
-      subtitle: `${o.customer} · ${fmtVnd(o.total)} · ${o.status}`,
+      subtitle: `${o.customer} · ${money(o.total)} · ${o.status}`,
     })),
     ...products.map((p): AdminQuickSearchHit => ({
       kind: "product",
       href: `/admin/san-pham?q=${encodeURIComponent(p.name)}&edit=${p.id}`,
       title: p.name,
-      subtitle: fmtVnd(p.price),
+      subtitle: money(p.price),
     })),
     ...customers.map((c): AdminQuickSearchHit => ({
       kind: "customer",
