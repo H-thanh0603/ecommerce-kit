@@ -102,7 +102,8 @@ export type Order = {
   discount: number;
   total: number;
   paymentMethod: string;
-  paymentStatus?: string;
+  /** Luôn có giá trị — DB default "unpaid", toOrder chuẩn hóa. */
+  paymentStatus: string;
   ghnOrderCode?: string;
   couponCode?: string;
   bundleCode?: string;

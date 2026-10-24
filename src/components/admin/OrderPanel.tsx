@@ -94,7 +94,7 @@ export function OrderPanel({ order }: { order: Order }) {
         <section className="mt-4 text-sm">
           <p className="text-[10px] uppercase tracking-[0.16em] text-muted">Thanh toán</p>
           <p className="mt-1">{order.paymentMethod}</p>
-          <PayBadge status={order.paymentStatus || "unpaid"} method={order.paymentMethod} />
+          <PayBadge status={order.paymentStatus} method={order.paymentMethod} />
         </section>
 
         <div className="mt-4 flex flex-wrap gap-2">

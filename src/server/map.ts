@@ -144,7 +144,7 @@ export function toOrder(row: {
   discount: number;
   total: number;
   paymentMethod: string;
-  paymentStatus: string;
+  paymentStatus?: string | null;
   ghnOrderCode?: string | null;
   couponCode?: string | null;
   bundleCode?: string | null;
@@ -188,7 +188,7 @@ export function toOrder(row: {
     discount: row.discount,
     total: row.total,
     paymentMethod: row.paymentMethod,
-    paymentStatus: row.paymentStatus,
+    paymentStatus: row.paymentStatus || "unpaid",
     ghnOrderCode: row.ghnOrderCode || undefined,
     couponCode: row.couponCode || undefined,
     bundleCode: row.bundleCode || undefined,
