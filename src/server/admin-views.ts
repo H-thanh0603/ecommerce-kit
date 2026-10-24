@@ -42,7 +42,7 @@ export async function listSavedViews(userId: string, path: string) {
     orderBy: { createdAt: "desc" },
     take: 30,
   });
-  return rows.map((r) => ({ id: r.id, name: r.name, path: r.path, query: r.query, createdAt: r.createdAt }));
+  return rows.map(toView);
 }
 
 /** Lưu/đổi tên view — trùng (user, path, name) thì ghi đè (P2002 không nổ ra ngoài). */
