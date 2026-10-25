@@ -49,3 +49,44 @@ describe("listProducts price filter", () => {
     expect(none.items.length).toBe(3);
   });
 });
+
+/** Full-text search: search_tsv (searchText + slug) — BE-011. */
+describe("listProducts full-text search", () => {
+  const stamp = Date.now();
+  const ids = [`fts-ao-${stamp}`, `fts-non-${stamp}`];
+
+  afterAll(async () => {
+    await prisma.product.deleteMany({ where: { id: { in: ids } } });
+  });
+
+  it("khớp mọi token không dấu, cả tiền tố; query lạ không lỗi", async () => {
+    await prisma.product.create({
+      data: {
+        id: ids[0],
+        slug: `ao-thun-ft-${stamp}`,
+        name: "Áo thun Tìm Kiếm",
+        description: "desc",
+        searchText: "ao thun tim kiem desc",
+        price: 100_000,
+        published: true,
+        category: { connect: { slug: "cham-soc" } },
+      },
+    });
+
+    const byFull = await listProducts({ q: "Áo Thun Tìm" });
+    expect(byFull.items.some((p) => p.id === ids[0])).toBe(true);
+
+    const byPrefix = await listProducts({ q: "thun" });
+    expect(byPrefix.items.some((p) => p.id === ids[0])).toBe(true);
+
+    const byPrefixPartial = await listProducts({ q: "thu" });
+    expect(byPrefixPartial.items.some((p) => p.id === ids[0])).toBe(true);
+
+    const noHit = await listProducts({ q: "zzzkhongcotoken" });
+    expect(noHit.items.some((p) => p.id === ids[0])).toBe(false);
+
+    // token bị dính ký tự lạ qua normVi chỉ còn a-z0-9 — không nổ to_tsquery
+    const weird = await listProducts({ q: "thu:n & (test) |" });
+    expect(Array.isArray(weird.items)).toBe(true);
+  });
+});

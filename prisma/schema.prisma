@@ -51,6 +51,9 @@ model Product {
   subtitle          String          @default("")
   description       String
   searchText        String          @default("")
+  // Cột GENERATED trong migration (tsvector từ searchText + slug) — client không đụng,
+  // khai báo để migrate không coi là drift rồi xóa mất.
+  searchTsv         Unsupported("tsvector")?  @map("search_tsv") @default(dbgenerated())
   price             Int
   compareAtPrice    Int?
   tags              String          @default("")
@@ -85,6 +88,7 @@ model Product {
   @@index([slug])
   @@index([name])
   @@index([price])
+  @@index([searchTsv], type: Gin)
 }
 
 model ProductImage {

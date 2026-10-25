@@ -1,12 +1,28 @@
 import { prisma } from "@/server/db";
 import { toArticle, toCategory, toProduct, toReview } from "@/server/map";
 import { normVi } from "@/lib/format";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { getTenantSchema, runWithTenant } from "@/server/tenant-context";
 import type { Product, ProductVariant } from "@/types";
 
 const productInclude = { category: true, images: true, skus: true } as const;
+
+/**
+ * Full-text search qua cột GENERATED search_tsv (tsvector searchText + slug,
+ * GIN index — BE-011): mọi token phải khớp, khớp cả tiền tố ("thu" → "thun").
+ * Không dấu tự động đúng vì searchText đã qua normVi. Cap 500 id — đủ cho 1
+ * trang kết quả có filter giá/sort phía sau, không mở rộng vô hạn.
+ */
+export async function matchProductIds(q: string, limit = 500): Promise<string[]> {
+  const tokens = normVi(q).split(" ").filter(Boolean).slice(0, 8);
+  if (!tokens.length) return [];
+  const tsquery = tokens.map((t) => `${t}:*`).join(" & ");
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>(
+    Prisma.sql`SELECT "id" FROM "Product" WHERE "search_tsv" @@ to_tsquery('simple', ${tsquery}) LIMIT ${limit}`,
+  );
+  return rows.map((r) => r.id);
+}
 
 function cartesianLabels(groups: ProductVariant[]) {
   if (!groups.length) return [] as string[];
@@ -83,8 +99,9 @@ export async function listProducts(opts?: {
     ];
   }
   if (opts?.q) {
-    const q = normVi(opts.q);
-    where.OR = [{ searchText: { contains: q } }, { slug: { contains: opts.q.trim() } }];
+    const ids = await matchProductIds(opts.q);
+    if (!ids.length) return { items: [], total: 0, page, pageSize, pages: 0 };
+    where.id = { in: ids };
   }
 
   let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: "desc" };

@@ -1,4 +1,5 @@
 import { money } from "@/lib/format";
+import { matchProductIds } from "@/server/catalog";
 import { prisma } from "@/server/db";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types";
 
@@ -21,7 +22,7 @@ export async function adminQuickSearch(rawQ: string): Promise<AdminQuickSearchHi
   const q = rawQ.trim();
   if (q.length < 2) return [];
 
-  const [orders, products, customers] = await Promise.all([
+  const [orderHits, productIds, customerHits] = await Promise.all([
     prisma.order.findMany({
       where: {
         OR: [
@@ -35,18 +36,7 @@ export async function adminQuickSearch(rawQ: string): Promise<AdminQuickSearchHi
       take: LIMIT,
       select: { id: true, code: true, customer: true, total: true, status: true },
     }),
-    prisma.product.findMany({
-      where: {
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { slug: { contains: q, mode: "insensitive" } },
-          { searchText: { contains: q, mode: "insensitive" } },
-        ],
-      },
-      orderBy: { sold: "desc" },
-      take: LIMIT,
-      select: { id: true, slug: true, name: true, price: true },
-    }),
+    matchProductIds(q, LIMIT),
     prisma.user.findMany({
       where: {
         role: "customer",
@@ -61,8 +51,17 @@ export async function adminQuickSearch(rawQ: string): Promise<AdminQuickSearchHi
     }),
   ]);
 
+  const products = productIds.length
+    ? await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        orderBy: { sold: "desc" },
+        take: LIMIT,
+        select: { id: true, slug: true, name: true, price: true },
+      })
+    : [];
+
   return [
-    ...orders.map((o): AdminQuickSearchHit => ({
+    ...orderHits.map((o): AdminQuickSearchHit => ({
       kind: "order",
       href: `/admin/don-hang?q=${encodeURIComponent(o.code)}&order=${o.id}`,
       title: o.code,
@@ -74,7 +73,7 @@ export async function adminQuickSearch(rawQ: string): Promise<AdminQuickSearchHi
       title: p.name,
       subtitle: money(p.price),
     })),
-    ...customers.map((c): AdminQuickSearchHit => ({
+    ...customerHits.map((c): AdminQuickSearchHit => ({
       kind: "customer",
       href: `/admin/khach-hang?q=${encodeURIComponent(c.email)}`,
       title: c.name,

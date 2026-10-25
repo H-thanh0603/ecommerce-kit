@@ -24,6 +24,9 @@ async function seed() {
       slug: `ao-thun-test-${stamp}`,
       name: "Áo thun Tìm Kiếm",
       description: "desc",
+      // FTS quét search_tsv (searchText + slug) — tạo trực tiếp qua prisma phải
+      // tự sinh searchText như createProduct vẫn làm.
+      searchText: "ao thun tim kiem desc",
       price: 250_000,
       categoryId: cat.id,
     },
