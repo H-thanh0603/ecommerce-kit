@@ -72,9 +72,13 @@ describe("mergeSiteConfig", () => {
 });
 
 describe("siteSettingsInput", () => {
-  it("chặn màu hex sai và số âm", () => {
+  it("chặn màu hex sai, số âm và URL ảnh scheme lạ", () => {
     expect(() => siteSettingsInput.parse({ theme: { primary: "red" } }).theme).toThrow();
     expect(() => siteSettingsInput.parse({ shipping: { freeFrom: -1 } })).toThrow();
+    expect(() => siteSettingsInput.parse({ home: { image: "javascript:alert(1)" } })).toThrow();
+    expect(() => siteSettingsInput.parse({ home: { image: "data:text/html,<svg>" } })).toThrow();
+    expect(() => siteSettingsInput.parse({ home: { image: "//evil.example/x.png" } })).toThrow();
+    expect(siteSettingsInput.parse({ home: { image: "/uploads/hero.webp" } }).home?.image).toBe("/uploads/hero.webp");
   });
 
   it("cho lưu từng phần (partial)", () => {

@@ -76,10 +76,29 @@ export const paymentsSchema = z.object({
   vietqr: payFlag,
 });
 
+const safeImageUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .refine(
+    (s) => {
+      if (!s) return true;
+      if (s.startsWith("/") && !s.startsWith("//")) return true;
+      try {
+        const u = new URL(s);
+        return u.protocol === "https:" || u.protocol === "http:";
+      } catch {
+        return false;
+      }
+    },
+    "URL ảnh chỉ nhận http(s) hoặc đường dẫn bắt đầu bằng /",
+  );
+
 export const homeSchema = z.object({
   eyebrow: z.string().max(80),
-  image: z.string().max(500),
+  image: safeImageUrl,
   imageAlt: z.string().max(120),
+  heroPreset: z.enum(["editorial", "openhero", "bento", "webgl"]).optional(),
   blocks: z
     .array(z.enum(["categories", "flash", "featured", "popular", "reviews", "combo", "journal"]))
     .max(7),
