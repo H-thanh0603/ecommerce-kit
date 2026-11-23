@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth";
+import { requireStaff } from "@/server/auth";
 import { createRefund, executeGatewayRefund, listRefunds, setRefundStatus } from "@/server/refunds";
 import { prisma } from "@/server/db";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function getHandler(req: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireStaff('/admin/hoan-tien');
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const status = new URL(req.url).searchParams.get("status") || undefined;
   return NextResponse.json({ refunds: await listRefunds(status) });
 }
 
 async function postHandler(req: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireStaff('/admin/hoan-tien');
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const { logAudit } = await import("@/server/audit");

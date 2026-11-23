@@ -3,8 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { btnDanger, btnPrimary } from "@/components/admin/buttons";
+import { STAFF_ROLE_LABELS } from "@/lib/admin-permissions";
 
-type Staff = { id: string; email: string; name: string; createdAt: string };
+type Staff = { id: string; email: string; name: string; role: string; createdAt: string };
+
+const ROLE_OPTIONS = [
+  { value: "admin", label: "Toàn quyền" },
+  { value: "kho", label: STAFF_ROLE_LABELS.kho },
+  { value: "cskh", label: STAFF_ROLE_LABELS.cskh },
+  { value: "marketing", label: STAFF_ROLE_LABELS.marketing },
+];
 
 export default function AdminStaff() {
   const [rows, setRows] = useState<Staff[]>([]);
@@ -30,7 +38,12 @@ export default function AdminStaff() {
     const res = await fetch("/api/admin/staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: f.get("name"), email: f.get("email"), password: f.get("password") }),
+      body: JSON.stringify({
+        name: f.get("name"),
+        email: f.get("email"),
+        password: f.get("password"),
+        role: f.get("role") || "admin",
+      }),
     });
     const j = await res.json();
     setMsg(j.ok ? "Đã thêm nhân viên. Họ đăng nhập bằng email và mật khẩu vừa đặt." : j.message);
@@ -41,7 +54,7 @@ export default function AdminStaff() {
   }
 
   async function revoke(id: string, email: string) {
-    if (!confirm(`Gỡ quyền admin của ${email}? Họ vẫn đăng nhập được như khách.`)) return;
+    if (!confirm(`Gỡ quyền của ${email}? Họ vẫn đăng nhập được như khách.`)) return;
     const res = await fetch("/api/admin/staff", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -58,11 +71,18 @@ export default function AdminStaff() {
         <h1 className="font-serif text-3xl text-primary">Nhân viên</h1>
         <Link href="/admin" className="text-sm text-muted">← Tổng quan</Link>
       </div>
-      <p className="mt-1 text-sm text-muted">Người được thêm đăng nhập /admin bằng email và mật khẩu bạn đặt. Khách cũ sẽ được nâng thành admin.</p>
+      <p className="mt-1 text-sm text-muted">Người được thêm đăng nhập /admin bằng email và mật khẩu bạn đặt, chỉ thấy các trang đúng vai (ma trận quyền — đổi vai sau = gỡ rồi thêm lại). Khách cũ sẽ được nâng thành nhân viên.</p>
       <form onSubmit={create} className="mt-6 grid gap-2 rounded-2xl border border-line bg-white p-4 sm:grid-cols-2">
         <label className="grid gap-1 text-sm">Tên<input required name="name" className="rounded-xl border border-line px-3 py-2" /></label>
         <label className="grid gap-1 text-sm">Email<input required type="email" name="email" className="rounded-xl border border-line px-3 py-2" /></label>
-        <label className="grid gap-1 text-sm sm:col-span-2">Mật khẩu (ít nhất 8 ký tự)<input required minLength={8} type="password" name="password" className="rounded-xl border border-line px-3 py-2" /></label>
+        <label className="grid gap-1 text-sm">Mật khẩu (ít nhất 8 ký tự)<input required minLength={8} type="password" name="password" className="rounded-xl border border-line px-3 py-2" /></label>
+        <label className="grid gap-1 text-sm">Vai
+          <select name="role" defaultValue="cskh" className="rounded-xl border border-line px-3 py-2">
+            {ROLE_OPTIONS.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
+        </label>
         <button className={btnPrimary}>Thêm nhân viên</button>
       </form>
       {msg && <p className="mt-2 text-sm text-primary">{msg}</p>}
@@ -71,7 +91,9 @@ export default function AdminStaff() {
           <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 py-3">
             <span>
               <b>{s.name}</b> · {s.email}
-              <span className="block text-muted">{s.id === me ? "Đang đăng nhập" : `Từ ${s.createdAt}`}</span>
+              <span className="block text-muted">
+                {s.role === "admin" ? "Toàn quyền" : STAFF_ROLE_LABELS[s.role as keyof typeof STAFF_ROLE_LABELS] || s.role} · {s.id === me ? "Đang đăng nhập" : `Từ ${s.createdAt}`}
+              </span>
             </span>
             {s.id !== me && (
               <button type="button" className={btnDanger} onClick={() => revoke(s.id, s.email)}>

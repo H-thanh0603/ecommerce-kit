@@ -5,14 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { isEnabled, siteConfig } from "@/config/site";
 import { adminNavGroups, type AdminNavItem } from "@/lib/admin-nav";
+import { canAccessAdminArea } from "@/lib/admin-permissions";
 
 const groups = adminNavGroups;
 
-function visible(items: AdminNavItem[]) {
-  return items.filter((l) => !l.flag || isEnabled(l.flag));
+function visible(items: AdminNavItem[], role: string) {
+  return items.filter((l) => (!l.flag || isEnabled(l.flag)) && canAccessAdminArea(role, l.href));
 }
 
-export function AdminNav() {
+export function AdminNav({ role }: { role: string }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -42,7 +43,7 @@ export function AdminNav() {
       </div>
       <nav className={`${open ? "block" : "hidden"} flex-1 space-y-3 p-3 text-sm md:block`}>
         {groups.map((g) => {
-          const items = visible(g.items);
+          const items = visible(g.items, role);
           if (items.length === 0) return null;
           return (
             <div key={g.title}>

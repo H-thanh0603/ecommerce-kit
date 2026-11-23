@@ -1,4 +1,7 @@
 import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
+import { redirect } from "next/navigation";
+import { requireStaff } from "@/server/auth";
+import { isStaffRole, staffLanding } from "@/lib/admin-permissions";
 import Link from "next/link";
 import { listOrders, shopStats } from "@/server/commerce";
 import { money } from "@/lib/format";
@@ -13,6 +16,9 @@ const statusLabel: Record<string, string> = {
 
 export default async function AdminHome() {
   enterTenant(await resolveRequestTenant());
+  // Dashboard chứa KPI doanh thu — chỉ admin; nhân viên về đúng trang của vai mình.
+  const session = await requireStaff();
+  if (session && isStaffRole(session.role)) redirect(staffLanding(session.role));
   // Dashboard chỉ hiển thị 8 đơn mới — không kéo toàn bộ bảng Order.
   const [stats, orders] = await Promise.all([shopStats(), listOrders(undefined, { pageSize: 8 })]);
   const maxDay = Math.max(1, ...stats.days.map((d) => d.total));

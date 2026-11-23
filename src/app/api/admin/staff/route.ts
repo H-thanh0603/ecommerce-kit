@@ -7,7 +7,7 @@ async function getHandler() {
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const staff = await listStaff();
   return NextResponse.json({
-    staff: staff.map((s) => ({ ...s, createdAt: s.createdAt.toISOString().slice(0, 10) })),
+    staff: staff.map((s) => ({ ...s, role: s.role, createdAt: s.createdAt.toISOString().slice(0, 10) })),
     me: admin.id,
   });
 }
@@ -25,6 +25,7 @@ async function postHandler(req: Request) {
       name: String(body.name || ""),
       email: String(body.email || ""),
       password: String(body.password || ""),
+      role: String(body.role || "admin"),
     });
     return NextResponse.json({ ok: true, user });
   } catch (e) {

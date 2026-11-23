@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { readSessionToken, SESSION_COOKIE } from "@/server/session";
 import { PLATFORM_COOKIE, readPlatformSession } from "@/server/platform-auth";
+import { isStaffRole } from "@/lib/admin-permissions";
 
 function securityHeaders(res: NextResponse) {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -64,7 +65,7 @@ export async function proxy(req: NextRequest) {
   }
   if (req.nextUrl.pathname.startsWith("/admin")) {
     const session = await readSessionToken(req.cookies.get(SESSION_COOKIE)?.value);
-    if (!session || session.role !== "admin") {
+    if (!session || (session.role !== "admin" && !isStaffRole(session.role))) {
       const url = req.nextUrl.clone();
       url.pathname = "/dang-nhap";
       url.searchParams.set("next", req.nextUrl.pathname);

@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { UserSession } from "@/types";
+import { isStaffRole } from "@/lib/admin-permissions";
 
 export const SESSION_COOKIE = "ek_session";
 
@@ -43,7 +44,9 @@ export async function readSessionToken(token: string | undefined): Promise<Sessi
       id: String(payload.id),
       name: String(payload.name || ""),
       email: String(payload.email),
-      role: payload.role === "admin" ? "admin" : "customer",
+      role: typeof payload.role === "string" && (payload.role === "admin" || isStaffRole(payload.role))
+        ? payload.role
+        : "customer",
       tokenVersion: Number(payload.tv || 0),
       tenantSlug: payload.t ? String(payload.t) : undefined,
     };

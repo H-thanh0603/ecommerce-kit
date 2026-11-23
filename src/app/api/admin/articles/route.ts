@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth";
+import { requireStaff } from "@/server/auth";
 import { deleteArticle, listArticlesAdmin, upsertArticle } from "@/server/catalog";
 import { withTenantHandler } from "@/server/request-tenant";
 
 async function getHandler() {
-  const admin = await requireAdmin();
+  const admin = await requireStaff('/admin/tin-tuc');
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   return NextResponse.json({ articles: await listArticlesAdmin() });
 }
 
 async function postHandler(req: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireStaff('/admin/tin-tuc');
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   try {

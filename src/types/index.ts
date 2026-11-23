@@ -133,10 +133,13 @@ export type Article = {
   minutes: number;
 };
 
+/** Vai nhân viên — quyền theo ma trận module (src/lib/admin-permissions.ts). */
+export type StaffRole = "kho" | "cskh" | "marketing";
+
 export type UserSession = {
   name: string;
   email: string;
-  role: "customer" | "admin";
+  role: "customer" | "admin" | StaffRole;
   points?: number;
   memberTier?: string;
 };

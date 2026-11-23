@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isEnabled } from "@/config/site";
 import { adminNavGroups } from "@/lib/admin-nav";
+import { canAccessAdminArea } from "@/lib/admin-permissions";
 
 /**
  * Command palette ⌘K (pattern Twenty CRM) — tự viết, không dependency.
@@ -22,7 +23,7 @@ const KIND_LABEL: Record<Hit["kind"], string> = {
   customer: "Khách hàng",
 };
 
-export function CommandPalette() {
+export function CommandPalette({ role }: { role: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -41,12 +42,13 @@ export function CommandPalette() {
     for (const g of adminNavGroups) {
       for (const item of g.items) {
         if (item.flag && !isEnabled(item.flag)) continue;
+        if (!canAccessAdminArea(role, item.href)) continue;
         if (query && !item.label.toLowerCase().includes(query)) continue;
         rows.push({ key: `nav:${item.href}`, href: item.href, title: item.label, subtitle: "", group: g.title });
       }
     }
     return rows;
-  }, [q]);
+  }, [q, role]);
 
   const hitRows = useMemo<Row[]>(
     () =>

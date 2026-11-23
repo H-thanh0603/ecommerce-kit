@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth";
+import { requireStaff } from "@/server/auth";
 import { withTenantHandler } from "@/server/request-tenant";
 import { apiErrorResponse } from "@/server/errors";
 import { adminQuickSearch } from "@/server/admin-search";
@@ -7,7 +7,7 @@ import { rateLimit, clientKey } from "@/server/rate-limit";
 
 /** Tìm nhanh cho palette ⌘K — guard admin (BE-001) + rate-limit (BE-007). */
 async function getHandler(req: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireStaff();
   if (!admin) return apiErrorResponse("forbidden", "Cần quyền admin", 403);
 
   const limit = await rateLimit(clientKey(req, "admin-search"), 30, 60_000);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/server/auth";
+import { requireStaff } from "@/server/auth";
 import { isFeatureOn } from "@/server/settings";
 import { prisma } from "@/server/db";
 import { generateRecoveryCodes, generateTotpSecret, totpUri, verifyTotp } from "@/server/mfa";
@@ -17,7 +17,7 @@ async function gate() {
   if (!(await isFeatureOn("mfa"))) {
     return NextResponse.json({ message: "MFA đang tắt — bật cờ `mfa` ở /admin/cai-dat" }, { status: 404 });
   }
-  const admin = await requireAdmin();
+  const admin = await requireStaff();
   if (!admin) return NextResponse.json({ message: "Cần quyền admin" }, { status: 401 });
   return { admin };
 }

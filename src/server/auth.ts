@@ -4,6 +4,7 @@ import { prisma } from "@/server/db";
 import { SESSION_COOKIE, readSessionToken, sessionMatchesTenant, signSession, type SessionPayload } from "@/server/session";
 import { getTenantSchema } from "@/server/tenant-context";
 import { resolveTrustedBaseUrl } from "@/server/request-tenant";
+import { canAccessAdminArea, isStaffRole } from "@/lib/admin-permissions";
 
 export type { SessionPayload };
 
@@ -29,8 +30,8 @@ export async function getSession(): Promise<SessionPayload | null> {
     if (!user) return null;
     if ((session.tokenVersion ?? 0) !== user.tokenVersion) return null;
     // Role luôn lấy từ DB — hạ quyền admin có hiệu lực ngay, không chờ JWT hết hạn.
-    const role = user.role === "admin" ? "admin" : "customer";
-    return { ...session, role, email: user.email };
+    const role = user.role === "admin" || isStaffRole(user.role) ? user.role : "customer";
+    return { ...session, role: role as SessionPayload["role"], email: user.email };
   } catch {
     // Fail-closed: DB lỗi → từ chối phiên (JWT có thể đã bị revoke qua tokenVersion).
     // Chỉ dev (DB đang khởi động) được fallback tin chữ ký JWT.
@@ -122,7 +123,7 @@ export async function loginUser(email: string, password: string, mfaCode?: strin
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role === "admin" ? "admin" : "customer",
+    role: user.role === "admin" || isStaffRole(user.role) ? user.role : "customer",
     points: user.points,
     memberTier: user.memberTier,
     tokenVersion: user.tokenVersion,
@@ -155,29 +156,32 @@ async function verifyRecoveryCode(userId: string, storedJson: string, code: stri
 
 export async function listStaff() {
   return prisma.user.findMany({
-    where: { role: "admin" },
+    where: { role: { in: ["admin", "kho", "cskh", "marketing"] } },
     orderBy: { createdAt: "asc" },
-    select: { id: true, email: true, name: true, createdAt: true },
+    select: { id: true, email: true, name: true, role: true, createdAt: true },
   });
 }
 
-export async function createStaff(data: { name: string; email: string; password: string }) {
+export async function createStaff(data: { name: string; email: string; password: string; role?: string }) {
+  // Role lạ → ném lỗi, KHÔNG mặc định thành admin (đặc quyền phải khai báo tường minh).
+  const role = data.role ?? "admin";
+  if (role !== "admin" && !isStaffRole(role)) throw new Error("Vai không hợp lệ");
   const email = data.email.trim().toLowerCase();
   const name = data.name.trim();
   if (!name || !email.includes("@")) throw new Error("Thiếu tên hoặc email");
   if (data.password.length < 8) throw new Error("Mật khẩu ít nhất 8 ký tự");
   const passwordHash = await hashPassword(data.password);
   const exists = await prisma.user.findUnique({ where: { email } });
-  if (exists?.role === "admin") throw new Error("Email này đã là nhân viên");
+  if (exists && exists.role !== "customer") throw new Error("Email này đã là nhân viên");
   if (exists) {
     return prisma.user.update({
       where: { id: exists.id },
-      data: { name, passwordHash, role: "admin", tokenVersion: { increment: 1 } },
+      data: { name, passwordHash, role, tokenVersion: { increment: 1 } },
       select: { id: true, email: true, name: true },
     });
   }
   return prisma.user.create({
-    data: { email, name, passwordHash, role: "admin" },
+    data: { email, name, passwordHash, role },
     select: { id: true, email: true, name: true },
   });
 }
@@ -200,6 +204,25 @@ export async function requireAdmin() {
   } catch {
     if (process.env.NODE_ENV === "production") return null;
   }
+  return session;
+}
+
+/**
+ * Guard cho nhân viên: admin (toàn quyền) hoặc staff role có quyền vào
+ * `area`. `area` là path trang admin (vd "/admin/don-hang") — khi bỏ trống
+ * chỉ yêu cầu là admin/nhân viên (mfa, palette, saved views...).
+ * SEC-001: role re-read từ DB qua getSession, không tin JWT.
+ */
+export async function requireStaff(area?: string) {
+  const session = await getSession();
+  if (!session || (session.role !== "admin" && !isStaffRole(session.role))) return null;
+  try {
+    const user = await prisma.user.findUnique({ where: { id: session.id }, select: { role: true } });
+    if (!user || (user.role !== "admin" && !isStaffRole(user.role))) return null;
+  } catch {
+    if (process.env.NODE_ENV === "production") return null;
+  }
+  if (area && !canAccessAdminArea(session.role, area)) return null;
   return session;
 }
 
