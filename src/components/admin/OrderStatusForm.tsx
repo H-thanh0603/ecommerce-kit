@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { ORDER_TRANSITIONS, type OrderStatus } from "@/types";
 import { btnPrimary } from "@/components/admin/buttons";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { useOptimisticAction } from "@/lib/use-optimistic-action";
 
 const labels: Record<OrderStatus, string> = {
@@ -16,9 +18,10 @@ const labels: Record<OrderStatus, string> = {
 
 const labelOf = (status: OrderStatus) => labels[status] ?? status;
 
-export function OrderStatusForm({ id, status }: { id: string, status: OrderStatus }) {
+export function OrderStatusForm({ id, status }: { id: string; status: OrderStatus }) {
   const router = useRouter();
   const [msg, setMsg] = useState("");
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const { value, pending, error, run } = useOptimisticAction(status, async (next) => {
     const res = await fetch(`/api/orders/${id}`, {
@@ -27,13 +30,17 @@ export function OrderStatusForm({ id, status }: { id: string, status: OrderStatu
       body: JSON.stringify({ status: next }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || "Không cập nhật được trạng thái");
-    setMsg(`Đã cập nhật: ${labelOf(next)}`);
+    if (!res.ok) {
+      const m = data.message || "Không cập nhật được trạng thái";
+      toast.error(m);
+      throw new Error(m);
+    }
+    const text = `Đã cập nhật: ${labelOf(next)}`;
+    setMsg(text);
+    toast.success(text);
     router.refresh();
   });
 
-  // `value` = trạng thái optimistic (hook) — options/advance tính theo value để
-  // UI chuyển mượt ngay khi bấm; commit lỗi thì hook tự revert về `status`.
   const options: OrderStatus[] = [value, ...ORDER_TRANSITIONS[value]];
 
   const advance =
@@ -45,7 +52,10 @@ export function OrderStatusForm({ id, status }: { id: string, status: OrderStatu
 
   function save(next: OrderStatus) {
     if (next === value || pending) return;
-    if (next === "cancelled" && !window.confirm("Huỷ đơn này? Khách sẽ thấy trạng thái đã huỷ.")) return;
+    if (next === "cancelled") {
+      setConfirmCancel(true);
+      return;
+    }
     setMsg("");
     run(next);
   }
@@ -83,6 +93,19 @@ export function OrderStatusForm({ id, status }: { id: string, status: OrderStatu
           {error || msg}
         </p>
       )}
+      <ConfirmDialog
+        open={confirmCancel}
+        title="Huỷ đơn hàng này?"
+        description="Khách hàng sẽ thấy đơn chuyển sang trạng thái Đã huỷ và tồn kho sẽ được hoàn lại. Trạng thái Đã huỷ không thể hoàn tác."
+        confirmLabel="Xác nhận huỷ đơn"
+        busy={pending}
+        onCancel={() => setConfirmCancel(false)}
+        onConfirm={() => {
+          setConfirmCancel(false);
+          setMsg("");
+          run("cancelled");
+        }}
+      />
     </div>
   );
 }

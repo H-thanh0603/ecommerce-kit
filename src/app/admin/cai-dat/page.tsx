@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { btnGhost, btnPrimary } from "@/components/admin/buttons";
-import { defaultHome, siteConfig, type EffectiveHome, type EffectivePayments, type HomeBlock } from "@/config/site";
+import { defaultHome, siteConfig, type EffectiveHome, type EffectivePayments, type HeroPreset, type HomeBlock } from "@/config/site";
 
 type Payload = {
   brand: Record<string, string>;
@@ -64,6 +65,50 @@ const THEME_FIELDS = [
   ["line", "Màu viền"],
 ] as const;
 
+const THEME_PRESETS: Array<{
+  id: string;
+  name: string;
+  desc: string;
+  heroPreset: HeroPreset;
+  theme: Record<string, string>;
+}> = [
+  {
+    id: "organic",
+    name: "Organic / Lifestyle",
+    desc: "Xanh rêu + đất nung",
+    heroPreset: "openhero",
+    theme: { primary: "#0F3D2E", primaryHover: "#0A2C21", accent: "#C45C26", ink: "#1C1917", muted: "#78716C", canvas: "#FAF7F2", card: "#FFFFFF", line: "#E7E0D6" },
+  },
+  {
+    id: "minimal",
+    name: "Thời trang Minimal",
+    desc: "Đen than + trắng sứ",
+    heroPreset: "editorial",
+    theme: { primary: "#18181B", primaryHover: "#09090B", accent: "#B45309", ink: "#18181B", muted: "#71717A", canvas: "#FAFAFA", card: "#FFFFFF", line: "#E4E4E7" },
+  },
+  {
+    id: "beauty",
+    name: "Mỹ phẩm Pastel",
+    desc: "Hồng rượu + kem ấm",
+    heroPreset: "bento",
+    theme: { primary: "#7C2D4D", primaryHover: "#5F1F3A", accent: "#D97757", ink: "#2B1E24", muted: "#7D6870", canvas: "#FDF8F6", card: "#FFFFFF", line: "#EFE1DC" },
+  },
+  {
+    id: "tech",
+    name: "Công nghệ / WebGL",
+    desc: "Chàm sâu + xanh điện",
+    heroPreset: "webgl",
+    theme: { primary: "#1E1B4B", primaryHover: "#141136", accent: "#2563EB", ink: "#0F172A", muted: "#64748B", canvas: "#F8FAFC", card: "#FFFFFF", line: "#E2E8F0" },
+  },
+  {
+    id: "craft",
+    name: "Cafe & Thủ công",
+    desc: "Nâu rang + hổ phách",
+    heroPreset: "openhero",
+    theme: { primary: "#4A2C2A", primaryHover: "#331D1B", accent: "#C87D32", ink: "#231917", muted: "#7C6A65", canvas: "#FBF8F3", card: "#FFFFFF", line: "#E8DDD0" },
+  },
+];
+
 export default function AdminSettings() {
   const [data, setData] = useState<Payload | null>(null);
   const [overKeys, setOverKeys] = useState<string[]>([]);
@@ -94,8 +139,11 @@ export default function AdminSettings() {
       if (!j.ok) throw new Error(j.message || "Lưu thất bại");
       setData(j.effective);
       setMsg("Đã lưu — brand/theme/ship áp dụng ngay, không cần rebuild.");
+      toast.success("Đã lưu cài đặt cửa hàng");
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Lưu thất bại");
+      const m = e instanceof Error ? e.message : "Lưu thất bại";
+      setMsg(m);
+      toast.error(m);
     } finally {
       setSaving(false);
     }
@@ -142,7 +190,35 @@ export default function AdminSettings() {
 
       <section className="mt-4 rounded-2xl border border-line bg-white p-5">
         <h2 className="font-medium">Màu thương hiệu</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="mt-3">
+          <p className="text-xs text-muted">Bộ giao diện mẫu (bấm để áp nhanh bảng màu + kiểu Hero, rồi bấm Lưu):</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {THEME_PRESETS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setData({
+                    ...data,
+                    theme: { ...data.theme, ...p.theme },
+                    home: { ...(data.home || defaultHome), heroPreset: p.heroPreset },
+                  });
+                  toast(`Đã nạp preset “${p.name}” — bấm Lưu cài đặt để áp dụng`);
+                }}
+                className="flex flex-col items-start rounded-xl border border-line p-2.5 text-left transition hover:border-primary"
+              >
+                <span className="flex gap-1">
+                  <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: p.theme.primary }} />
+                  <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: p.theme.accent }} />
+                  <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: p.theme.canvas }} />
+                </span>
+                <span className="mt-2 text-xs font-medium text-ink">{p.name}</span>
+                <span className="text-[11px] text-muted">{p.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {THEME_FIELDS.map(([k, label]) => (
             <label key={k} className="flex items-center gap-3 text-sm">
               <input
@@ -330,6 +406,24 @@ export default function AdminSettings() {
       <section className="mt-4 rounded-2xl border border-line bg-white p-5">
         <h2 className="font-medium">Trang chủ</h2>
         <div className="mt-3 grid gap-2">
+          <label className="grid gap-1 text-sm">
+            Kiểu giao diện Hero
+            <select
+              value={(data.home || defaultHome).heroPreset || "editorial"}
+              onChange={(e) =>
+                setData({
+                  ...data,
+                  home: { ...(data.home || defaultHome), heroPreset: e.target.value as HeroPreset },
+                })
+              }
+              className="rounded-lg border border-line bg-white px-3 py-2"
+            >
+              <option value="editorial">Editorial (Mặc định — tối giản, nhẹ nhất)</option>
+              <option value="openhero">OpenHero (Mesh aura + glass card)</option>
+              <option value="bento">Bento Grid (Trưng bày danh mục + KPI)</option>
+              <option value="webgl">WebGL Ambient Shader (OGL ~8KB, lazy-load)</option>
+            </select>
+          </label>
           <label className="grid gap-1 text-sm">
             Dòng nhỏ trên banner
             <input

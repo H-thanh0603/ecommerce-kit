@@ -27,14 +27,17 @@ export function vnMidnightUtc(d: Date) {
   return new Date(Date.UTC(y, m - 1, day) - 7 * 3600 * 1000);
 }
 
-export async function shopStats() {
+export type StatsRangeDays = 7 | 30 | 90;
+
+export async function shopStats(rangeDays: StatsRangeDays = 7) {
+  const safeDays: StatsRangeDays = rangeDays === 30 || rangeDays === 90 ? rangeDays : 7;
   const now = new Date();
   const startToday = vnMidnightUtc(now);
   const [ny, nm] = vnDateKey(now).split("-").map(Number);
   const startMonth = new Date(Date.UTC(ny, nm - 1, 1) - 7 * 3600 * 1000);
   const startYesterday = new Date(startToday.getTime() - VN_DAY_MS);
   const startPrevMonth = new Date(Date.UTC(ny, nm - 2, 1) - 7 * 3600 * 1000);
-  const start7 = new Date(startToday.getTime() - 6 * VN_DAY_MS);
+  const startRange = new Date(startToday.getTime() - (safeDays - 1) * VN_DAY_MS);
   const open: OrderStatus[] = ["pending", "confirmed", "shipping"];
 
   const [
@@ -74,7 +77,7 @@ export async function shopStats() {
     prisma.product.findMany({ orderBy: { sold: "desc" }, take: 5, include: productInclude }),
     prisma.lead.count(),
     prisma.order.findMany({
-      where: { createdAt: { gte: start7 }, status: { not: "cancelled" } },
+      where: { createdAt: { gte: startRange }, status: { not: "cancelled" } },
       select: { createdAt: true, total: true },
     }),
     // Việc chờ xử lý — dashboard phải trả lời "tôi cần làm gì tiếp theo?"
@@ -83,13 +86,15 @@ export async function shopStats() {
     prisma.review.count({ where: { status: "pending" } }),
   ]);
 
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(start7.getTime() + i * VN_DAY_MS);
+  const dayTotals = new Map<string, number>();
+  for (const o of weekOrders) {
+    const k = vnDateKey(o.createdAt);
+    dayTotals.set(k, (dayTotals.get(k) ?? 0) + o.total);
+  }
+  const days = Array.from({ length: safeDays }, (_, i) => {
+    const d = new Date(startRange.getTime() + i * VN_DAY_MS);
     const key = vnDateKey(d);
-    const sum = weekOrders
-      .filter((o) => vnDateKey(o.createdAt) === key)
-      .reduce((s, o) => s + o.total, 0);
-    return { date: key.slice(5), total: sum };
+    return { date: key.slice(5), total: dayTotals.get(key) ?? 0 };
   });
 
   return {

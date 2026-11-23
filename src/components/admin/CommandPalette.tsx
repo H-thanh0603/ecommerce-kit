@@ -1,21 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Command } from "cmdk";
+import { CornerDownLeft, Search } from "lucide-react";
 import { isEnabled } from "@/config/site";
 import { adminNavGroups } from "@/lib/admin-nav";
 import { canAccessAdminArea } from "@/lib/admin-permissions";
 
 /**
- * Command palette ⌘K (pattern Twenty CRM) — tự viết, không dependency.
- * Điều hướng nhanh theo admin-nav.ts + tìm đơn/SP/khách qua /api/admin/search.
- * Component phụ (không tranh primary action — rule UI-006), không chứa action
- * phá hủy (rule UI-008). Flag kiểm tra phía client (isEnabled là build-time).
+ * Command palette ⌘K (cmdk) — điều hướng nhanh theo admin-nav.ts + tìm đơn/SP/khách
+ * qua /api/admin/search. Không tranh primary action (UI-006), không chứa action phá hủy (UI-008).
  */
 
 type Hit = { href: string; title: string; subtitle: string; kind: "order" | "product" | "customer" };
-
-type Row = { key: string; href: string; title: string; subtitle: string; group: string };
 
 const KIND_LABEL: Record<Hit["kind"], string> = {
   order: "Đơn hàng",
@@ -29,51 +27,30 @@ export function CommandPalette({ role }: { role: string }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [searching, setSearching] = useState(false);
-  const [active, setActive] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
 
-  if (!isEnabled("commandPalette")) return null;
+  const enabled = isEnabled("commandPalette");
 
-  // Điều hướng: lọc theo flag, giữ thứ tự nhóm; khi có q thì lọc tiếp theo label.
-  const navRows = useMemo<Row[]>(() => {
-    const query = q.trim().toLowerCase();
-    const rows: Row[] = [];
-    for (const g of adminNavGroups) {
-      for (const item of g.items) {
-        if (item.flag && !isEnabled(item.flag)) continue;
-        if (!canAccessAdminArea(role, item.href)) continue;
-        if (query && !item.label.toLowerCase().includes(query)) continue;
-        rows.push({ key: `nav:${item.href}`, href: item.href, title: item.label, subtitle: "", group: g.title });
-      }
+  const visibleGroups = useMemo(() => {
+    if (!enabled) return [];
+    return adminNavGroups
+      .map((g) => ({
+        title: g.title,
+        items: g.items.filter(
+          (item) => (!item.flag || isEnabled(item.flag)) && canAccessAdminArea(role, item.href),
+        ),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [enabled, role]);
+
+  const groupedHits = useMemo(() => {
+    const map = new Map<Hit["kind"], Hit[]>();
+    for (const h of hits) {
+      const arr = map.get(h.kind) ?? [];
+      arr.push(h);
+      map.set(h.kind, arr);
     }
-    return rows;
-  }, [q, role]);
-
-  const hitRows = useMemo<Row[]>(
-    () =>
-      hits.map((h, i) => ({
-        key: `hit:${i}:${h.href}`,
-        href: h.href,
-        title: h.title,
-        subtitle: h.subtitle,
-        group: KIND_LABEL[h.kind],
-      })),
-    [hits],
-  );
-
-  const rows = useMemo(() => [...navRows, ...hitRows], [navRows, hitRows]);
-
-  useEffect(() => {
-    if (!open) return;
-    setActive(0);
-  }, [open, q]);
-
-  useEffect(() => {
-    if (!open) return;
-    const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${active}"]`);
-    el?.scrollIntoView({ block: "nearest" });
-  }, [active, open]);
+    return Array.from(map.entries());
+  }, [hits]);
 
   const go = useCallback(
     (href: string) => {
@@ -87,6 +64,7 @@ export function CommandPalette({ role }: { role: string }) {
 
   // Global shortcut: ⌘K / Ctrl+K mở–đóng, Escape đóng khi mở.
   useEffect(() => {
+    if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -97,17 +75,11 @@ export function CommandPalette({ role }: { role: string }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // Focus input khi mở; đóng thì trả focus.
-  useEffect(() => {
-    if (open) {
-      inputRef.current?.focus();
-    }
-  }, [open]);
+  }, [enabled]);
 
   // Debounce search — ≥2 ký tự mới gọi API (BE-007 đã rate-limit phía server).
   useEffect(() => {
+    if (!enabled || !open) return;
     const term = q.trim();
     if (term.length < 2) {
       setHits([]);
@@ -131,98 +103,95 @@ export function CommandPalette({ role }: { role: string }) {
       ctrl.abort();
       clearTimeout(t);
     };
-  }, [q]);
+  }, [enabled, open, q]);
+
+  if (!enabled) return null;
 
   if (!open) {
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 right-4 z-40 hidden items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm text-muted shadow-sm hover:text-primary print:hidden md:flex"
+        className="fixed bottom-4 right-4 z-40 hidden items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm text-muted shadow-sm transition hover:border-primary hover:text-primary print:hidden md:flex"
         aria-label="Mở tìm nhanh (Ctrl+K)"
       >
-        <span aria-hidden>⌕</span> Tìm nhanh
+        <Search className="h-3.5 w-3.5" />
+        Tìm nhanh
         <kbd className="rounded border border-line px-1.5 text-[10px] text-muted">⌘K</kbd>
       </button>
     );
   }
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActive((i) => Math.min(rows.length - 1, i + 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActive((i) => Math.max(0, i - 1));
-    } else if (e.key === "Enter" && rows[active]) {
-      e.preventDefault();
-      go(rows[active].href);
-    }
-  };
-
-  let lastGroup = "";
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 p-4 pt-[12vh] print:hidden"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/35 p-4 pt-[12vh] backdrop-blur-[2px] print:hidden"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) setOpen(false);
       }}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Tìm nhanh admin"
-        className="w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-white shadow-xl"
+      <Command
+        label="Tìm nhanh admin"
+        className="w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-white shadow-2xl"
       >
-        <input
-          ref={inputRef}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Tìm trang, đơn hàng, sản phẩm, khách hàng…"
-          className="w-full border-b border-line px-4 py-3 text-sm outline-none placeholder:text-muted"
-          role="combobox"
-          aria-expanded="true"
-          aria-controls="cmdk-list"
-          aria-activedescendant={rows[active] ? `cmdk-opt-${active}` : undefined}
-        />
-        <div ref={listRef} id="cmdk-list" role="listbox" className="max-h-80 overflow-y-auto p-2 text-sm">
-          {rows.length === 0 && (
-            <p className="px-3 py-6 text-center text-muted">
-              {searching ? "Đang tìm…" : q.trim().length >= 2 ? "Không có kết quả" : "Gõ để tìm kiếm"}
-            </p>
-          )}
-          {rows.map((r, i) => {
-            const showGroup = r.group !== lastGroup;
-            lastGroup = r.group;
-            const on = i === active;
-            return (
-              <div key={r.key}>
-                {showGroup && (
-                  <p className="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.16em] text-muted">{r.group}</p>
-                )}
-                <button
-                  type="button"
-                  id={`cmdk-opt-${i}`}
-                  data-idx={i}
-                  role="option"
-                  aria-selected={on}
-                  onMouseEnter={() => setActive(i)}
-                  onClick={() => go(r.href)}
-                  className={`flex w-full items-baseline justify-between gap-3 rounded-xl px-3 py-2 text-left ${on ? "bg-canvas" : ""}`}
-                >
-                  <span className={on ? "font-medium text-primary" : ""}>{r.title}</span>
-                  {r.subtitle && <span className="truncate text-xs text-muted">{r.subtitle}</span>}
-                </button>
-              </div>
-            );
-          })}
+        <div className="flex items-center gap-2.5 border-b border-line px-4">
+          <Search className="h-4 w-4 shrink-0 text-muted" />
+          <Command.Input
+            autoFocus
+            value={q}
+            onValueChange={setQ}
+            placeholder="Tìm trang, đơn hàng, sản phẩm, khách hàng…"
+            className="w-full py-3.5 text-sm outline-none placeholder:text-muted"
+          />
         </div>
+        <Command.List className="max-h-80 overflow-y-auto p-2 text-sm">
+          <Command.Empty className="px-3 py-6 text-center text-muted">
+            {searching ? "Đang tìm…" : "Không có kết quả"}
+          </Command.Empty>
+
+          {visibleGroups.map((g) => (
+            <Command.Group
+              key={g.title}
+              heading={g.title}
+              className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.16em] [&_[cmdk-group-heading]]:text-muted"
+            >
+              {g.items.map((item) => (
+                <Command.Item
+                  key={item.href}
+                  value={`${item.label} ${g.title}`}
+                  onSelect={() => go(item.href)}
+                  className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-ink aria-selected:bg-canvas aria-selected:font-medium aria-selected:text-primary"
+                >
+                  <span>{item.label}</span>
+                  <CornerDownLeft className="h-3.5 w-3.5 opacity-40" />
+                </Command.Item>
+              ))}
+            </Command.Group>
+          ))}
+
+          {groupedHits.map(([kind, list]) => (
+            <Command.Group
+              key={kind}
+              heading={KIND_LABEL[kind]}
+              className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.16em] [&_[cmdk-group-heading]]:text-muted"
+            >
+              {list.map((h, i) => (
+                <Command.Item
+                  key={`${kind}:${i}:${h.href}`}
+                  value={`${h.title} ${h.subtitle} ${q}`}
+                  onSelect={() => go(h.href)}
+                  className="flex cursor-pointer items-baseline justify-between gap-3 rounded-xl px-3 py-2 text-ink aria-selected:bg-canvas aria-selected:font-medium aria-selected:text-primary"
+                >
+                  <span>{h.title}</span>
+                  {h.subtitle && <span className="truncate text-xs text-muted">{h.subtitle}</span>}
+                </Command.Item>
+              ))}
+            </Command.Group>
+          ))}
+        </Command.List>
         <p className="border-t border-line px-4 py-2 text-[11px] text-muted">
           ↑↓ di chuyển · Enter mở · Esc đóng
         </p>
-      </div>
+      </Command>
     </div>
   );
 }

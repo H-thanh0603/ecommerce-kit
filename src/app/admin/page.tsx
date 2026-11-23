@@ -5,6 +5,7 @@ import { isStaffRole, staffLanding } from "@/lib/admin-permissions";
 import Link from "next/link";
 import { listOrders, shopStats } from "@/server/commerce";
 import { money } from "@/lib/format";
+import { RevenueChart, TopProductsChart } from "@/components/admin/AdminCharts";
 
 const statusLabel: Record<string, string> = {
   pending: "Chờ xác nhận",
@@ -14,14 +15,19 @@ const statusLabel: Record<string, string> = {
   cancelled: "Đã huỷ",
 };
 
-export default async function AdminHome() {
+export default async function AdminHome({
+  searchParams,
+}: {
+  searchParams?: Promise<{ days?: string }>;
+}) {
   enterTenant(await resolveRequestTenant());
   // Dashboard chứa KPI doanh thu — chỉ admin; nhân viên về đúng trang của vai mình.
   const session = await requireStaff();
   if (session && isStaffRole(session.role)) redirect(staffLanding(session.role));
+  const sp = (await searchParams) ?? {};
+  const rangeDays = sp.days === "30" ? 30 : sp.days === "90" ? 90 : 7;
   // Dashboard chỉ hiển thị 8 đơn mới — không kéo toàn bộ bảng Order.
-  const [stats, orders] = await Promise.all([shopStats(), listOrders(undefined, { pageSize: 8 })]);
-  const maxDay = Math.max(1, ...stats.days.map((d) => d.total));
+  const [stats, orders] = await Promise.all([shopStats(rangeDays), listOrders(undefined, { pageSize: 8 })]);
   const pending = stats.byStatus.find((s) => s.status === "pending")?.count ?? 0;
   const tasks = [
     {
@@ -96,21 +102,27 @@ export default async function AdminHome() {
       </div>
 
       <section className="mt-10 rounded-2xl border border-line bg-white p-5">
-        <h2 className="font-medium">7 ngày gần đây</h2>
-        <div className="mt-4 flex items-end gap-2">
-          {stats.days.map((d) => (
-            <div key={d.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-              <div className="flex h-28 w-full items-end">
-                <div
-                  className="w-full rounded-t bg-primary"
-                  style={{ height: `${Math.max(4, (d.total / maxDay) * 100)}%` }}
-                  title={money(d.total)}
-                />
-              </div>
-              <span className="max-w-full truncate text-[10px] text-muted">{money(d.total)}</span>
-              <span className="text-[10px] text-muted">{d.date}</span>
-            </div>
-          ))}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-medium">Doanh thu ghi nhận · {rangeDays} ngày gần đây</h2>
+            <p className="text-xs text-muted">Đơn vị: VND · Trục bắt đầu từ 0</p>
+          </div>
+          <div className="flex items-center gap-1 rounded-full border border-line bg-canvas p-1 text-xs">
+            {([7, 30, 90] as const).map((d) => (
+              <Link
+                key={d}
+                href={d === 7 ? "/admin" : `/admin?days=${d}`}
+                className={`rounded-full px-3 py-1 transition ${
+                  rangeDays === d ? "bg-primary font-medium text-white" : "text-muted hover:text-ink"
+                }`}
+              >
+                {d} ngày
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="mt-4">
+          <RevenueChart days={stats.days} />
         </div>
       </section>
 
@@ -129,8 +141,11 @@ export default async function AdminHome() {
           </ul>
         </section>
         <section className="rounded-2xl border border-line bg-white p-5">
-          <h2 className="font-medium">Bán chạy</h2>
-          <ul className="mt-3 space-y-2 text-sm">
+          <h2 className="font-medium">Bán chạy (theo số lượng bán)</h2>
+          <div className="mt-3">
+            <TopProductsChart products={stats.topProducts} />
+          </div>
+          <ul className="mt-3 space-y-1.5 border-t border-line pt-3 text-xs">
             {stats.topProducts.map((p) => (
               <li key={p.id} className="flex justify-between">
                 <Link href={`/admin/san-pham?edit=${p.id}`} className="hover:underline">
