@@ -48,6 +48,10 @@ npm run platform:admin admin@platform.vn <mat-khau≥8>  # super-admin đăng nh
 
 Local truy cập `http://shopa.localhost:3000` (Host → schema Postgres riêng). Runbook: `DEPLOY.md` §10.
 
+> **Ranh giới vận hành (đọc trước khi chọn mô hình):**
+> - **≤ 10 shop active / instance (agency managed hosting)**: dùng multi-tenant (`npm run tenant:create`). Mỗi tenant có 1 `PrismaClient` riêng (cache LRU tối đa 10 client, mặc định `connection_limit=5`, chỉnh qua `PRISMA_CONNECTION_LIMIT`).
+> - **> 10 shop hoặc khách cần tùy biến sâu giao diện/flag build-time**: tách repo riêng (`npm run new:project`) để tránh cạn connection pool và giữ ranh giới build-time/runtime rõ ràng.
+
 Chatbot / AI Agent cần `XAI_API_KEY` (SpaceXAI / [console.x.ai](https://console.x.ai)). Không có key thì UI vẫn hiện, API hướng dẫn cấu hình.
 
 ## Tuỳ biến theo khách
