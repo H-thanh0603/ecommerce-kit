@@ -1,11 +1,35 @@
 type Bucket = { n: number; reset: number };
 
 const buckets = new Map<string, Bucket>();
+const MAX_BUCKETS = 10_000;
+let opsSincePrune = 0;
+
+function pruneBuckets(now: number) {
+  for (const [k, v] of buckets) {
+    if (v.reset <= now) buckets.delete(k);
+  }
+  // Phòng IP spray giữ nhiều bucket chưa hết hạn — evict key cũ nhất (FIFO của Map).
+  while (buckets.size >= MAX_BUCKETS) {
+    const oldest = buckets.keys().next().value;
+    if (oldest === undefined) break;
+    buckets.delete(oldest);
+  }
+}
+
+/** Dùng cho test/diagnostics — số bucket đang giữ trong RAM. */
+export function memoryBucketCount() {
+  return buckets.size;
+}
 
 function memoryLimit(key: string, limit: number, windowMs: number) {
   const now = Date.now();
+  opsSincePrune += 1;
+  if (opsSincePrune >= 256 || buckets.size >= MAX_BUCKETS) {
+    opsSincePrune = 0;
+    pruneBuckets(now);
+  }
   const cur = buckets.get(key);
-  if (!cur || cur.reset < now) {
+  if (!cur || cur.reset <= now) {
     buckets.set(key, { n: 1, reset: now + windowMs });
     return { ok: true, remaining: limit - 1 };
   }
@@ -18,22 +42,30 @@ function redisConfigured() {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
+/** Dựng payload pipeline Upstash dạng mảng arg — không split theo khoảng trắng. */
+export function buildRedisPipelineCommands(commands: string[][]) {
+  return commands;
+}
+
 async function redisLimit(key: string, limit: number, windowMs: number) {
   const url = process.env.UPSTASH_REDIS_REST_URL!.replace(/\/$/, "");
   const token = process.env.UPSTASH_REDIS_REST_TOKEN!;
   const headers = { Authorization: `Bearer ${token}` };
-  const get = async (parts: string[]) =>
+  const pipeline = async (commands: string[][]) =>
     fetch(`${url}/pipeline`, {
       method: "POST",
       headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify(parts.map((c) => c.split(" "))),
+      body: JSON.stringify(buildRedisPipelineCommands(commands)),
     }).then((r) => r.json() as Promise<Array<{ result: unknown }>>);
   const secs = Math.max(1, Math.ceil(windowMs / 1000));
   const k = `rl:${key}`;
-  const [incr, ttl] = await get([`INCR ${k}`, `TTL ${k}`]);
+  const [incr, ttl] = await pipeline([
+    ["INCR", k],
+    ["TTL", k],
+  ]);
   const n = Number(incr.result);
   if (Number((ttl as { result: unknown }).result) === -1) {
-    await get([`EXPIRE ${k} ${secs}`]);
+    await pipeline([["EXPIRE", k, String(secs)]]);
   }
   return { ok: n <= limit, remaining: Math.max(0, limit - n) };
 }
