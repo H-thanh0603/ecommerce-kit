@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { useFeatures } from "@/lib/features";
@@ -9,7 +10,7 @@ import type { Product } from "@/types";
 import { IconHeart, IconHeartFill } from "@/components/icons";
 
 export function AddToCart({ product }: { product: Product }) {
-  const { add } = useCart();
+  const { add, setDrawerOpen } = useCart();
   const wishlist = useWishlist();
   const features = useFeatures();
   const step = product.unit === "kg" ? 100 : 1;
@@ -31,6 +32,7 @@ export function AddToCart({ product }: { product: Product }) {
   const submit = () => {
     if (stock < qty) {
       setMsg("Không đủ tồn kho");
+      toast.error("Không đủ tồn kho cho số lượng đã chọn");
       return;
     }
     add(product, qty, variantLabel, sku?.id);
@@ -42,6 +44,13 @@ export function AddToCart({ product }: { product: Product }) {
       variant: variantLabel,
     });
     setMsg("Đã thêm vào giỏ hàng");
+    toast.success(`Đã thêm ${product.name}`, {
+      description: variantLabel || undefined,
+      action: {
+        label: "Xem giỏ",
+        onClick: () => setDrawerOpen(true),
+      },
+    });
     setTimeout(() => setMsg(""), 1800);
   };
 

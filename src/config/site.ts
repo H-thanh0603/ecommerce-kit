@@ -170,6 +170,7 @@ export type EffectivePayments = {
   zalopay: PayFlag;
   vietqr: PayFlag;
 };
+export type HeroPreset = "editorial" | "openhero" | "bento" | "webgl";
 export type HomeBlock =
   | "categories"
   | "flash"
@@ -182,6 +183,7 @@ export type EffectiveHome = {
   eyebrow: string;
   image: string;
   imageAlt: string;
+  heroPreset?: HeroPreset;
   blocks: HomeBlock[];
 };
 
@@ -189,6 +191,7 @@ export const defaultHome: EffectiveHome = {
   eyebrow: "Cửa hàng chọn lọc",
   image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1600&q=80",
   imageAlt: "Cửa hàng",
+  heroPreset: "webgl",
   blocks: ["categories", "flash", "featured", "popular", "reviews", "combo", "journal"],
 };
 

@@ -8,9 +8,13 @@ import { ConsentBanner } from "@/components/layout/ConsentBanner";
 import type { EffectiveSite } from "@/config/site";
 import type { Category } from "@/types";
 
-// Chat widget chỉ tải khi client — không chặn first paint (Q96).
+// Chat widget & mini-cart drawer chỉ tải khi client — không chặn first paint (Q96).
 const ChatWidget = dynamic(() =>
   import("@/components/ai/ChatWidget").then((m) => ({ default: m.ChatWidget })),
+);
+const MiniCartDrawer = dynamic(
+  () => import("@/components/layout/MiniCartDrawer").then((m) => ({ default: m.MiniCartDrawer })),
+  { ssr: false },
 );
 
 export function AppChrome({
@@ -46,6 +50,7 @@ export function AppChrome({
         {children}
       </main>
       <Footer categories={categories} brand={brand} payments={payments} />
+      <MiniCartDrawer />
       <ChatWidget />
       <ConsentBanner enabled={consent?.enabled} text={consent?.text} />
     </>

@@ -20,6 +20,8 @@ type CartContextValue = {
   clear: () => void;
   count: number;
   subtotal: number;
+  drawerOpen: boolean;
+  setDrawerOpen: (open: boolean) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -31,6 +33,7 @@ function sameLine(a: CartItem, id: string, variant?: string) {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -110,8 +113,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<CartContextValue>(() => {
     const count = items.reduce((s, i) => s + i.quantity, 0);
     const subtotal = items.reduce((s, i) => s + lineAmount(i.price, i.quantity, i.unit), 0);
-    return { items, add, remove, setQty, clear, count, subtotal };
-  }, [items, add, remove, setQty, clear]);
+    return { items, add, remove, setQty, clear, count, subtotal, drawerOpen, setDrawerOpen };
+  }, [items, add, remove, setQty, clear, drawerOpen]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

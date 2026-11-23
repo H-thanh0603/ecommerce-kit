@@ -3,6 +3,8 @@ import { defaultHome, isEnabled, siteConfig, type EffectiveBrand, type Effective
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { RecentSection } from "@/components/home/RecentSection";
 import { FlashCountdown } from "@/components/home/FlashCountdown";
+import { FlashCarousel } from "@/components/home/FlashCarousel";
+import { HomeHero } from "@/components/home/HomeHero";
 import { SmartImage } from "@/components/ui/SmartImage";
 import { IconChevron, IconRefresh, IconShield, IconStar, IconTruck } from "@/components/icons";
 import { money } from "@/lib/format";
@@ -45,124 +47,16 @@ export function HomeView({
     "Hàng chọn lọc, số lượng có hạn",
     `Hotline ${brand.hotline}`,
   ];
-  const sealText =
-    [...brand.tagline.split(".").map((s) => s.trim()).filter(Boolean), brand.name].join(" · ").toUpperCase() + " ·";
-
   return (
     <div>
-      {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="relative overflow-hidden">
-        {/* vòng trang trí nền — nhẹ, tôn tagline */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-40 -top-40 h-[36rem] w-[36rem] rounded-full border border-line"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -top-24 h-[26rem] w-[26rem] rounded-full border border-line"
-        />
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-[1.05fr_0.95fr] md:py-20">
-          <div>
-            {home.eyebrow && (
-              <p className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-accent">
-                <span aria-hidden className="h-px w-8 bg-accent" />
-                {home.eyebrow}
-              </p>
-            )}
-            <h1 className="font-serif text-5xl leading-[1.04] tracking-tight text-primary md:text-7xl">
-              {brand.tagline.split(". ").length > 1 ? (
-                <>
-                  {brand.tagline.split(". ")[0]}.{" "}
-                  <em className="text-accent">{brand.tagline.split(". ").slice(1).join(" ")}</em>
-                </>
-              ) : (
-                brand.tagline
-              )}
-            </h1>
-            <p className="mt-5 max-w-md text-base leading-relaxed text-muted">{brand.description}</p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                href="/san-pham"
-                className="group inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3.5 text-sm font-medium text-white shadow-[0_10px_30px_-10px_rgba(15,61,46,0.5)] transition-shadow hover:shadow-[0_14px_36px_-10px_rgba(15,61,46,0.6)]"
-              >
-                Xem sản phẩm
-                <IconChevron className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link
-                href="/lien-he"
-                className="rounded-full border border-line bg-white px-7 py-3.5 text-sm transition-colors hover:border-primary hover:text-primary"
-              >
-                Tư vấn mua sắm
-              </Link>
-            </div>
-            {stats && (stats.sold > 0 || stats.reviewCount > 0) && (
-              <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4 border-t border-line pt-6">
-                {stats.sold > 0 && (
-                  <div>
-                    <dd className="font-serif text-3xl tabular text-primary">
-                      {stats.sold.toLocaleString("vi-VN")}+
-                    </dd>
-                    <dt className="mt-0.5 text-xs uppercase tracking-wider text-muted">Đã bán</dt>
-                  </div>
-                )}
-                {stats.ratingAvg > 0 && (
-                  <div>
-                    <dd className="flex items-center gap-1.5 font-serif text-3xl tabular text-primary">
-                      {stats.ratingAvg}
-                      <IconStar className="h-5 w-5 text-accent" />
-                    </dd>
-                    <dt className="mt-0.5 text-xs uppercase tracking-wider text-muted">
-                      {stats.reviewCount} đánh giá
-                    </dt>
-                  </div>
-                )}
-                {stats.productCount > 0 && (
-                  <div>
-                    <dd className="font-serif text-3xl tabular text-primary">{stats.productCount}+</dd>
-                    <dt className="mt-0.5 text-xs uppercase tracking-wider text-muted">Sản phẩm</dt>
-                  </div>
-                )}
-              </dl>
-            )}
-          </div>
-
-          <div className="relative">
-            <div className="hero-media relative aspect-[4/5] overflow-hidden rounded-[2rem] shadow-[0_30px_60px_-20px_rgba(15,61,46,0.35)] md:aspect-[5/4]">
-              <SmartImage
-                src={home.image || defaultHome.image}
-                alt={home.imageAlt || brand.name}
-                className="h-full w-full"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                eager
-              />
-              {/* badge freeship nổi */}
-              <div className="float-y absolute bottom-4 left-4 rounded-2xl bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm">
-                <p className="flex items-center gap-2 text-sm font-medium text-primary">
-                  <IconTruck className="h-4 w-4 text-accent" />
-                  Freeship từ {money(shipping.freeFrom)}
-                </p>
-              </div>
-            </div>
-            {/* con dấu tròn xoay — chữ quanh tròn */}
-            <div className="absolute -left-6 -top-6 hidden h-28 w-28 md:block" aria-hidden>
-              <svg viewBox="0 0 100 100" className="spin-slow h-full w-full text-primary">
-                <defs>
-                  <path id="seal-circ" d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" />
-                </defs>
-                <circle cx="50" cy="50" r="50" className="fill-canvas" />
-                <circle cx="50" cy="50" r="49" fill="none" stroke="currentColor" strokeOpacity="0.25" />
-                <text fill="currentColor" fontSize="10.5" letterSpacing="2.5">
-                  <textPath href="#seal-circ">{sealText}</textPath>
-                </text>
-                <path
-                  d="M50 38l3.4 6.9 7.6 1.1-5.5 5.4 1.3 7.6L50 55.4 43.2 59l1.3-7.6-5.5-5.4 7.6-1.1L50 38z"
-                  className="fill-accent"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ── Hero (4 presets: editorial / openhero / bento / webgl) ── */}
+      <HomeHero
+        brand={brand}
+        shipping={shipping}
+        home={home}
+        stats={stats}
+        categories={categories}
+      />
 
       {/* ── Marquee cam kết ──────────────────────────────── */}
       <section aria-label="Cam kết cửa hàng" className="overflow-hidden bg-accent py-3 text-white">
@@ -268,50 +162,7 @@ export function HomeView({
                   </Link>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                {flash.map((p) => {
-                  const off =
-                    p.compareAtPrice && p.compareAtPrice > p.price
-                      ? Math.round((1 - p.price / p.compareAtPrice) * 100)
-                      : 0;
-                  return (
-                    <Link
-                      key={p.id}
-                      href={`/san-pham/${p.slug}`}
-                      className="group overflow-hidden rounded-2xl bg-white text-ink shadow-sm transition-shadow hover:shadow-md"
-                    >
-                      <div className="relative">
-                        <SmartImage
-                          src={p.images[0]}
-                          alt={p.name}
-                          className="aspect-[4/3] w-full"
-                          imgClassName="transition duration-500 group-hover:scale-105"
-                          sizes="(max-width: 768px) 50vw, 33vw"
-                        />
-                        {off > 0 && (
-                          <span className="absolute left-3 top-3 rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-white">
-                            -{off}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <p className="font-medium leading-snug">{p.name}</p>
-                        <p className="mt-1 text-sm tabular">
-                          {money(p.price)}
-                          {p.compareAtPrice ? (
-                            <span className="ml-2 text-muted line-through">{money(p.compareAtPrice)}</span>
-                          ) : null}
-                        </p>
-                        {p.sold > 0 && (
-                          <p className="mt-1.5 text-xs text-muted">
-                            Đã bán <span className="font-medium text-accent tabular">{p.sold.toLocaleString("vi-VN")}</span>
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
+              <FlashCarousel products={flash} />
             </div>
           </section>
         )}

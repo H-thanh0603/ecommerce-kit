@@ -1,5 +1,6 @@
 import { enterTenant, resolveRequestTenant } from "@/server/request-tenant";
 import { ProductGrid } from "@/components/product/ProductGrid";
+import { MobileFilterDrawer } from "@/components/product/MobileFilterDrawer";
 import { listCategories, listProducts } from "@/server/commerce";
 import { siteConfig } from "@/config/site";
 import Link from "next/link";
@@ -34,7 +35,11 @@ export default async function ProductsPage({ searchParams }: Props) {
         {currentCat?.description || siteConfig.brand.description}
       </p>
 
-      <div className="mt-8 flex flex-wrap items-center gap-2">
+      <div className="mt-6 md:hidden">
+        <MobileFilterDrawer categories={categories} sp={sp} />
+      </div>
+
+      <div className="mt-8 hidden flex-wrap items-center gap-2 md:flex">
         <Link
           href="/san-pham"
           className={`rounded-full px-3 py-1.5 text-sm ${!sp.cat ? "bg-primary text-white" : "border border-line bg-white"}`}
@@ -54,7 +59,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-4 hidden flex-wrap items-center justify-between gap-3 md:flex">
         <div className="flex gap-2 text-sm">
           {["popular", "price-asc", "price-desc"].map((s) => (
             <Link
