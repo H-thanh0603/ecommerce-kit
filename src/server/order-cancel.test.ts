@@ -85,6 +85,30 @@ describe("order state machine", () => {
       await cleanup(email);
     }
   });
+
+  it("race cancelled + confirmed song song — không ghi đè đơn đã hủy về confirmed", async () => {
+    await restock(10);
+    const email = `sm-race-${Date.now()}@kit.vn`;
+    try {
+      const order = await createOrder(baseOrder(email));
+      const results = await Promise.allSettled([
+        updateOrderStatus(order.id, "cancelled"),
+        updateOrderStatus(order.id, "confirmed"),
+      ]);
+      const finalOrder = await prisma.order.findUnique({ where: { id: order.id } });
+      const stockAfter = (await getProductById(PID))!.stock;
+      // Chỉ 1 nhánh thắng nếu xung đột; nếu cancelled thắng thì tồn đã hoàn (10) và status phải giữ cancelled.
+      if (finalOrder!.status === "cancelled") {
+        expect(stockAfter).toBe(10);
+        expect(results.some((r) => r.status === "rejected")).toBe(true);
+      } else {
+        expect(finalOrder!.status).toBe("confirmed");
+        expect(stockAfter).toBe(8);
+      }
+    } finally {
+      await cleanup(email);
+    }
+  });
 });
 
 describe("updateOrderStatus → cancelled", () => {

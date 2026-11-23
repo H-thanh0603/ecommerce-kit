@@ -135,28 +135,41 @@ export async function updateOrderStatus(id: string, status: OrderStatus, actorEm
     throw new Error(`Không thể chuyển đơn từ "${prior.status}" sang "${status}"`);
   }
   let row;
+  let transitioned = false;
   if (status === "cancelled") {
-    // Claim status bằng updateMany có điều kiện — 2 admin hủy cùng lúc chỉ 1 lần hoàn tồn.
+    // Optimistic claim theo prior.status — 2 admin hủy cùng lúc chỉ 1 lần hoàn tồn,
+    // và không ghi đè nếu đơn vừa chuyển sang trạng thái kết thúc khác (vd completed).
     row = await prisma.$transaction(async (tx) => {
       const claimed = await tx.order.updateMany({
-        where: { id, status: { not: "cancelled" } },
+        where: { id, status: prior.status },
         data: { status },
       });
-      if (claimed.count !== 1) return tx.order.findUnique({ where: { id }, include: { items: true } });
+      if (claimed.count !== 1) {
+        const cur = await tx.order.findUnique({ where: { id }, include: { items: true } });
+        if (!cur) return null;
+        if (cur.status === status) return cur;
+        throw new Error(`Không thể chuyển đơn từ "${cur.status}" sang "${status}"`);
+      }
+      transitioned = true;
       await cancelOrderReversalTx(tx, id);
       return tx.order.findUnique({ where: { id }, include: { items: true } });
     });
   } else if (status === "completed") {
-    // Claim tương tự nhánh cancelled: chống cộng điểm 2 lần khi 2 admin hoàn tất cùng lúc.
-    // Điểm cộng trong cùng transaction bằng increment — không lost update.
+    // Optimistic claim theo prior.status: chống cộng điểm 2 lần & chống ghi đè đơn đã hủy.
     const membershipOn = await isFeatureOn("membership");
     row = await prisma.$transaction(async (tx) => {
       const claimed = await tx.order.updateMany({
-        where: { id, status: { not: "completed" } },
+        where: { id, status: prior.status },
         data: { status },
       });
       const cur = await tx.order.findUnique({ where: { id }, include: { items: true } });
-      if (claimed.count === 1 && cur && membershipOn && cur.userId) {
+      if (!cur) return null;
+      if (claimed.count !== 1) {
+        if (cur.status === status) return cur;
+        throw new Error(`Không thể chuyển đơn từ "${cur.status}" sang "${status}"`);
+      }
+      transitioned = true;
+      if (membershipOn && cur.userId) {
         const g = await grantOrderPointsTx(tx, cur.userId, cur.total);
         if (g.earned > 0) {
           await tx.order.update({ where: { id }, data: { pointsEarned: g.earned } });
@@ -166,22 +179,39 @@ export async function updateOrderStatus(id: string, status: OrderStatus, actorEm
       return tx.order.findUnique({ where: { id }, include: { items: true } });
     });
   } else {
-    row = await prisma.order.update({ where: { id }, data: { status }, include: { items: true } });
+    // Conditional update cho mọi transition trung gian (confirmed/shipping):
+    // chặn race kiểu cancelled + shipping song song làm sống lại đơn đã hoàn tồn.
+    const claimed = await prisma.order.updateMany({
+      where: { id, status: prior.status },
+      data: { status },
+    });
+    const cur = await prisma.order.findUnique({ where: { id }, include: { items: true } });
+    if (!cur) throw new Error("Không tìm thấy đơn hàng");
+    if (claimed.count !== 1) {
+      if (cur.status !== status) {
+        throw new Error(`Không thể chuyển đơn từ "${cur.status}" sang "${status}"`);
+      }
+    } else {
+      transitioned = true;
+    }
+    row = cur;
   }
   if (!row) throw new Error("Không tìm thấy đơn hàng");
   const order = toOrder(row);
-  await onOrderStatusChanged(order, status);
-  const { logOrderEvent } = await import("@/server/order-events");
-  await logOrderEvent(row.id, "status", `Chuyển trạng thái → ${status}`, actorEmail);
-  if (actorEmail) {
-    const { logAudit } = await import("@/server/audit");
-    await logAudit({
-      actorEmail,
-      action: "order.status",
-      entity: "Order",
-      entityId: row.code,
-      after: status,
-    });
+  if (transitioned) {
+    await onOrderStatusChanged(order, status);
+    const { logOrderEvent } = await import("@/server/order-events");
+    await logOrderEvent(row.id, "status", `Chuyển trạng thái → ${status}`, actorEmail);
+    if (actorEmail) {
+      const { logAudit } = await import("@/server/audit");
+      await logAudit({
+        actorEmail,
+        action: "order.status",
+        entity: "Order",
+        entityId: row.code,
+        after: status,
+      });
+    }
   }
   return order;
 }
