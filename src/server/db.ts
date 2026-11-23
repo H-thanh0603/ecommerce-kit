@@ -6,12 +6,32 @@ const globalForPrisma = globalThis as unknown as {
   schemasProvisioned?: Set<string>;
 };
 
-function baseUrl(): string {
+const DEFAULT_CONNECTION_LIMIT = 5;
+const EVICT_DISCONNECT_GRACE_MS = 5_000;
+
+/**
+ * Dựng URL cho 1 schema tenant: giữ lại query param kết nối (sslmode, pgbouncer...),
+ * gắn `schema` và giới hạn `connection_limit` mỗi client để 10 tenant không làm cạn
+ * `max_connections` của Postgres.
+ */
+export function buildSchemaUrl(rawUrl: string, schema: string): string {
+  const u = new URL(rawUrl);
+  u.searchParams.set("schema", schema);
+  if (!u.searchParams.has("connection_limit")) {
+    const rawLimit = Number(process.env.PRISMA_CONNECTION_LIMIT);
+    const limit =
+      Number.isFinite(rawLimit) && rawLimit >= 1 && rawLimit <= 50
+        ? Math.floor(rawLimit)
+        : DEFAULT_CONNECTION_LIMIT;
+    u.searchParams.set("connection_limit", String(limit));
+  }
+  return u.toString();
+}
+
+function datasourceUrl(schema: string): string {
   const raw = process.env.DATABASE_URL;
   if (!raw) throw new Error("Thiếu DATABASE_URL");
-  const u = new URL(raw);
-  u.search = "";
-  return u.toString();
+  return buildSchemaUrl(raw, schema);
 }
 
 // Đánh dấu schema đã được migrate (ensureSchema / migrate-all / đăng ký tenant gọi).
@@ -30,12 +50,20 @@ export function isSchemaProvisioned(schema: string): boolean {
   return Boolean(globalForPrisma.schemasProvisioned?.has(schema));
 }
 
-// Gỡ client khỏi cache + ngắt pool — dùng khi drop schema để không giữ pool trỏ schema đã xóa.
-export function forgetClient(schema: string): void {
+// Gỡ client khỏi cache + ngắt pool — mặc định ngắt ngay (dùng khi drop schema).
+// Khi evict LRU truyền graceMs > 0 để query đang in-flight kịp xong trước khi đóng pool.
+export function forgetClient(schema: string, graceMs = 0): void {
   const c = globalForPrisma.prismaClients?.get(schema);
   if (c) {
     globalForPrisma.prismaClients!.delete(schema);
-    void c.$disconnect().catch(() => {});
+    if (graceMs > 0) {
+      const t = setTimeout(() => {
+        void c.$disconnect().catch(() => {});
+      }, graceMs);
+      t.unref?.();
+    } else {
+      void c.$disconnect().catch(() => {});
+    }
   }
 }
 
@@ -59,15 +87,15 @@ export function getClientForSchema(schema: string): PrismaClient {
     return c;
   }
   c = new PrismaClient({
-    datasources: { db: { url: `${baseUrl()}?schema=${encodeURIComponent(schema)}` } },
+    datasources: { db: { url: datasourceUrl(schema) } },
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
   map.set(schema, c);
-  // Tenant <10 nên MAX 10 đủ — vượt thì evict key cũ nhất (đầu Map) + disconnect pool.
+  // Tenant <10 nên MAX 10 đủ — vượt thì evict key cũ nhất (đầu Map) + trì hoãn disconnect để không cắt query in-flight.
   while (map.size > MAX_CLIENTS) {
     const oldest = map.keys().next().value as string | undefined;
     if (oldest === undefined || oldest === schema) break;
-    forgetClient(oldest);
+    forgetClient(oldest, EVICT_DISCONNECT_GRACE_MS);
   }
   return c;
 }

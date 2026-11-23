@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { enterTenantScope, getTenantSchema, runWithTenant } from "./tenant-context";
+import { buildSchemaUrl } from "./db";
 
 describe("tenant-context (ALS)", () => {
   it("ngoài scope → schema 'public'", () => {
@@ -47,5 +48,22 @@ describe("tenant-context (ALS)", () => {
     expect(getTenantSchema()).toBe("direct");
     await Promise.resolve();
     expect(getTenantSchema()).toBe("direct");
+  });
+});
+
+describe("buildSchemaUrl", () => {
+  it("giữ sslmode, ghi đè schema và mặc định gắn connection_limit=5", () => {
+    const out = buildSchemaUrl("postgresql://u:p@host:5432/ek?sslmode=require&schema=public", "shopa");
+    const u = new URL(out);
+    expect(u.searchParams.get("sslmode")).toBe("require");
+    expect(u.searchParams.get("schema")).toBe("shopa");
+    expect(u.searchParams.get("connection_limit")).toBe("5");
+  });
+
+  it("tôn trọng connection_limit đã đặt sẵn trong DATABASE_URL", () => {
+    const out = buildSchemaUrl("postgresql://u:p@host:5432/ek?connection_limit=3", "shopb");
+    const u = new URL(out);
+    expect(u.searchParams.get("schema")).toBe("shopb");
+    expect(u.searchParams.get("connection_limit")).toBe("3");
   });
 });
