@@ -1,8 +1,11 @@
 import OpenAI from "openai";
 import { siteConfig } from "@/config/site";
 import { getOrderByCode, getProductById, listOrders, listProducts } from "@/server/commerce";
+import { getEffectiveSiteConfig } from "@/server/settings";
 
-const MODEL = "grok-4.6";
+function aiModel() {
+  return process.env.XAI_MODEL?.trim() || "grok-4.6";
+}
 
 export function aiConfigured() {
   return Boolean(process.env.XAI_API_KEY);
@@ -38,21 +41,33 @@ export function sanitizeChatMessages(raw: unknown): ChatMsg[] {
 export async function shopChat(messages: ChatMsg[]) {
   const clean = sanitizeChatMessages(messages);
   if (!clean.length) return "Bạn chưa gửi câu hỏi — thử hỏi size, giá hoặc còn hàng nhé.";
-  const products = (await listProducts({ pageSize: 20 })).items;
+  const lastUser = [...clean].reverse().find((m) => m.role === "user")?.content ?? "";
+  // Ưu tiên sản phẩm khớp câu hỏi mới nhất (full-text search) để shop >20 SP không bị mù catalog,
+  // sau đó bù thêm sản phẩm mới nhất nếu kết quả khớp ít.
+  const [effective, matched] = await Promise.all([
+    getEffectiveSiteConfig(),
+    lastUser.trim() ? listProducts({ q: lastUser.slice(0, 120), pageSize: 20 }) : Promise.resolve({ items: [] }),
+  ]);
+  let products = matched.items;
+  if (products.length < 10) {
+    const fallback = (await listProducts({ pageSize: 20 })).items;
+    const seen = new Set(products.map((p) => p.id));
+    products = [...products, ...fallback.filter((p) => !seen.has(p.id))].slice(0, 20);
+  }
   const catalog = products
     .map((p) => `- ${p.name} (${p.slug}): ${p.price}đ, còn ${p.stock}`)
     .join("\n");
 
   const openai = client();
   const response = await openai.chat.completions.create({
-    model: MODEL,
+    model: aiModel(),
     max_tokens: MAX_TOKENS,
     messages: [
       {
         role: "system",
         content:
-          `Bạn là trợ lý bán hàng của ${siteConfig.brand.name}. Trả lời tiếng Việt, ngắn, lịch sự. ` +
-          `Chỉ tư vấn sản phẩm trong catalog. Không bịa giá. Gợi ý liên hệ ${siteConfig.brand.hotline} khi cần người thật.\n\n` +
+          `Bạn là trợ lý bán hàng của ${effective.brand.name}. Trả lời tiếng Việt, ngắn, lịch sự. ` +
+          `Chỉ tư vấn sản phẩm trong catalog. Không bịa giá. Gợi ý liên hệ ${effective.brand.hotline} khi cần người thật.\n\n` +
           `Catalog:\n${catalog || "(trống)"}`,
       },
       ...clean,
@@ -151,7 +166,7 @@ async function runTool(name: string, argsJson: string) {
     if (!p) return "Không tìm thấy sản phẩm";
     const openai = client();
     const drafted = await openai.chat.completions.create({
-      model: MODEL,
+      model: aiModel(),
       max_tokens: 400,
       messages: [
         {
@@ -168,12 +183,13 @@ async function runTool(name: string, argsJson: string) {
 export async function runStoreAgent(messages: ChatMsg[]) {
   const clean = sanitizeChatMessages(messages);
   if (!clean.length) return "Chưa có đầu vào — hãy mô tả tác vụ.";
+  const effective = await getEffectiveSiteConfig();
   const openai = client();
   const chat: OpenAI.Chat.ChatCompletionMessageParam[] = [
     {
       role: "system",
       content:
-        `Bạn là AI Agent vận hành cửa hàng ${siteConfig.brand.name}. Tiếng Việt. ` +
+        `Bạn là AI Agent vận hành cửa hàng ${effective.brand.name}. Tiếng Việt. ` +
         `Dùng tool khi cần dữ liệu thật. Không bịa mã đơn hay tồn kho. ` +
         `Không tự ghi DB. Nếu soạn mô tả, trả về text để người quản trị bấm lưu.`,
     },
@@ -182,7 +198,7 @@ export async function runStoreAgent(messages: ChatMsg[]) {
 
   for (let i = 0; i < 6; i++) {
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model: aiModel(),
       max_tokens: MAX_TOKENS,
       messages: chat,
       tools: agentTools,

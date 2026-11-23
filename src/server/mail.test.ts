@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { prisma } from "./db";
-import { sendMail, smtpConfigured } from "./mail";
+import { mailPasswordReset, sendMail, smtpConfigured } from "./mail";
+
+vi.mock("next/cache", () => ({
+  unstable_cache: (fn: () => Promise<unknown>) => fn,
+  revalidateTag: () => {},
+}));
 
 describe("mail", () => {
   it("chưa cấu hình SMTP thì chỉ ghi DB, không throw", async () => {
@@ -28,5 +33,28 @@ describe("mail", () => {
     delete process.env.SMTP_PORT;
     delete process.env.SMTP_USER;
     delete process.env.SMTP_PASS;
+  });
+
+  it("mailPasswordReset lấy tên brand từ SiteSetting (multi-tenant), không hardcode file config", async () => {
+    delete process.env.SMTP_HOST;
+    const prev = await prisma.siteSetting.findUnique({ where: { key: "brand" } });
+    const to = `brand-${Date.now()}@kit.vn`;
+    try {
+      await prisma.siteSetting.upsert({
+        where: { key: "brand" },
+        create: { key: "brand", value: JSON.stringify({ name: "TenantMailTest" }) },
+        update: { value: JSON.stringify({ name: "TenantMailTest" }) },
+      });
+      await mailPasswordReset(to, "https://shop.test/reset");
+      const log = await prisma.mailLog.findFirst({ where: { to }, orderBy: { createdAt: "desc" } });
+      expect(log?.subject).toBe("[TenantMailTest] Đặt lại mật khẩu");
+    } finally {
+      if (prev) {
+        await prisma.siteSetting.update({ where: { key: "brand" }, data: { value: prev.value } });
+      } else {
+        await prisma.siteSetting.deleteMany({ where: { key: "brand" } });
+      }
+      await prisma.mailLog.deleteMany({ where: { to } });
+    }
   });
 });

@@ -110,24 +110,33 @@ export async function retryFailedMails(now = Date.now()) {
   return { retried: candidates.length, sent };
 }
 
+async function effectiveBrandName() {
+  const { getEffectiveSiteConfig } = await import("@/server/settings");
+  const cfg = await getEffectiveSiteConfig().catch(() => null);
+  return cfg?.brand.name || siteConfig.brand.name;
+}
+
 export async function mailOrderCreated(order: Order) {
+  const brand = await effectiveBrandName();
   await sendMail(
     order.email,
-    `[${siteConfig.brand.name}] Đơn ${order.code} đã ghi nhận`,
+    `[${brand}] Đơn ${order.code} đã ghi nhận`,
     `Cảm ơn ${order.customer}. Mã đơn ${order.code}, tổng ${order.total}đ. Trạng thái: chờ xác nhận.`,
   );
 }
 
 export async function mailOrderStatus(order: Order) {
+  const brand = await effectiveBrandName();
   await sendMail(
     order.email,
-    `[${siteConfig.brand.name}] Đơn ${order.code}: ${order.status}`,
+    `[${brand}] Đơn ${order.code}: ${order.status}`,
     `Đơn ${order.code} cập nhật trạng thái: ${order.status}.`,
   );
 }
 
 export async function mailPasswordReset(to: string, url: string) {
-  await sendMail(to, `[${siteConfig.brand.name}] Đặt lại mật khẩu`, `Link (15 phút): ${url}`);
+  const brand = await effectiveBrandName();
+  await sendMail(to, `[${brand}] Đặt lại mật khẩu`, `Link (15 phút): ${url}`);
 }
 
 export async function listMailLog(take = 50) {
