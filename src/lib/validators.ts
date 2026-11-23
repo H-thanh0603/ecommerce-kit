@@ -48,21 +48,26 @@ const nullableInt = z.preprocess(
   z.coerce.number().int().min(1).nullable(),
 );
 
-/** POST /api/coupons/admin — value/minOrder đều không âm, type whitelist. */
-export const couponAdminSchema = z.object({
-  id: z.string().optional(),
-  code: z.string().trim().min(1).max(40),
-  type: z.enum(["percent", "amount"]),
-  value: z.coerce.number().min(0, "Giá trị không âm"),
-  minOrder: z.coerce.number().min(0).default(0),
-  active: z.boolean().default(true),
-  maxUses: nullableInt,
-  maxUsesPerUser: nullableInt,
-  endsAt: z
-    .string()
-    .refine((s) => !Number.isNaN(new Date(s).getTime()), "Ngày hết hạn không hợp lệ")
-    .optional(),
-});
+/** POST /api/coupons/admin — value/minOrder đều không âm, type whitelist, percent ≤ 100. */
+export const couponAdminSchema = z
+  .object({
+    id: z.string().optional(),
+    code: z.string().trim().min(1).max(40),
+    type: z.enum(["percent", "amount"]),
+    value: z.coerce.number().min(0, "Giá trị không âm"),
+    minOrder: z.coerce.number().min(0).default(0),
+    active: z.boolean().default(true),
+    maxUses: nullableInt,
+    maxUsesPerUser: nullableInt,
+    endsAt: z
+      .string()
+      .refine((s) => !Number.isNaN(new Date(s).getTime()), "Ngày hết hạn không hợp lệ")
+      .optional(),
+  })
+  .refine((d) => d.type !== "percent" || d.value <= 100, {
+    path: ["value"],
+    message: "Mã giảm phần trăm tối đa 100%",
+  });
 
 /** Webhook URL — chặn scheme lạ trước khi dispatch/ping ra ngoài (SSRF). */
 export const webhookUrlSchema = z
